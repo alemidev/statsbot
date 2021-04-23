@@ -51,12 +51,9 @@ async def stats_cmd(client, message):
 	uptime = str(datetime.now() - client.start_time)
 	await msg.edit(original_text + f"\n`→ online for {uptime} `" +
 					f"\n` → ` **{DRIVER.deletions}** deletions `|` **{DRIVER.edits}** edits" +
-					f"\n` → ` **{DRIVER.messages}** messages logged (**{msg_count}** total)" +
-					f"\n`  → ` size **{order_suffix(msg_size)}**" +
-					f"\n` → ` **{DRIVER.users}** users seen (**{user_count}** total)" +
-					f"\n`  → ` size **{order_suffix(user_size)}**" +
-					f"\n` → ` **{DRIVER.chats}** chats tracked (**{chat_count}** total)" +
-					f"\n`  → ` size **{order_suffix(chat_size)}**" +
+					f"\n` → ` **{DRIVER.messages}** messages logged (**{msg_count}** total `|` **{order_suffix(msg_size)}**)" +
+					f"\n` → ` **{DRIVER.users}** users seen (**{user_count}** total `|` **{order_suffix(user_size)}**)" +
+					f"\n` → ` **{DRIVER.chats}** chats tracked (**{chat_count}** total `|` **{order_suffix(chat_size)}**)" +
 					f"\n` → ` **{medianumber}** documents archived" + # lmao don't call it scraped_media maybe
 					f"\n`  → ` archive size **{order_suffix(mediasize)}**")
 	await client.set_offline()
