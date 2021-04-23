@@ -4,7 +4,7 @@ from pyrogram.types import Message
 from bot import alemiBot
 from util.serialization import convert_to_dict
 
-from .util.serializer import diff, extract_chat, extract_message, extract_user, extract_delete
+from .util.serializer import diff, extract_chat, extract_message, extract_user, extract_delete, extract_service_message
 
 class DatabaseDriver:
 	def __init__(self):
@@ -36,8 +36,8 @@ class DatabaseDriver:
 		self.db.messages.insert_one(msg)
 		self.messages += 1
 
-		usr = extract_user(message)
-		if usr:
+		if message.from_user:
+			usr = extract_user(message)
 			usr_id = usr["id"]
 			prev = self.db.users.find_one({"id": usr_id})
 			if prev:
@@ -46,9 +46,9 @@ class DatabaseDriver:
 				self.users += 1
 			if usr: # don't insert if no diff!
 				self.db.users.update_one({"id": usr_id}, {"$set": usr}, upsert=True)
-
-		chat = extract_chat(message)
-		if chat:
+		
+		if message.sender_chat:
+			chat = extract_chat(message)
 			chat_id = chat["id"]
 			prev = self.db.chats.find_one({"id": chat_id})
 			if prev:
@@ -58,9 +58,18 @@ class DatabaseDriver:
 			if chat: # don't insert if no diff!
 				self.db.chats.update_one({"id": chat_id}, {"$set": chat}, upsert=True)
 
-	def parse_system_event(self, message:Message):
-		# TODO make these slimmer!
-		self.db.system.insert_one(convert_to_dict(message)) # EWWW don't reuse that util!
+	def parse_service_event(self, message:Message):
+		self.db.system.insert_one(extract_service_message(message))
+		if message.chat:
+			chat = extract_chat(message)
+			chat_id = chat["id"]
+			prev = self.db.chats.find_one({"id": chat_id})
+			if prev:
+				chat = diff(prev, chat)
+			else:
+				self.chats += 1
+			if chat: # don't insert if no diff!
+				self.db.chats.update_one({"id": chat_id}, {"$set": chat}, upsert=True)
 
 	def parse_edit_event(self, message:Message):
 		self.edits += 1

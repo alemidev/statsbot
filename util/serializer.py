@@ -5,6 +5,10 @@ from pyrogram.types import Message, User, Chat
 from util.message import parse_media_type
 from util.getters import get_text
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 def diff(old:Union[dict,str,int], new:Union[dict,str,int]):
 	if not isinstance(old, dict):
 		if old != new:
@@ -26,7 +30,8 @@ def extract_message(msg:Message):
 	return {
 		"_" : "Message",
 		"id" : msg.message_id,
-		"user" : msg.from_user.id if msg.from_user else None,
+		"user" : msg.from_user.id if msg.from_user else \
+			msg.sender_chat.id if msg.sender_chat else None,
 		"chat" : msg.chat.id,
 		"date" : msg.date,
 		"scheduled" : msg.from_scheduled,
@@ -35,64 +40,99 @@ def extract_message(msg:Message):
 		"media" : parse_media_type(msg),
 	}
 
-def extract_user(user:Union[Message,User]):
-	if isinstance(user, Message):
-		user = user.from_user
-	if not user: # if message was sent anonymously
-		return {}
+def extract_service_message(msg:Message):
+	doc = {
+		"_" : "Service",
+		"id" : msg.message_id,
+		"user" : msg.from_user.id if msg.from_user else \
+			msg.sender_chat.id if msg.sender_chat else None,
+		"chat" : msg.chat.id,
+		"date" : msg.date,
+	}
+	if hasattr(msg, "new_chat_members"):
+		doc["new_chat_members"] = [ u.id for u in msg.new_chat_members ]
+	if hasattr(msg, "left_chat_member"):
+		doc["left_chat_member"] = msg.left_chat_member.id
+	if hasattr(msg, "new_chat_title"):
+		doc["new_chat_title"] = msg.new_chat_title
+	if hasattr(msg, "new_chat_photo"):
+		doc["new_chat_photo"] = msg.new_chat_photo.file_unique_id
+		doc["user"] = msg.from_user.id
+	if hasattr(msg, "delete_chat_photo"):
+		doc["delete_chat_photo"] = True
+	for tp in ("group_chat_created", "supergroup_chat_created", "channel_chat_created"):
+		if hasattr(msg, tp):
+			doc[tp] = True
+	for tp in ("migrate_to_chat_id", "migrate_from_chat_id"):
+		if hasattr(msg, tp):
+			doc[tp] = getattr(msg, tp)
+	if hasattr(msg, "pinned_message"):
+		doc["pinned_message"] = msg.pinned_message.message_id
+	if hasattr(msg, "game_score"):
+		logger.error(str(msg.game_score))
+		doc["game_score"] = msg.game_score
+	if hasattr(msg, "voice_chat_started"):
+		logger.error(str(msg.voice_chat_started))
+		doc["voice_chat_started"] = msg.voice_chat_started
+	if hasattr(msg, "voice_chat_ended"):
+		logger.error(str(msg.voice_chat_ended))
+		doc["voice_chat_ended"] = msg.voice_chat_ended
+	if hasattr(msg, "voice_chat_members_invited"):
+		logger.error(str(msg.voice_chat_members_invited))
+		doc["voice_chat_members_invited"] = msg.voice_chat_members_invited 
+	return doc
+
+def extract_user(msg:Message):
 	obj = {
 		"_" : "User",
-		"id" : user.id,
-		"first_name" : user.first_name,
-		"last_name" : user.last_name,
-		"username" : user.username,
-		"dc_id" : user.dc_id,
+		"id" : msg.from_user.id,
+		"first_name" : msg.from_user.first_name,
+		"last_name" : msg.from_user.last_name,
+		"username" : msg.from_user.msg.from_username,
+		"dc_id" : msg.from_user.dc_id,
 		"flags" : {
-			"self" : user.is_self,
-			"contact" : user.is_contact,
-			"mutual_contact" : user.is_mutual_contact,
-			"deleted" : user.is_deleted,
-			"bot" : user.is_bot,
-			"verified" : user.is_verified,
-			"restricted" : user.is_restricted,
-			"scam" : user.is_scam,
-			"fake" : user.is_fake,
-			"support" : user.is_support,
+			"self" : msg.from_user.is_self,
+			"contact" : msg.from_user.is_contact,
+			"mutual_contact" : msg.from_user.is_mutual_contact,
+			"deleted" : msg.from_user.is_deleted,
+			"bot" : msg.from_user.is_bot,
+			"verified" : msg.from_user.is_verified,
+			"restricted" : msg.from_user.is_restricted,
+			"scam" : msg.from_user.is_scam,
+			"fake" : msg.from_user.is_fake,
+			"support" : msg.from_user.is_support,
 		},
 	}
-	if user.photo:
+	if msg.from_user.photo:
 		obj["photo"] = {
-			"small_file_id" : user.photo.small_file_id,
-			"small_photo_unique_id" : user.photo.small_photo_unique_id,
-			"big_file_id" : user.photo.big_file_id,
-			"big_photo_unique_id" : user.photo.big_photo_unique_id,
+			"small_file_id" : msg.from_user.photo.small_file_id,
+			"small_photo_unique_id" : msg.from_user.photo.small_photo_unique_id,
+			"big_file_id" : msg.from_user.photo.big_file_id,
+			"big_photo_unique_id" : msg.from_user.photo.big_photo_unique_id,
 		}
 	return obj
 
-def extract_chat(chat:Union[Message,Chat]):
-	if isinstance(chat, Message):
-		chat = chat.chat
-	if chat.type == "private":
-		return {} # these are already logged as users!
+def extract_chat(msg:Message):
 	obj = {
 		"_" : "Chat",
-		"id" : chat.id,
-		"title" : chat.title,
-		"type" : chat.type,
+		"id" : msg.chat.id,
+		"title" : msg.chat.title,
+		"type" : msg.chat.type,
 		"flags" : {
-			"verified" : chat.is_verified,
-			"restricted" : chat.is_restricted,
-			"scam" : chat.is_scam,
-			"fake" : chat.is_fake,
-			"support" : chat.is_support,
+			"verified" : msg.chat.is_verified,
+			"restricted" : msg.chat.is_restricted,
+			"scam" : msg.chat.is_scam,
+			"fake" : msg.chat.is_fake,
+			"support" : msg.chat.is_support,
+			"created" : msg.chat.is_creator,
 		},
 	}
-	if chat.photo:
+	if msg.chat.photo:
 		obj["photo"] = {
-			"small_file_id" : chat.photo.small_file_id,
-			"small_photo_unique_id" : chat.photo.small_photo_unique_id,
-			"big_file_id" : chat.photo.big_file_id,
-			"big_photo_unique_id" : chat.photo.big_photo_unique_id,
+			"small_file_id" : msg.chat.photo.small_file_id,
+			"small_photo_unique_id" : msg.chat.photo.small_photo_unique_id,
+			"big_file_id" : msg.chat.photo.big_file_id,
+			"big_photo_unique_id" : msg.chat.photo.big_photo_unique_id,
 		}
 	return obj
 
