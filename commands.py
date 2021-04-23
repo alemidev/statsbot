@@ -40,36 +40,32 @@ HELP.add_help(["stats", "stat"], "get stats",
 async def stats_cmd(client, message):
 	logger.info("Getting stats")
 	original_text = message.text.markdown
-	before = time.time()
 	msg = await edit_or_reply(message, "` → ` Fetching stats...")
-	after = time.time()
-	latency = (after - before) * 1000
-	count = DRIVER.db.messages.count({})
-	size = DRIVER.db.command("collstats", "messages")['totalSize']
-	memenumber = len(os.listdir("data/memes"))
-	proc_meme = await asyncio.create_subprocess_exec(
-		"du", "-b", "data/memes",
-		stdout=asyncio.subprocess.PIPE,
-		stderr=asyncio.subprocess.STDOUT)
+	msg_count = DRIVER.db.messages.count({})
+	user_count = DRIVER.db.users.count({})
+	chat_count = DRIVER.db.chats.count({})
+	msg_size = DRIVER.db.command("collstats", "messages")['totalSize']
+	user_size = DRIVER.db.command("collstats", "users")['totalSize']
+	chat_size = DRIVER.db.command("collstats", "chats")['totalSize']
 	medianumber = len(os.listdir("data/scraped_media"))
-	proc_media = await asyncio.create_subprocess_exec(
+	proc = await asyncio.create_subprocess_exec( # This is not cross platform!
 		"du", "-b", "data/scraped_media",
 		stdout=asyncio.subprocess.PIPE,
 		stderr=asyncio.subprocess.STDOUT)
-	stdout, _stderr = await proc_meme.communicate()
-	memesize = float(stdout.decode('utf-8').split("\t")[0])
-	stdout, _stderr = await proc_media.communicate()
+	stdout, _stderr = await proc.communicate()
 	mediasize = float(stdout.decode('utf-8').split("\t")[0])
 
 	uptime = str(datetime.now() - client.start_time)
 	await msg.edit(original_text + f"\n`→ online for {uptime} `" +
-					f"\n` → ` latency **{latency:.0f}**ms" +
-					f"\n` → ` **{DRIVER.messages}** events logged (**{count}** total)" +
-					f"\n` → ` DB size **{order_suffix(size)}**" +
-					f"\n` → ` **{memenumber}** memes collected" +
-					f"\n` → ` meme folder size **{order_suffix(memesize)}**" +
+					f"\n` → ` **{DRIVER.deletions}** deletions `|` **{DRIVER.edits}** edits" +
+					f"\n` → ` **{DRIVER.messages}** messages logged (**{msg_count}** total)" +
+					f"\n`  → ` size **{order_suffix(msg_size)}**" +
+					f"\n` → ` **{DRIVER.users}** users seen (**{user_count}** total)" +
+					f"\n`  → ` size **{order_suffix(user_size)}**" +
+					f"\n` → ` **{DRIVER.chats}** chats tracked (**{chat_count}** total)" +
+					f"\n`  → ` size **{order_suffix(chat_size)}**" +
 					f"\n` → ` **{medianumber}** documents archived" + # lmao don't call it scraped_media maybe
-					f"\n` → ` archive size **{order_suffix(mediasize)}**")
+					f"\n`  → ` archive size **{order_suffix(mediasize)}**")
 	await client.set_offline()
 
 HELP.add_help(["query", "q", "log"], "interact with db",
