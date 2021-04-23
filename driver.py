@@ -43,7 +43,7 @@ class DatabaseDriver:
 			except Exception as e:
 				logger.exception("Serialization error")
 				message.exception = e
-				self.db.exceptions.insert_one(message)
+				self.db.exceptions.insert_one(convert_to_dict(message))
 		return wrapper
 
 	def parse_message_event(self, message:Message, file_name=None):
