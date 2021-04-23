@@ -26,10 +26,10 @@ def extract_message(msg:Message):
 	return {
 		"_" : "Message",
 		"id" : msg.message_id,
-		"from_user" : msg.from_user.id if msg.from_user else None,
+		"user" : msg.from_user.id if msg.from_user else None,
 		"chat" : msg.chat.id,
 		"date" : msg.date,
-		"from_scheduled" : msg.from_scheduled,
+		"scheduled" : msg.from_scheduled,
 		"text" : get_text(msg, raw=True),
 		"edits" : [],
 		"media" : parse_media_type(msg),
