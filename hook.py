@@ -13,10 +13,7 @@ logger = logging.getLogger(__name__)
 async def log_message_hook(client, message): # TODO handle edits!
 	fname = None
 	if DRIVER.log_media:
-		try:
-			fname = await client.download_media(message, file_name="data/scraped_media/")
-		except:
-			logger.exception("Error while downloading media")
+		fname = await client.download_media(message, file_name="data/scraped_media/")
 	if DRIVER.log_messages:
 		DRIVER.parse_message_event(message, file_name=fname)
 
