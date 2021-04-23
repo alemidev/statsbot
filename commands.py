@@ -5,12 +5,7 @@ import logging
 import io
 import os
 
-from pymongo import MongoClient
 from datetime import datetime
-
-from pyrogram import filters
-from pyrogram.types import Object
-from pyrogram.errors.exceptions.flood_420 import FloodWait
 
 from bot import alemiBot
 
@@ -20,72 +15,15 @@ from util.text import tokenize_json
 from util.permission import is_allowed, is_superuser
 from util.getters import get_text, get_text_dict, get_username, get_username_dict, get_channel, get_channel_dict
 from util.message import edit_or_reply, is_me, parse_sys_dict
-from util.serialization import convert_to_dict
 from util.decorators import report_error, set_offline
 from util.help import HelpCategory
+
+from .driver import DRIVER
 
 import logging
 logger = logging.getLogger(__name__)
 
 HELP = HelpCategory("STATISTICS")
-
-# TODO move all this shit in an object somewhere maybe???
-
-LAST_GROUP = "N/A"
-
-kwargs = {}
-host = alemiBot.config.get("database", "host", fallback="localhost")
-port = int(alemiBot.config.get("database", "port", fallback=27017))
-username = alemiBot.config.get("database", "username", fallback=None)
-if username:
-	kwargs["username"] = username
-password = alemiBot.config.get("database", "password", fallback=None)
-if password:
-	kwargs["password"] = password
-
-M_CLIENT = MongoClient(host, port, **kwargs)
-DB = M_CLIENT[alemiBot.config.get("database", "dbname", fallback="alemibot")]
-EVENTS = DB[alemiBot.config.get("database", "collection", fallback="events")]
-
-LOG_MEDIA = alemiBot.config.getboolean("database", "log_media", fallback=False)
-LOG_MESSAGES = alemiBot.config.getboolean("database", "log_messages", fallback=True)
-
-LOGGED_COUNT = 0
-
-# Print in terminal received chats
-@alemiBot.on_message(group=10)
-async def msglogger(client, message):
-	global LOGGED_COUNT
-	global LOG_MEDIA
-	global LOG_MESSAGES
-	if not LOG_MESSAGES:
-		return
-	# print_formatted(message.chat, message.from_user, message)
-	data = convert_to_dict(message)
-	if message.media and LOG_MEDIA and message.edit_date is None: # don't redownload media at edits!
-		try: 
-			fname = await client.download_media(message, file_name="data/scraped_media/")
-			if fname is not None:
-				data["attached_file"] = fname.split("data/scraped_media/")[1]
-		except ValueError:
-			pass # ignore, some messages are marked as media but have nothing to download wtf
-	EVENTS.insert_one(data)
-	LOGGED_COUNT += 1
-
-# Log Message deletions
-@alemiBot.on_deleted_messages(group=10)
-async def dellogger(client, message):
-	global LOGGED_COUNT
-	global LOG_MESSAGES
-	if not LOG_MESSAGES:
-		return
-	data = convert_to_dict(message)
-	for d in data:
-		d["_"] = "Delete"
-		d["date"] = datetime.now()
-		# print(colored("[DELETED]", 'red', attrs=['bold']) + " " + str(d["message_id"]))
-		EVENTS.insert_one(d)
-		LOGGED_COUNT += 1
 
 def order_suffix(num, measure='B'):
 	for unit in ['','Ki','Mi','Gi','Ti','Pi','Ei','Zi']:
@@ -101,14 +39,13 @@ HELP.add_help(["stats", "stat"], "get stats",
 @set_offline
 async def stats_cmd(client, message):
 	logger.info("Getting stats")
-	global LOGGED_COUNT
 	original_text = message.text.markdown
 	before = time.time()
 	msg = await edit_or_reply(message, "` → ` Fetching stats...")
 	after = time.time()
 	latency = (after - before) * 1000
-	count = EVENTS.count({})
-	size = DB.command("collstats", alemiBot.config.get("database", "collection", fallback="events"))['totalSize']
+	count = DRIVER.db.messages.count({})
+	size = DRIVER.db.command("collstats", "messages")['totalSize']
 	memenumber = len(os.listdir("data/memes"))
 	proc_meme = await asyncio.create_subprocess_exec(
 		"du", "-b", "data/memes",
@@ -127,7 +64,7 @@ async def stats_cmd(client, message):
 	uptime = str(datetime.now() - client.start_time)
 	await msg.edit(original_text + f"\n`→ online for {uptime} `" +
 					f"\n` → ` latency **{latency:.0f}**ms" +
-					f"\n` → ` **{LOGGED_COUNT}** events logged (**{count}** total)" +
+					f"\n` → ` **{DRIVER.logged}** events logged (**{count}** total)" +
 					f"\n` → ` DB size **{order_suffix(size)}**" +
 					f"\n` → ` **{memenumber}** memes collected" +
 					f"\n` → ` meme folder size **{order_suffix(memesize)}**" +
@@ -161,10 +98,10 @@ async def query_cmd(client, message):
 		lim = int(args["limit"])
 	logger.info(f"Querying db : {args['arg']}")
 	
-	database = DB
+	database = DRIVER.db
 	if "database" in args:
-		database = M_CLIENT[args["database"]]
-	collection = EVENTS
+		database = DRIVER.client[args["database"]]
+	collection = database.messages
 	if "collection" in args:
 		collection = database[args["collection"]]
 
@@ -219,7 +156,7 @@ async def hist_cmd(client, message):
 		else:
 			c_id = (await client.get_chat(args["group"])).id
 	await client.send_chat_action(message.chat.id, "upload_document")
-	cursor = EVENTS.find( {"_": "Message", "message_id": m_id, "chat.id": c_id},
+	cursor = DRIVER.db.messages.find( {"_": "Message", "message_id": m_id, "chat.id": c_id},
 			{"text": 1, "date": 1, "edit_date": 1} ).sort("date", -1)
 	logger.info("Querying db for message history")
 	out = ""
@@ -321,7 +258,7 @@ async def deleted_cmd(client, message): # This is a mess omg
 	target_group = message.chat
 	include_system = "-sys" in args["flags"]
 	offset = int(args["offset"]) if "offset" in args else 0
-	coll = EVENTS
+	coll = DRIVER.db.messages
 	if is_me(message):
 		if "-all" in args["flags"]:
 			target_group = None
@@ -331,7 +268,7 @@ async def deleted_cmd(client, message): # This is a mess omg
 			else:
 				target_group = await client.get_chat(args["group"])
 		if "collection" in args:
-			coll = DB[args["collection"]]
+			coll = DRIVER.db[args["collection"]]
 	limit = 1
 	if "arg" in args:
 		limit = int(args["arg"])
