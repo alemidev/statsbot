@@ -59,7 +59,7 @@ class DatabaseDriver:
 				self.db.chats.update_one({"id": chat_id}, {"$set": chat}, upsert=True)
 
 	def parse_service_event(self, message:Message):
-		self.db.system.insert_one(extract_service_message(message))
+		self.db.service.insert_one(extract_service_message(message))
 		if message.chat:
 			chat = extract_chat(message)
 			chat_id = chat["id"]
