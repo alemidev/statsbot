@@ -16,8 +16,8 @@ class DatabaseDriver:
 		password = alemiBot.config.get("database", "password", fallback=None)
 		if password:
 			kwargs["password"] = password
-		self.log_messages = alemiBot.config("database", "log_messages", fallback=True)
-		self.log_media = alemiBot.config("database", "log_media", fallback=False)
+		self.log_messages = alemiBot.config.get("database", "log_messages", fallback=True)
+		self.log_media = alemiBot.config.get("database", "log_media", fallback=False)
 		self.logged = 0
 		self.deletions = 0
 
