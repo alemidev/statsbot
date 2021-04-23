@@ -40,6 +40,7 @@ async def stats_cmd(client, message):
 	msg_size = DRIVER.db.command("collstats", "messages")['totalSize']
 	user_size = DRIVER.db.command("collstats", "users")['totalSize']
 	chat_size = DRIVER.db.command("collstats", "chats")['totalSize']
+	db_size = DRIVER.db.command("dbstats")["totalSize"]
 	medianumber = len(os.listdir("data/scraped_media"))
 	proc = await asyncio.create_subprocess_exec( # This is not cross platform!
 		"du", "-b", "data/scraped_media",
@@ -54,6 +55,7 @@ async def stats_cmd(client, message):
 					f"\n` → ` **{DRIVER.messages}** messages logged (**{msg_count}** total `|` **{order_suffix(msg_size)}**)" +
 					f"\n` → ` **{DRIVER.users}** users seen (**{user_count}** total `|` **{order_suffix(user_size)}**)" +
 					f"\n` → ` **{DRIVER.chats}** chats tracked (**{chat_count}** total `|` **{order_suffix(chat_size)}**)" +
+					f"\n` → ` DB total size **{order_suffix(db_size)}**" +
 					f"\n` → ` **{medianumber}** documents archived" + # lmao don't call it scraped_media maybe
 					f"\n`  → ` archive size **{order_suffix(mediasize)}**")
 	await client.set_offline()
