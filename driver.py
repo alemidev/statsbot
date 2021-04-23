@@ -1,3 +1,5 @@
+import functools
+
 from pymongo import MongoClient
 from pyrogram.types import Message
 
@@ -5,6 +7,10 @@ from bot import alemiBot
 from util.serialization import convert_to_dict
 
 from .util.serializer import diff, extract_chat, extract_message, extract_user, extract_delete, extract_service_message
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 class DatabaseDriver:
 	def __init__(self):
@@ -28,6 +34,17 @@ class DatabaseDriver:
 
 		self.client = MongoClient(host, port, **kwargs)
 		self.db = self.client[alemiBot.config.get("database", "dbname", fallback="alemibot")]
+
+	def log_error_event(self, fun):
+		@functools.wraps(fun)
+		async def wrapper(client, message):
+			try:
+				await fun(client, message)
+			except Exception as e:
+				logger.exception("Serialization error")
+				message.exception = e
+				self.db.exceptions.insert_one(message)
+		return wrapper
 
 	def parse_message_event(self, message:Message, file_name=None):
 		msg = extract_message(message)
