@@ -52,7 +52,7 @@ def extract_service_message(msg:Message):
 	if hasattr(msg, "new_chat_members"):
 		doc["new_chat_members"] = [ u.id for u in msg.new_chat_members ]
 	if hasattr(msg, "left_chat_member"):
-		doc["left_chat_member"] = msg.left_chat_member.id
+		doc["left_chat_member"] = msg.left_chat_member.id if msg.left_chat_member else None
 	if hasattr(msg, "new_chat_title"):
 		doc["new_chat_title"] = msg.new_chat_title
 	if hasattr(msg, "new_chat_photo"):
