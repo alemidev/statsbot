@@ -34,7 +34,7 @@ def extract_message(msg:Message):
 def extract_user(user:Union[Message,User]):
 	if isinstance(user, Message):
 		user = user.from_user
-	return {
+	obj = {
 		"_" : "User",
 		"id" : user.id,
 		"first_name" : user.first_name,
@@ -53,23 +53,28 @@ def extract_user(user:Union[Message,User]):
 			"fake" : user.is_fake,
 			"support" : user.is_support,
 		},
-		"photo" : {
-			"small_file_id" : user.photo.small_file_id,
-			"small_photo_unique_id" : user.photo.small_photo_unique_id,
-			"big_file_id" : user.photo.big_file_id,
-			"big_photo_unique_id" : user.photo.big_photo_unique_id,
-		},
 		"count": {
 			"total" : 1,
 		}
 	}
+	if user.photo:
+		obj["photo"] = {
+			"small_file_id" : user.photo.small_file_id,
+			"small_photo_unique_id" : user.photo.small_photo_unique_id,
+			"big_file_id" : user.photo.big_file_id,
+			"big_photo_unique_id" : user.photo.big_photo_unique_id,
+		}
+	return obj
 
 def extract_chat(chat:Union[Message,Chat]):
 	if isinstance(chat, Message):
 		chat = chat.chat
-	return {
+	if chat.type == "private":
+		return {} # these are already logged as users!
+	obj = {
 		"_" : "Chat",
 		"id" : chat.id,
+		"title" : chat.title,
 		"type" : chat.type,
 		"flags" : {
 			"verified" : chat.is_verified,
@@ -80,6 +85,14 @@ def extract_chat(chat:Union[Message,Chat]):
 		},
 		"count" : 1,
 	}
+	if chat.photo:
+		obj["photo"] = {
+			"small_file_id" : chat.photo.small_file_id,
+			"small_photo_unique_id" : chat.photo.small_photo_unique_id,
+			"big_file_id" : chat.photo.big_file_id,
+			"big_photo_unique_id" : chat.photo.big_photo_unique_id,
+		}
+	return obj
 
 def extract_delete(deletion:Message):
 	return {

@@ -46,14 +46,15 @@ class DatabaseDriver:
 			self.db.users.update_one({"id": usr_id}, {"$set": usr}, upsert=True)
 
 		chat = extract_chat(message)
-		chat_id = chat["id"]
-		prev = self.db.chats.find_one({"id": chat_id})
-		if prev:
-			chat = diff(prev, chat)
-		else:
-			self.chats += 1
-		if chat: # don't insert if no diff!
-			self.db.chats.update_one({"id": chat_id}, {"$set": chat}, upsert=True)
+		if chat:
+			chat_id = chat["id"]
+			prev = self.db.chats.find_one({"id": chat_id})
+			if prev:
+				chat = diff(prev, chat)
+			else:
+				self.chats += 1
+			if chat: # don't insert if no diff!
+				self.db.chats.update_one({"id": chat_id}, {"$set": chat}, upsert=True)
 
 	def parse_edit_event(self, message:Message):
 		self.edits += 1
