@@ -19,7 +19,7 @@ HELP = HelpCategory("SCOREBOARDS")
 HELP.add_help(["topmsg", "topmsgs", "top_messages"], "list tracked messages for users",
 				"checks (tracked) number of messages sent by group members in this chat. " +
 				"Add flag `-all` to list all messages tracked of users in this chat, or `-g` and " +
-				"specify a group to count in. By default, will only list top 10 members, but " +
+				"specify a group to count in. By default, will only list top 25 members, but " +
 				"number of results can be specified with `-r`", args="[-all | -g <group>] [-r <n>]", public=True)
 @alemiBot.on_message(is_allowed & filterCommand(["topmsg", "topmsgs", "top_messages"], list(alemiBot.prefixes), options={
 	"chat" : ["-g", "--group"],
@@ -29,7 +29,7 @@ HELP.add_help(["topmsg", "topmsgs", "top_messages"], "list tracked messages for 
 @set_offline
 async def query_cmd(client, message):
 	global_search = "-all" in message.command["flags"]
-	results = int(message.command["results"]) if "results" in message.command else 10
+	results = int(message.command["results"]) if "results" in message.command else 25
 	chat_id = message.command["chat"] if "chat" in message.command else message.chat.id
 	chat_title = get_channel(message.chat)
 	if type(chat_id) is not int:
