@@ -19,14 +19,17 @@ HELP = HelpCategory("SCOREBOARDS")
 HELP.add_help(["topmsg", "topmsgs", "top_messages"], "list tracked messages for users",
 				"checks (tracked) number of messages sent by group members in this chat. " +
 				"Add flag `-all` to list all messages tracked of users in this chat, or `-g` and " +
-				"specify a group to count in.", args="[-all | -g <group>]", public=True)
+				"specify a group to count in. By default, will only list top 10 members, but " +
+				"number of results can be specified with `-r`", args="[-all | -g <group>] [-r <n>]", public=True)
 @alemiBot.on_message(is_allowed & filterCommand(["topmsg", "topmsgs", "top_messages"], list(alemiBot.prefixes), options={
-	"chat" : ["-g", "-group"],
+	"chat" : ["-g", "--group"],
+	"results" : ["-r", "--results"],
 }, flags=["-all"]))
 @report_error(logger)
 @set_offline
 async def query_cmd(client, message):
-	global_search = "all" in message.command["flags"]
+	global_search = "-all" in message.command["flags"]
+	results = int(message.command["results"]) if "results" in message.command else 10
 	chat_id = message.command["chat"] if "chat" in message.command else message.chat.id
 	chat_title = get_channel(message.chat)
 	if type(chat_id) is not int:
@@ -50,8 +53,12 @@ async def query_cmd(client, message):
 		res.append((get_username(member.user), DRIVER.db.messages.count_documents(flt)))
 	res.sort(key=lambda x: x[1], reverse=True)
 	stars = 3
+	count = 0
 	out = "`→ ` Messages sent\n" if global_search else f"`→ ` Messages sent in {chat_title}\n"
 	for usr, msgs in res:
 		out += f"` → ` **{usr}** [`{msgs}`] {'☆'*stars}\n"
 		stars -= 1
+		count += 1
+		if count >= results:
+			break
 	await edit_or_reply(message, out)
