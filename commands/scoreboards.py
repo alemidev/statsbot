@@ -18,9 +18,11 @@ HELP = HelpCategory("SCOREBOARDS")
 
 HELP.add_help(["topmsg", "topmsgs", "top_messages"], "list tracked messages for users",
 				"checks (tracked) number of messages sent by group members in this chat. " +
-				"Add flag `-all` to list all messages tracked of users in this chat",
-				public=True)
-@alemiBot.on_message(is_allowed & filterCommand(["topmsg", "topmsgs", "top_messages"], list(alemiBot.prefixes), flags=["-all"]))
+				"Add flag `-all` to list all messages tracked of users in this chat, or `-g` and " +
+				"specify a group to count in.", args="[-all | -g <group>]", public=True)
+@alemiBot.on_message(is_allowed & filterCommand(["topmsg", "topmsgs", "top_messages"], list(alemiBot.prefixes), options={
+	"chat" : ["-g", "-group"],
+}, flags=["-all"]))
 @report_error(logger)
 @set_offline
 async def query_cmd(client, message):
