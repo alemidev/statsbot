@@ -35,6 +35,7 @@ async def query_cmd(client, message):
 			chat_title = get_channel(chat)
 			chat_id = chat.id
 	res = []
+	await edit_or_reply(message, "`→ ` Querying...")
 	await client.send_chat_action(message.chat.id, "upload_document")
 	now = time()
 	async for member in message.chat.iter_members():
@@ -49,6 +50,6 @@ async def query_cmd(client, message):
 	stars = 3
 	out = "`→ ` Messages sent\n" if global_search else f"`→ ` Messages sent in {chat_title}\n"
 	for usr, msgs in res:
-		out += f"` → ` {'☆'*stars} **{usr}** [`{msgs}`]\n"
+		out += f"` → ` **{usr}** [`{msgs}`] {'☆'*stars}\n"
 		stars -= 1
 	await edit_or_reply(message, out)
