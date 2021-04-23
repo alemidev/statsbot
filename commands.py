@@ -144,11 +144,11 @@ async def hist_cmd(client, message):
 			c_id = int(args["group"])
 		else:
 			c_id = (await client.get_chat(args["group"])).id
-	format_text = lambda doc: f"\n` → ` [--{doc['date']}--] {doc['text']}" \
+	format_text = (lambda doc: f"\n` → ` [--{doc['date']}--] {doc['text']}") \
 					if show_time else \
-				  lambda doc: f"\n` → ` {edit['text']}"
+				  (lambda doc: f"\n` → ` {edit['text']}")
 	logger.info("Querying db for message history")
-	doc = DRIVER.db.messages.find_one({"id": m_id, "chat": c_id},sort=[("date", DESCENDING)])
+	doc = DRIVER.db.messages.find_one({"id": m_id, "chat": c_id}, sort=[("date", DESCENDING)])
 	if doc:
 		out = f"`→ ` **{get_username(message.from_user)}** {doc['text']}"
 		for edit in doc["edits"]:
