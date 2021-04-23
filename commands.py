@@ -147,7 +147,7 @@ async def hist_cmd(client, message):
 				  lambda doc: f"\n` → ` {edit['text']}"
 	logger.info("Querying db for message history")
 	doc = DRIVER.db.messages.find_one(
-		filter={"text": 1, "date": 1, "edit": 1},
+		{"text": 1, "date": 1, "edit": 1},
 		{"id": m_id, "chat": c_id}
 	).sort("date", -1)
 	out = f"`→ ` **{get_username(message.from_user)}** {doc['text']}"
