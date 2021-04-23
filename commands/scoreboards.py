@@ -44,7 +44,7 @@ async def query_cmd(client, message):
 		flt = {"user": member.user.id}
 		if not global_search:
 			flt["chat"] = chat_id
-		res.append(get_username(member.user), DRIVER.db.messages.count_documents(flt))
+		res.append((get_username(member.user), DRIVER.db.messages.count_documents(flt)))
 	res.sort(key=lambda x: x[1], reverse=True)
 	stars = 3
 	out = "`→ ` Messages sent\n" if global_search else f"`→ ` Messages sent in {chat_title}\n"
