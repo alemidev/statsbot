@@ -88,7 +88,7 @@ def extract_user(msg:Message):
 		"id" : msg.from_user.id,
 		"first_name" : msg.from_user.first_name,
 		"last_name" : msg.from_user.last_name,
-		"username" : msg.from_user.msg.from_username,
+		"username" : msg.from_user.username,
 		"dc_id" : msg.from_user.dc_id,
 		"flags" : {
 			"self" : msg.from_user.is_self,
