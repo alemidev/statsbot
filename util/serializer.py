@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, List
 
 from pyrogram.types import Message, User, Chat
 
@@ -94,10 +94,13 @@ def extract_chat(chat:Union[Message,Chat]):
 		}
 	return obj
 
-def extract_delete(deletion:Message):
-	return {
-		"_" : "Delete",
-		"id": deletion.message_id,
-		"chat": deletion.chat.id if deletion.chat else None,
-		"date": deletion.date,
-	}
+def extract_delete(deletions:List[Message]):
+	out = []
+	for deletion in deletions:
+		out.append({
+			"_" : "Delete",
+			"id": deletion.message_id,
+			"chat": deletion.chat.id if deletion.chat else None,
+			"date": deletion.date,
+		})
+	return out

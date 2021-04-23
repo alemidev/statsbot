@@ -64,13 +64,14 @@ class DatabaseDriver:
 		)
 
 	def parse_deletion_event(self, message:Message):
-		deletion = extract_delete(message)
-		self.db.deletions.insert_one(deletion)
-		self.deletions += 1
+		deletions = extract_delete(message)
+		for deletion in deletions:
+			self.db.deletions.insert_one(deletion)
+			self.deletions += 1
 
-		flt = {"id": deletion["id"]}
-		if "chat" in deletion:
-			flt["chat"] = deletion["chat"]
-		self.db.messages.update_one(flt, {"$set": {"deleted": True}})
+			flt = {"id": deletion["id"]}
+			if "chat" in deletion:
+				flt["chat"] = deletion["chat"]
+			self.db.messages.update_one(flt, {"$set": {"deleted": True}})
 
 DRIVER = DatabaseDriver()
