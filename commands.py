@@ -148,7 +148,7 @@ async def hist_cmd(client, message):
 	logger.info("Querying db for message history")
 	doc = DRIVER.db.messages.find_one(
 		{"id": m_id, "chat": c_id},
-		{"text": 1, "date": 1, "edit": 1}
+		filter={"text": 1, "date": 1, "edit": 1}
 	).sort("date", -1)
 	out = f"`→ ` **{get_username(message.from_user)}** {doc['text']}"
 	for edit in doc["edits"]:
@@ -202,7 +202,7 @@ async def deleted_cmd(client, message): # This is a mess omg
 		out += LINE.format(
 			time=str(doc["date"]) + " " if show_time else "",
 			m_id=doc["id"],
-			user=doc["user"],
+			user=get_username(await client.get_users(doc["user"])),
 			where=get_channel(target_group) if target_group is None else "",
 			text=doc["text"],
 			media=doc["media"],
@@ -210,6 +210,8 @@ async def deleted_cmd(client, message): # This is a mess omg
 		count += 1
 		if count >= limit:
 			break
+	if count == 0:
+		out += "`[!] → ` Nothing to display"
 	await response.edit(out)
 
 
