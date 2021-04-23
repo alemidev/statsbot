@@ -11,7 +11,7 @@ from bot import alemiBot
 
 from util import batchify
 from util.command import filterCommand
-from util.text import tokenize_json
+from util.text import tokenize_json, order_suffix
 from util.permission import is_allowed, is_superuser
 from util.getters import get_text, get_text_dict, get_username, get_username_dict, get_channel, get_channel_dict
 from util.message import edit_or_reply, is_me, parse_sys_dict
@@ -24,13 +24,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 HELP = HelpCategory("STATISTICS")
-
-def order_suffix(num, measure='B'):
-	for unit in ['','Ki','Mi','Gi','Ti','Pi','Ei','Zi']:
-		if abs(num) < 1024.0:
-			return "{n:3.1f} {u}{m}".format(n=num, u=unit, m=measure)
-		num /= 1024.0
-	return "{n:.1f} Yi{m}".format(n=num, m=measure)
 
 HELP.add_help(["stats", "stat"], "get stats",
 				"Get uptime, disk usage for media and for db, number of tracked events.", public=True)
