@@ -49,35 +49,35 @@ def extract_service_message(msg:Message):
 		"chat" : msg.chat.id,
 		"date" : msg.date,
 	}
-	if hasattr(msg, "new_chat_members"):
+	if hasattr(msg, "new_chat_members") and msg.new_chat_members:
 		doc["new_chat_members"] = [ u.id for u in msg.new_chat_members ]
-	if hasattr(msg, "left_chat_member"):
+	if hasattr(msg, "left_chat_member") and msg.left_chat_member:
 		doc["left_chat_member"] = msg.left_chat_member.id if msg.left_chat_member else None
-	if hasattr(msg, "new_chat_title"):
+	if hasattr(msg, "new_chat_title") and msg.new_chat_title:
 		doc["new_chat_title"] = msg.new_chat_title
-	if hasattr(msg, "new_chat_photo"):
+	if hasattr(msg, "new_chat_photo") and msg.new_chat_photo:
 		doc["new_chat_photo"] = msg.new_chat_photo.file_unique_id if msg.new_chat_photo.file_unique_id else None
 		doc["user"] = msg.from_user.id
-	if hasattr(msg, "delete_chat_photo"):
+	if hasattr(msg, "delete_chat_photo") and msg.delete_chat_photo:
 		doc["delete_chat_photo"] = True
 	for tp in ("group_chat_created", "supergroup_chat_created", "channel_chat_created"):
-		if hasattr(msg, tp):
+		if hasattr(msg, tp) and getattr(msg, tp):
 			doc[tp] = True
 	for tp in ("migrate_to_chat_id", "migrate_from_chat_id"):
-		if hasattr(msg, tp):
+		if hasattr(msg, tp) and getattr(msg, tp):
 			doc[tp] = getattr(msg, tp)
-	if hasattr(msg, "pinned_message"):
+	if hasattr(msg, "pinned_message") and msg.pinned_message:
 		doc["pinned_message"] = msg.pinned_message.message_id
-	if hasattr(msg, "game_score"):
+	if hasattr(msg, "game_score") and msg.game_score:
 		logger.error(str(msg.game_score))
 		doc["game_score"] = msg.game_score
-	if hasattr(msg, "voice_chat_started"):
+	if hasattr(msg, "voice_chat_started") and msg.voice_chat_started:
 		logger.error(str(msg.voice_chat_started))
 		doc["voice_chat_started"] = msg.voice_chat_started
-	if hasattr(msg, "voice_chat_ended"):
+	if hasattr(msg, "voice_chat_ended") and msg.voice_chat_ended:
 		logger.error(str(msg.voice_chat_ended))
 		doc["voice_chat_ended"] = msg.voice_chat_ended
-	if hasattr(msg, "voice_chat_members_invited"):
+	if hasattr(msg, "voice_chat_members_invited") and msg.voice_chat_members_invited:
 		logger.error(str(msg.voice_chat_members_invited))
 		doc["voice_chat_members_invited"] = msg.voice_chat_members_invited 
 	return doc
