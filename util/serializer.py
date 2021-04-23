@@ -3,6 +3,7 @@ from typing import Union, List
 from pyrogram.types import Message, User, Chat
 
 from util.message import parse_media_type
+from util.getters import get_text
 
 def diff(old:Union[dict,str,int], new:Union[dict,str,int]):
 	if not isinstance(old, dict):
@@ -29,7 +30,7 @@ def extract_message(msg:Message):
 		"chat" : msg.chat.id,
 		"date" : msg.date,
 		"from_scheduled" : msg.from_scheduled,
-		"text" : msg.text if msg.text else msg.caption if msg.caption else None,
+		"text" : get_text(msg, raw=True),
 		"edits" : [],
 		"media" : parse_media_type(msg),
 	}
