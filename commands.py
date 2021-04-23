@@ -56,8 +56,7 @@ async def stats_cmd(client, message):
 					f"\n` → ` **{DRIVER.users}** users seen (**{user_count}** total `|` **{order_suffix(user_size)}**)" +
 					f"\n` → ` **{DRIVER.chats}** chats tracked (**{chat_count}** total `|` **{order_suffix(chat_size)}**)" +
 					f"\n` → ` DB total size **{order_suffix(db_size)}**" +
-					f"\n` → ` **{medianumber}** documents archived" + # lmao don't call it scraped_media maybe
-					f"\n`  → ` archive size **{order_suffix(mediasize)}**")
+					f"\n` → ` **{medianumber}** documents archived (size **{order_suffix(mediasize)}**)")
 	await client.set_offline()
 
 HELP.add_help(["query", "q", "log"], "interact with db",
