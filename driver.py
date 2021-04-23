@@ -2,6 +2,7 @@ from pymongo import MongoClient
 from pyrogram.types import Message
 
 from bot import alemiBot
+from util.serialization import convert_to_dict
 
 from .util.serializer import diff, extract_chat, extract_message, extract_user, extract_delete
 
@@ -56,6 +57,10 @@ class DatabaseDriver:
 				self.chats += 1
 			if chat: # don't insert if no diff!
 				self.db.chats.update_one({"id": chat_id}, {"$set": chat}, upsert=True)
+
+	def parse_system_event(self, message:Message):
+		# TODO make these slimmer!
+		self.db.system.insert_one(convert_to_dict(message)) # EWWW don't reuse that util!
 
 	def parse_edit_event(self, message:Message):
 		self.edits += 1
