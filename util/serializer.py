@@ -23,7 +23,7 @@ def extract_message(msg:Message):
 	return {
 		"_" : "Message",
 		"id" : msg.message_id,
-		"from_user" : msg.from_user.id,
+		"from_user" : msg.from_user.id if msg.from_user else None,
 		"chat" : msg.chat.id,
 		"date" : msg.date,
 		"from_scheduled" : msg.from_scheduled,
@@ -34,6 +34,8 @@ def extract_message(msg:Message):
 def extract_user(user:Union[Message,User]):
 	if isinstance(user, Message):
 		user = user.from_user
+	if not user: # if message was sent anonymously
+		return {}
 	obj = {
 		"_" : "User",
 		"id" : user.id,

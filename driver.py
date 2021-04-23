@@ -36,14 +36,15 @@ class DatabaseDriver:
 		self.messages += 1
 
 		usr = extract_user(message)
-		usr_id = usr["id"]
-		prev = self.db.users.find_one({"id": usr_id})
-		if prev:
-			usr = diff(prev, usr)
-		else:
-			self.users += 1
-		if usr: # don't insert if no diff!
-			self.db.users.update_one({"id": usr_id}, {"$set": usr}, upsert=True)
+		if usr:
+			usr_id = usr["id"]
+			prev = self.db.users.find_one({"id": usr_id})
+			if prev:
+				usr = diff(prev, usr)
+			else:
+				self.users += 1
+			if usr: # don't insert if no diff!
+				self.db.users.update_one({"id": usr_id}, {"$set": usr}, upsert=True)
 
 		chat = extract_chat(message)
 		if chat:
