@@ -56,7 +56,7 @@ def extract_service_message(msg:Message):
 	if hasattr(msg, "new_chat_title"):
 		doc["new_chat_title"] = msg.new_chat_title
 	if hasattr(msg, "new_chat_photo"):
-		doc["new_chat_photo"] = msg.new_chat_photo.file_unique_id
+		doc["new_chat_photo"] = msg.new_chat_photo.file_unique_id if msg.new_chat_photo.file_unique_id else None
 		doc["user"] = msg.from_user.id
 	if hasattr(msg, "delete_chat_photo"):
 		doc["delete_chat_photo"] = True
