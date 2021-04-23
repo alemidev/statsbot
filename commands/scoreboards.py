@@ -1,5 +1,7 @@
 from time import time
 
+from pymongo import ASCENDING
+
 from bot import alemiBot
 
 from util.command import filterCommand
@@ -27,7 +29,7 @@ HELP.add_help(["topmsg", "topmsgs", "top_messages"], "list tracked messages for 
 }, flags=["-all"]))
 @report_error(logger)
 @set_offline
-async def query_cmd(client, message):
+async def top_messages_cmd(client, message):
 	global_search = "-all" in message.command["flags"]
 	results = int(message.command["results"]) if "results" in message.command else 25
 	chat_id = message.command["chat"] if "chat" in message.command else message.chat.id
@@ -57,6 +59,49 @@ async def query_cmd(client, message):
 	out = "`→ ` Messages sent\n" if global_search else f"`→ ` Messages sent in {chat_title}\n"
 	for usr, msgs in res:
 		out += f"` → ` **{usr}** [`{msgs}`] {'☆'*stars}\n"
+		stars -= 1
+		count += 1
+		if count >= results:
+			break
+	await edit_or_reply(message, out)
+
+HELP.add_help(["joindate", "joindates", "joined_date"], "list date users joined group",
+				"checks (tracked) join date for users in current chat. A specific group can be " +
+				"specified with `-g`.By default, will only list oldest 25 members, but " +
+				"number of results can be specified with `-r`", args="[-g <group>] [-r <n>]", public=True)
+@alemiBot.on_message(is_allowed & filterCommand(["topmsg", "topmsgs", "top_messages"], list(alemiBot.prefixes), options={
+	"chat" : ["-g", "--group"],
+	"results" : ["-r", "--results"],
+}))
+@report_error(logger)
+@set_offline
+async def joindate_cmd(client, message):
+	results = int(message.command["results"]) if "results" in message.command else 25
+	chat_id = message.command["chat"] if "chat" in message.command else message.chat.id
+	chat_title = get_channel(message.chat)
+	if type(chat_id) is not int:
+		if chat_id.isnumeric():
+			chat_id = int(chat_id)
+		else:
+			chat = await client.get_chat(chat_id)
+			chat_title = get_channel(chat)
+			chat_id = chat.id
+	res = []
+	await edit_or_reply(message, "`→ ` Querying...")
+	await client.send_chat_action(message.chat.id, "upload_document")
+	now = time()
+	async for member in message.chat.iter_members():
+		if time() - now > 5:
+			await client.send_chat_action(message.chat.id, "upload_document")
+			now = time()
+		res.append((get_username(member.user),
+			DRIVER.db.service.find_one({"new_chat_members":member.user.id}, sort=[("date", ASCENDING)])["date"]))
+	res.sort(key=lambda x: x[1])
+	stars = 3
+	count = 0
+	out = f"`→ ` Join dates in {chat_title}\n"
+	for usr, date in res:
+		out += f"` → ` **{usr}** [`{str(date)}`] {'☆'*stars}\n"
 		stars -= 1
 		count += 1
 		if count >= results:
