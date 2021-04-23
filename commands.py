@@ -7,6 +7,8 @@ import os
 
 from datetime import datetime
 
+from pymongo import ASCENDING
+
 from bot import alemiBot
 
 from util import batchify
@@ -148,8 +150,8 @@ async def hist_cmd(client, message):
 	logger.info("Querying db for message history")
 	doc = DRIVER.db.messages.find_one(
 		{"text": 1, "date": 1, "edit": 1},
-		{"id": m_id, "chat": c_id}
-	).sort("date", -1)
+		{"id": m_id, "chat": c_id},
+		sort=("date", ASCENDING))
 	out = f"`→ ` **{get_username(message.from_user)}** {doc['text']}"
 	for edit in doc["edits"]:
 		out += format_text(doc)
