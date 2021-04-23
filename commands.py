@@ -64,7 +64,7 @@ async def stats_cmd(client, message):
 	uptime = str(datetime.now() - client.start_time)
 	await msg.edit(original_text + f"\n`→ online for {uptime} `" +
 					f"\n` → ` latency **{latency:.0f}**ms" +
-					f"\n` → ` **{DRIVER.logged}** events logged (**{count}** total)" +
+					f"\n` → ` **{DRIVER.messages}** events logged (**{count}** total)" +
 					f"\n` → ` DB size **{order_suffix(size)}**" +
 					f"\n` → ` **{memenumber}** memes collected" +
 					f"\n` → ` meme folder size **{order_suffix(memesize)}**" +
