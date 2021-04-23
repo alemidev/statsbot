@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 @alemiBot.on_message(~filters.edited, group=999999) # happen last and always!
 async def log_message_hook(client, message): # TODO handle edits!
-	if hasattr(message, "service"):
+	if hasattr(message, "service") and message.service:
 		DRIVER.parse_system_event(message)
 	else:
 		fname = None
