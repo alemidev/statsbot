@@ -28,7 +28,7 @@ def extract_message(msg:Message):
 		"date" : msg.date,
 		"from_scheduled" : msg.from_scheduled,
 		"text" : msg.text,
-		"edits" : {},
+		"edits" : [],
 	}
 
 def extract_user(user:Union[Message,User]):

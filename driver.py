@@ -60,7 +60,7 @@ class DatabaseDriver:
 		self.edits += 1
 		self.db.messages.update_one(
 			{"id": message.message_id, "chat": message.chat.id},
-			{"$set": {"edits": { message.date : message.text} } }
+			{"$push": {"edits": { "date": message.date, "text": message.text} } }
 		)
 
 	def parse_deletion_event(self, message:Message):
