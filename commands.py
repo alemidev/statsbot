@@ -7,7 +7,7 @@ import os
 
 from datetime import datetime
 
-from pymongo import ASCENDING
+from pymongo import DESCENDING
 
 from bot import alemiBot
 
@@ -148,14 +148,14 @@ async def hist_cmd(client, message):
 					if show_time else \
 				  lambda doc: f"\n` → ` {edit['text']}"
 	logger.info("Querying db for message history")
-	doc = DRIVER.db.messages.find_one(
-		{"text": 1, "date": 1, "edit": 1},
-		{"id": m_id, "chat": c_id},
-		sort=("date", ASCENDING))
-	out = f"`→ ` **{get_username(message.from_user)}** {doc['text']}"
-	for edit in doc["edits"]:
-		out += format_text(doc)
-	await edit_or_reply(message, out)
+	doc = DRIVER.db.messages.find_one({"id": m_id, "chat": c_id},sort=("date", DESCENDING))
+	if doc:
+		out = f"`→ ` **{get_username(message.from_user)}** {doc['text']}"
+		for edit in doc["edits"]:
+			out += format_text(doc)
+		await edit_or_reply(message, out)
+	else:
+		await edit_or_reply(message, "`[!] → ` Nothing found")
 
 HELP.add_help(["peek", "deld", "deleted", "removed"], "get deleted messages",
 				"request last deleted messages in this channel. Use `-t` to add timestamps. A number of messages to peek can be specified. " +
