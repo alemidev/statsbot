@@ -133,8 +133,8 @@ async def hist_cmd(client, message):
 	show_time = "-t" in args["flags"]
 	if message.reply_to_message is not None:
 		m_id = message.reply_to_message.message_id
-	elif "arg" in args:
-		m_id = int(args["arg"])
+	elif "cmd" in args:
+		m_id = int(args["cmd"][0])
 	if m_id is None:
 		return
 	if "group" in args:
@@ -142,100 +142,30 @@ async def hist_cmd(client, message):
 			c_id = int(args["group"])
 		else:
 			c_id = (await client.get_chat(args["group"])).id
-	await client.send_chat_action(message.chat.id, "upload_document")
-	cursor = DRIVER.db.messages.find( {"_": "Message", "message_id": m_id, "chat.id": c_id},
-			{"text": 1, "date": 1, "edit_date": 1} ).sort("date", -1)
+	format_text = lambda doc: f"\n` → ` [--{doc['date']}--] {doc['text']}" \
+					if show_time else \
+				  lambda doc: f"\n` → ` {edit['text']}"
 	logger.info("Querying db for message history")
-	out = ""
-	for doc in cursor:
-		if show_time:
-			if "edit_date" not in doc or doc['edit_date'] is None:
-				out += f"[{str(doc['date'])}] "
-			else:
-				out += f"[{str(doc['edit_date'])}] "
-		if "text" in doc:
-			out += f"` → ` {doc['text']['markdown']}\n"
-		else:
-			out += f"` → ` N/A\n"
+	doc = DRIVER.db.messages.find_one(
+		{"id": m_id, "chat": c_id},
+		{"text": 1, "date": 1, "edit": 1}
+	).sort("date", -1)
+	out = f"`→ ` **{get_username(message.from_user)}** {doc['text']}"
+	for edit in doc["edits"]:
+		out += format_text(doc)
 	await edit_or_reply(message, out)
-	await client.send_chat_action(message.chat.id, "cancel")
-
-
-async def lookup_deleted_messages(client, message, COLLECTION, target_group, limit, show_time=False, include_system=False, offset=0):
-	response = await edit_or_reply(message, f"` → Peeking {limit} message{'s' if limit > 1 else ''} " +
-											('in ' + get_channel(target_group) if target_group is not None else '') + "`")
-	chat_id = target_group.id if target_group is not None else None
-	out = "\n\n"
-	count = 0
-	LINE = "{time}`[{m_id}]` **{user}** {where} → {system}{text} {media}\n"
-	try:
-		logger.debug("Querying db for deletions")
-		keep_active = time.time()
-		await client.send_chat_action(message.chat.id, "playing")
-		cursor = COLLECTION.find({ "_": "Delete" }).sort("date", -1)
-		for deletion in cursor: # TODO make this part not a fucking mess!
-			if chat_id is not None and "chat" in deletion \
-			and deletion["chat"]["id"] != chat_id:
-				continue # don't make a 2nd query, should speed up a ton
-			candidates = COLLECTION.find({"_": "Message", "message_id": deletion["message_id"]}).sort("date", -1)
-			logger.debug("Querying db for possible deleted msg")
-			if time.time() - keep_active > 5:
-				await client.send_chat_action(message.chat.id, "playing")
-				keep_active = time.time()
-			for doc in candidates: # dank 'for': i only need one
-				if chat_id is not None and ("chat" not in doc or doc["chat"]["id"] != chat_id):
-					continue
-				if not include_system and "service" in doc and doc["service"]:
-					break # we don't care about service messages!
-				if not include_system and "from_user" in doc and doc["from_user"]["is_bot"]:
-					break # we don't care about bot messages!
-				if offset > 0: # We found a message but we don't want it because an offset was set
-					offset -=1 #   skip adding this to output
-					break
-				if limit == 1 and "attached_file" in doc: # Doing this here forces me to do ugly stuff below, eww!
-					await client.send_document(message.chat.id, "data/scraped_media/"+doc["attached_file"], reply_to_message_id=message.message_id,
-										caption="**" + (get_username_dict(doc['from_user']) if "from_user" in doc else "UNKNOWN") + "** `→" +
-												(get_channel_dict(doc['chat']) + ' → ' if chat_id is None else '') +
-												f"` {get_text_dict(doc)['raw']}")
-				else:
-					out += LINE.format(time=(str(doc["date"]) + " ") if show_time else "",
-									m_id=doc["message_id"], user=(get_username_dict(doc["from_user"]) if "from_user" in doc else "UNKNOWN"),
-									where='' if chat_id is not None else ("| --" + get_channel_dict(doc["chat"]) + '-- '),
-									system=("--" + parse_sys_dict(doc) + "-- " if "service" in doc and doc["service"] else ""),
-									text=get_text_dict(doc)['raw'], media=('' if "attached_file" not in doc else ('(`' + doc["attached_file"] + '`)')))
-				count += 1
-				break
-			if count >= limit:
-				break
-		await client.send_chat_action(message.chat.id, "upload_document")
-		if count > 0:
-			if len(out) > 4096:
-				for m in batchify(out, 4090):
-					await response.reply(m)
-			elif out.strip() != "": # This is bad!
-				await response.edit(response.text + out)
-		else:
-			await response.edit(response.text + "**N/A**")
-	except Exception as e:
-		logger.exception("Issue while peeking into database")
-		await response.edit(response.text + "\n`[!] → ` " + str(e))
-	await client.send_chat_action(message.chat.id, "cancel")
-	await client.set_offline() 
 
 HELP.add_help(["peek", "deld", "deleted", "removed"], "get deleted messages",
 				"request last deleted messages in this channel. Use `-t` to add timestamps. A number of messages to peek can be specified. " +
 				"If only one message is being peeked, any media attached will be included, otherwise the filename will be appended to message text. " +
-				"Service messages and bot messages will be excluded from peek by default, add `-sys` flag to include them. "
 				"Owner can peek globally (`-all`) or in a specific group (`-g <id>`). Keep in mind that Telegram doesn't send easy to use " +
-				"deletion data, so the bot needs to lookup ids and messages in the database, making cross searches. Big peeks, or peeks of very old deletions " +
-				"will take some time to complete. For specific searches, use the query (`.q`) command. An offset can be specified with `-o` : if given, " +
-				"the most `<offset>` recent messages will be skipped and older messages will be peeked. If multiple userbots are logging into the same database " +
-				"(but different collections), you can specify on which collection to peek with `-coll`.",
-				public=True, args="[-t] [-g [id] | -all] [-sys] [-o <n>] [<num>]")
+				"deletion data, so the bot needs to lookup ids and messages in the database when he receives a deletion. Telegram doesn't even always include " +
+				"the chat id, so false positives may happen. For specific searches, use the query (`.q`) command. An offset can be " +
+				"specified with `-o` : if given, the most `<offset>` recent messages will be skipped and older messages will be peeked.",
+				public=True, args="[-t] [-g [id] | -all] [-o <n>] [<num>]")
 @alemiBot.on_message(is_allowed & filterCommand(["peek", "deld", "deleted", "removed"], list(alemiBot.prefixes), options={
 	"group" : ["-g", "-group"],
 	"offset" : ["-o", "-offset"],
-	"collection" : ["-coll", "-collection"]
 }, flags=["-t", "-all", "-sys"]))
 @report_error(logger)
 @set_offline
@@ -243,9 +173,7 @@ async def deleted_cmd(client, message): # This is a mess omg
 	args = message.command
 	show_time = "-t" in args["flags"]
 	target_group = message.chat
-	include_system = "-sys" in args["flags"]
 	offset = int(args["offset"]) if "offset" in args else 0
-	coll = DRIVER.db.messages
 	if is_me(message):
 		if "-all" in args["flags"]:
 			target_group = None
@@ -254,16 +182,34 @@ async def deleted_cmd(client, message): # This is a mess omg
 				target_group = await client.get_chat(int(args["group"]))
 			else:
 				target_group = await client.get_chat(args["group"])
-		if "collection" in args:
-			coll = DRIVER.db[args["collection"]]
 	limit = 1
 	if "arg" in args:
 		limit = int(args["arg"])
 	logger.info(f"Peeking {limit} messages")
-	asyncio.get_event_loop().create_task( # launch the task async because it may take some time
-		lookup_deleted_messages(
-			client, message, coll,
-			target_group, limit, show_time, include_system, offset
+	count = 0
+	flt = {"deleted": True}
+	if target_group:
+		flt["chat"] = target_group.id
+	out = f"`→ Peeking {limit} message{'s' if limit > 1 else ''} " + \
+			('in ' + get_channel(target_group) if target_group is not None else '') + "`\n\n"
+	response = await edit_or_reply(message, out)
+	LINE = "{time}`[{m_id}]` **{user}** {where} → {text} {media}\n"
+	cursor = DRIVER.db.messages.find(flt)
+	for doc in cursor:
+		if offset > 0:
+			offset -=1
+			continue
+		out += LINE.format(
+			time=str(doc["date"]) + " " if show_time else "",
+			m_id=doc["id"],
+			user=doc["user"],
+			where=get_channel(target_group) if target_group is None else "",
+			text=doc["text"],
+			media=doc["media"],
 		)
-	)
+		count += 1
+		if count >= limit:
+			break
+	await response.edit(out)
+
 
