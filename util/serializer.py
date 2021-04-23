@@ -27,18 +27,22 @@ def diff(old:Union[dict,str,int], new:Union[dict,str,int]):
 	return out
 
 def extract_message(msg:Message):
-	return {
+	doc = {
 		"_" : "Message",
 		"id" : msg.message_id,
 		"user" : msg.from_user.id if msg.from_user else \
 			msg.sender_chat.id if msg.sender_chat else None,
 		"chat" : msg.chat.id,
 		"date" : msg.date,
-		"scheduled" : msg.from_scheduled,
-		"text" : get_text(msg, raw=True),
-		"edits" : [],
-		"media" : parse_media_type(msg),
 	}
+	if parse_media_type(msg):
+		doc["media"] = parse_media_type(msg)
+	if get_text(msg, raw=True):
+		doc["text"] = get_text(msg, raw=True)
+	if msg.from_scheduled:
+		doc["scheduled"] = True
+	if msg.reply_to_message:
+		doc["reply"] = msg.reply_to_message.message_id
 
 def extract_service_message(msg:Message):
 	doc = {
