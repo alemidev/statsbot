@@ -37,7 +37,7 @@ class DatabaseDriver:
 		if prev:
 			usr = diff(prev, usr)
 		if usr: # don't insert if no diff!
-			self.db.users.update_one({"id": usr_id}, usr, upsert=True)
+			self.db.users.update_one({"id": usr_id}, {"$set": usr}, upsert=True)
 
 		chat = extract_chat(message)
 		chat_id = chat["id"]
@@ -45,7 +45,7 @@ class DatabaseDriver:
 		if prev:
 			chat = diff(prev, chat)
 		if chat: # don't insert if no diff!
-			self.db.chats.update_one({"id": chat_id}, chat, upsert=True)
+			self.db.chats.update_one({"id": chat_id}, {"$set": chat}, upsert=True)
 
 	def parse_deletion_event(self, message:Message):
 		deletion = extract_delete(message)
@@ -55,6 +55,6 @@ class DatabaseDriver:
 		flt = {"id": deletion["id"]}
 		if "chat" in deletion:
 			flt["chat"] = deletion["chat"]
-		self.db.messages.update_one(flt, {"deleted": True})
+		self.db.messages.update_one(flt, {"$set": {"deleted": True}})
 
 DRIVER = DatabaseDriver()
