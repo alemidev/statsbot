@@ -53,9 +53,6 @@ def extract_user(user:Union[Message,User]):
 			"fake" : user.is_fake,
 			"support" : user.is_support,
 		},
-		"count": {
-			"total" : 1,
-		}
 	}
 	if user.photo:
 		obj["photo"] = {
@@ -83,7 +80,6 @@ def extract_chat(chat:Union[Message,Chat]):
 			"fake" : chat.is_fake,
 			"support" : chat.is_support,
 		},
-		"count" : 1,
 	}
 	if chat.photo:
 		obj["photo"] = {
