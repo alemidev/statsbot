@@ -6,6 +6,7 @@ from pyrogram.types import Message, User, Chat, ReplyKeyboardMarkup, ReplyKeyboa
 
 from util.message import parse_media_type
 from util.getters import get_text
+from util.serialization import convert_to_dict
 
 import logging
 
@@ -49,7 +50,7 @@ def extract_message(msg:Message):
 		if isinstance(msg.reply_markup, ReplyKeyboardMarkup):
 			doc["keyboard"] = msg.reply_markup.keyboard
 		elif isinstance(msg.reply_markup, InlineKeyboardMarkup):
-			doc["inline"] = msg.reply_markup.inline_keyboard
+			doc["inline"] = convert_to_dict(msg.reply_markup.inline_keyboard) # ewww do it slimmer!
 		elif isinstance(msg.reply_markup, ReplyKeyboardRemove):
 			doc["keyboard"] = []
 	return doc
