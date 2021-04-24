@@ -2,7 +2,7 @@ from datetime import datetime
 
 from typing import Union, List
 
-from pyrogram.types import Message, User, Chat
+from pyrogram.types import Message, User, Chat, ReplyKeyboardMarkup, ReplyKeyboardRemove, InlineKeyboardMarkup
 
 from util.message import parse_media_type
 from util.getters import get_text
@@ -45,6 +45,13 @@ def extract_message(msg:Message):
 		doc["scheduled"] = True
 	if msg.reply_to_message:
 		doc["reply"] = msg.reply_to_message.message_id
+	if msg.reply_markup:
+		if isinstance(msg.reply_markup, ReplyKeyboardMarkup):
+			doc["keyboard"] = msg.reply_markup.keyboard
+		elif isinstance(msg.reply_markup, InlineKeyboardMarkup):
+			doc["inline"] = msg.reply_markup.inline_keyboard
+		elif isinstance(msg.reply_markup, ReplyKeyboardRemove):
+			doc["keyboard"] = []
 	return doc
 
 def extract_service_message(msg:Message):
