@@ -52,7 +52,7 @@ def extract_message(msg:Message):
 			doc["inline"] = convert_to_dict(msg.reply_markup.inline_keyboard) # ewww do it slimmer!
 		elif isinstance(msg.reply_markup, ReplyKeyboardRemove):
 			doc["keyboard"] = []
-	if msg.poll:
+	if hasattr(msg, "poll") and msg.poll:
 		doc["poll"] = {
 			"question" : msg.poll.question,
 			"options" : [ opt.text for opt in msg.poll.options ]
