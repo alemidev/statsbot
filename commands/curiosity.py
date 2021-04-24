@@ -58,11 +58,12 @@ async def frequency_cmd(client, message):
 	words = []
 	count = 0
 	for doc in DRIVER.db.messages.find(query).sort("date", DESCENDING).limit(number):
-		words += [ w for w in re.sub(r"[^0-9a-zA-Z\s\n]+", "", doc["text"].lower()).split() if len(w) > min_len ]
-		count += 1
-		if count % 250 == 0:
-			await client.send_chat_action(message.chat.id, "playing")
-			await response.edit(f"` → [{count}/{number}] ` Counting word occurrences...")
+		if doc["text"]:
+			words += [ w for w in re.sub(r"[^0-9a-zA-Z\s\n]+", "", doc["text"].lower()).split() if len(w) > min_len ]
+			count += 1
+			if count % 250 == 0:
+				await client.send_chat_action(message.chat.id, "playing")
+				await response.edit(f"` → [{count}/{number}] ` Counting word occurrences...")
 	count = Counter(words).most_common()
 	from_who = f"(from **{get_username(user)}**)" if user else ""
 	output = f"`→ {get_channel(group)}` {from_who}\n` → ` **{results}** most frequent words __(len > {min_len})__ in last **{number}** messages:\n"
