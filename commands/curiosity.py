@@ -28,12 +28,13 @@ HELP.add_help(["freq", "frequent"], "find frequent words in messages",
 				"can be changed with `-r`. By default, only words of `len > 3` will be considered. " +
 				"A minimum word len can be specified with `-min`. Will search in current group or any specified with `-g`. " +
 				"A single user can be specified with `-u` : only messages from that user will count if provided.",
-				args="[-r <n>] [-min <n>] [-g <group>] [-u <user>] [n]", public=True)
+				args="[-r <n>] [-min <n>] [-g <group>] [-u <user>] [n] [-i <n>]", public=True)
 @alemiBot.on_message(is_allowed & filterCommand(["freq", "frequent"], list(alemiBot.prefixes), options={
 	"results" : ["-r", "-res"],
 	"minlen" : ["-min"],
 	"group" : ["-g", "-group"],
-	"user" : ["-u", "-user"]
+	"user" : ["-u", "-user"],
+	"interval" : ["-i", "--interval"],
 }))
 @report_error(logger)
 @set_offline
@@ -41,6 +42,7 @@ async def frequency_cmd(client, message):
 	results = int(message.command["results"]) if "results" in message.command else 10
 	number = int(message.command["cmd"][0]) if "cmd" in message.command else 100
 	min_len = int(message.command["minlen"]) if "minlen" in message.command else 3
+	update_interval = int(message.command["interval"]) if "interval" in message.command else 1500
 	group = None
 	if "group" in message.command:
 		val = message.command["group"]
@@ -61,7 +63,7 @@ async def frequency_cmd(client, message):
 		if doc["text"]:
 			words += [ w for w in re.sub(r"[^0-9a-zA-Z\s\n]+", "", doc["text"].lower()).split() if len(w) > min_len ]
 			count += 1
-			if count % 250 == 0:
+			if count % update_interval == 0:
 				await client.send_chat_action(message.chat.id, "playing")
 				await response.edit(f"` → [{count}/{number}] ` Counting word occurrences...")
 	count = Counter(words).most_common()
