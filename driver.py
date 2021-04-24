@@ -98,7 +98,11 @@ class DatabaseDriver:
 
 	def parse_edit_event(self, message:Message):
 		self.edits += 1
-		doc = { "date": datetime.utcfromtimestamp(message.edit_date), "text": message.text}
+		doc = {
+			"date": datetime.utcfromtimestamp(message.edit_date) \
+				if type(message.edit_date) is int else message.edit_date,
+			"text": message.text
+		}
 		if message.reply_markup:
 			if isinstance(message.reply_markup, ReplyKeyboardMarkup):
 				doc["keyboard"] = message.reply_markup.keyboard
