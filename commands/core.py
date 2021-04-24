@@ -70,7 +70,7 @@ async def stats_cmd(client, message):
 HELP.add_help(["query", "q", "log"], "interact with db",
 				"make queries to the underlying database (MongoDB) to request documents. You can just get the number or matches with `-count` flag. " +
 				"The query and the filter must be a valid JSON dictionaries without spaces; if you need spaces, wrap them in `'`. You can specify a " +
-				"limit for results (`-l`), if not given, will default to 10. If multiple userbots are logging in the same " +
+				"limit for results (`-l`), if not given, will default to 10. Add `-id` flag to include `_id` field. If multiple userbots are logging in the same " +
 				"database (but in different collections), you can specify in which collection to query with `-coll`. You can also " +
 				"specify which database to use with `-db` option, but the user which the bot is using to login will need permissions to read.",
 				args="[-coll <name>] [-db <name>] [-l <n>] [-f <{filter}>] [-count] <{query}>")
@@ -79,7 +79,7 @@ HELP.add_help(["query", "q", "log"], "interact with db",
 	"filter" : ["-f", "-filter"],
 	"collection" : ["-coll", "-collection"],
 	"database" : ["-db", "-database"]
-}, flags=["-cmd", "-count"]))
+}, flags=["-cmd", "-count", "-id"]))
 @report_error(logger)
 @set_offline
 async def query_cmd(client, message):
@@ -102,13 +102,14 @@ async def query_cmd(client, message):
 
 	if "-cmd" in args["flags"]:
 		cursor = [ database.command(*args["cmd"]) ] # ewww but small patch
-	elif "filter" in args:
-		q = json.loads(args["cmd"][0])
-		filt = json.loads(args["filter"])
-		cursor = collection.find(q, filt).sort("date", -1)
 	else:
-		cursor = collection.find(json.loads(args["cmd"][0])).sort("date", -1)
-	
+		q = json.loads(args["cmd"][0])
+		flt = {}
+		if "filter" in args:
+			flt = json.loads(args["filter"])
+		if "-id" not in message.command["flags"]:
+			flt["_id"] = False
+		cursor = collection.find(q, flt).sort("date", -1)
 	if "-count" in args["flags"]:
 		buf = [ cursor.count() ]
 	else:
