@@ -65,11 +65,11 @@ async def top_messages_cmd(client, message):
 			break
 	await edit_or_reply(message, out)
 
-HELP.add_help(["joindate", "joindates", "joined_date"], "list date users joined group",
+HELP.add_help(["joindate", "joindates", "join_date"], "list date users joined group",
 				"checks (tracked) join date for users in current chat. A specific group can be " +
 				"specified with `-g`.By default, will only list oldest 25 members, but " +
 				"number of results can be specified with `-r`", args="[-g <group>] [-r <n>]", public=True)
-@alemiBot.on_message(is_allowed & filterCommand(["topmsg", "topmsgs", "top_messages"], list(alemiBot.prefixes), options={
+@alemiBot.on_message(is_allowed & filterCommand(["joindate", "joindates", "join_date"], list(alemiBot.prefixes), options={
 	"chat" : ["-g", "--group"],
 	"results" : ["-r", "--results"],
 }))
