@@ -87,14 +87,11 @@ def extract_service_message(msg:Message):
 		logger.error(str(msg.game_score))
 		doc["game_score"] = msg.game_score
 	if hasattr(msg, "voice_chat_started") and msg.voice_chat_started:
-		logger.error(str(msg.voice_chat_started))
-		doc["voice_chat_started"] = msg.voice_chat_started
+		doc["voice_chat_started"] = True
 	if hasattr(msg, "voice_chat_ended") and msg.voice_chat_ended:
-		logger.error(str(msg.voice_chat_ended))
-		doc["voice_chat_ended"] = msg.voice_chat_ended
+		doc["voice_chat_ended"] = msg.voice_chat_ended.duration
 	if hasattr(msg, "voice_chat_members_invited") and msg.voice_chat_members_invited:
-		logger.error(str(msg.voice_chat_members_invited))
-		doc["voice_chat_members_invited"] = msg.voice_chat_members_invited 
+		doc["voice_chat_members_invited"] = [ u.id for u in msg.voice_chat_members_invited.users ]
 	return doc
 
 def extract_user(msg:Message):
