@@ -31,7 +31,6 @@ def diff(old:Union[dict,str,int], new:Union[dict,str,int]):
 
 def extract_message(msg:Message):
 	doc = {
-		"_" : "Message",
 		"id" : msg.message_id,
 		"user" : msg.from_user.id if msg.from_user else \
 			msg.sender_chat.id if msg.sender_chat else None,
@@ -57,7 +56,6 @@ def extract_message(msg:Message):
 
 def extract_service_message(msg:Message):
 	doc = {
-		"_" : "Service",
 		"id" : msg.message_id,
 		"user" : msg.from_user.id if msg.from_user else \
 			msg.sender_chat.id if msg.sender_chat else None,
@@ -95,7 +93,6 @@ def extract_service_message(msg:Message):
 
 def extract_user(msg:Message):
 	obj = {
-		"_" : "User",
 		"id" : msg.from_user.id,
 		"first_name" : msg.from_user.first_name,
 		"last_name" : msg.from_user.last_name,
@@ -125,7 +122,6 @@ def extract_user(msg:Message):
 
 def extract_chat(msg:Message):
 	obj = {
-		"_" : "Chat",
 		"id" : msg.chat.id,
 		"title" : msg.chat.title,
 		"type" : msg.chat.type,
@@ -151,7 +147,6 @@ def extract_delete(deletions:List[Message]):
 	out = []
 	for deletion in deletions:
 		out.append({
-			"_" : "Delete",
 			"id": deletion.message_id,
 			"chat": deletion.chat.id if deletion.chat else None,
 			"date": datetime.now(), # It isn't included! Assume it happened when it was received
