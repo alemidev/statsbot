@@ -96,7 +96,7 @@ class DatabaseDriver:
 			if isinstance(message.reply_markup, ReplyKeyboardMarkup):
 				doc["keyboard"] = message.reply_markup.keyboard
 			elif isinstance(message.reply_markup, InlineKeyboardMarkup):
-				doc["inline"] = message.reply_markup.inline_keyboard
+				doc["inline"] = convert_to_dict(message.reply_markup.inline_keyboard) # TODO do it slimmer!
 			elif isinstance(message.reply_markup, ReplyKeyboardRemove):
 				doc["keyboard"] = []
 		self.db.messages.update_one(
