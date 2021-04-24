@@ -2,6 +2,8 @@ import functools
 import traceback
 
 from datetime import datetime
+from typing import Any
+
 from pymongo import MongoClient
 from pyrogram.types import Message, ReplyKeyboardRemove, ReplyKeyboardMarkup, InlineKeyboardMarkup
 
@@ -14,6 +16,33 @@ from .util.serializer import diff, extract_chat, extract_message, extract_user, 
 import logging
 
 logger = logging.getLogger(__name__)
+
+class Counter:
+	"""Auto-Increasing Counter. Has a dict of keys which start at 0. Every time an attr is accessed, value
+	   of key with same name is auto increased (added equal to 0 if missing). To get values,
+	   use hash [] access (__getitem__). Initialize this with a list of strings (not really necessary)"""
+	def __init__(self, keys:list):
+		self.storage = { k : 0 for k in keys }
+
+	def __getattr__(self, name:str) -> int:
+		if name not in self.storage:
+			self.storage[name] = 0
+		self.storage[name] += 1
+		return self.storage[name]
+
+	def __str__(self) -> str:
+		return str(self.storage)
+
+	def __contains__(self, name:str) -> bool:
+		return name in self.storage
+
+	def __getitem__(self, name:str) -> Any:
+		if name not in self.storage:
+			return 0
+		return self.storage[name]
+	
+	def __setitem__(self, name:str, value:Any):
+		self.storage[name] = value
 
 class DatabaseDriver:
 	def __init__(self):
@@ -29,11 +58,7 @@ class DatabaseDriver:
 		self.log_messages = alemiBot.config.get("database", "log_messages", fallback=True)
 		self.log_media = alemiBot.config.get("database", "log_media", fallback=False)
 
-		self.messages = 0
-		self.deletions = 0
-		self.edits = 0
-		self.users = 0
-		self.chats = 0
+		self.counter = Counter(["service", "messages", "deletions", "edits", "users", "chats"])
 
 		self.client = MongoClient(host, port, **kwargs)
 		self.db = self.client[alemiBot.config.get("database", "dbname", fallback="alemibot")]
@@ -60,7 +85,7 @@ class DatabaseDriver:
 		if file_name:
 			msg["file"] = file_name
 		self.db.messages.insert_one(msg)
-		self.messages += 1
+		self.counter.messages
 
 		if message.from_user:
 			usr = extract_user(message)
@@ -69,7 +94,7 @@ class DatabaseDriver:
 			if prev:
 				usr = diff(prev, usr)
 			else:
-				self.users += 1
+				self.counter.users
 			if usr: # don't insert if no diff!
 				self.db.users.update_one({"id": usr_id}, {"$set": usr}, upsert=True)
 		
@@ -80,7 +105,7 @@ class DatabaseDriver:
 			if prev:
 				chat = diff(prev, chat)
 			else:
-				self.chats += 1
+				self.counter.chats
 			if chat: # don't insert if no diff!
 				self.db.chats.update_one({"id": chat_id}, {"$set": chat}, upsert=True)
 
@@ -93,12 +118,12 @@ class DatabaseDriver:
 			if prev:
 				chat = diff(prev, chat)
 			else:
-				self.chats += 1
+				self.counter.chats
 			if chat: # don't insert if no diff!
 				self.db.chats.update_one({"id": chat_id}, {"$set": chat}, upsert=True)
 
 	def parse_edit_event(self, message:Message):
-		self.edits += 1
+		self.counter.edits
 		doc = {
 			"date": datetime.utcfromtimestamp(message.edit_date) \
 				if type(message.edit_date) is int else message.edit_date,
@@ -120,7 +145,7 @@ class DatabaseDriver:
 		deletions = extract_delete(message)
 		for deletion in deletions:
 			self.db.deletions.insert_one(deletion)
-			self.deletions += 1
+			self.counter.deletions
 
 			flt = {"id": deletion["id"]}
 			if "chat" in deletion:
