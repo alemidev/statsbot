@@ -35,9 +35,13 @@ async def stats_cmd(client, message):
 	msg_count = DRIVER.db.messages.count({})
 	user_count = DRIVER.db.users.count({})
 	chat_count = DRIVER.db.chats.count({})
+	deletions_count = DRIVER.db.deletions.count({})
+	service_count = DRIVER.db.service.count({})
 	msg_size = DRIVER.db.command("collstats", "messages")['totalSize']
 	user_size = DRIVER.db.command("collstats", "users")['totalSize']
 	chat_size = DRIVER.db.command("collstats", "chats")['totalSize']
+	deletions_size = DRIVER.db.command("collstats", "deletions")['totalSize']
+	service_size = DRIVER.db.command("collstats", "service")['totalSize']
 	db_size = DRIVER.db.command("dbstats")["totalSize"]
 	medianumber = len(os.listdir("data/scraped_media"))
 	proc = await asyncio.create_subprocess_exec( # This is not cross platform!
@@ -49,10 +53,16 @@ async def stats_cmd(client, message):
 
 	uptime = str(datetime.now() - client.start_time)
 	await msg.edit(original_text + f"\n`→ online for {uptime} `" +
-					f"\n` → ` **{DRIVER.deletions}** deletions `|` **{DRIVER.edits}** edits" +
-					f"\n` → ` **{DRIVER.messages}** messages logged (**{msg_count}** total `|` **{order_suffix(msg_size)}**)" +
-					f"\n` → ` **{DRIVER.users}** users seen (**{user_count}** total `|` **{order_suffix(user_size)}**)" +
-					f"\n` → ` **{DRIVER.chats}** chats tracked (**{chat_count}** total `|` **{order_suffix(chat_size)}**)" +
+					f"\n` → ` **{DRIVER.count['messages']}** messages logged (+{DRIVER.count['edits']} edits)" +
+					f"\n`  → ` **{msg_count}** total `|` size **{order_suffix(msg_size)}**" +
+					f"\n` → ` **{DRIVER.count['service']}** events tracked" +
+					f"\n`  → ` **{service_count}** total `|` size **{order_suffix(service_size)}**" +
+					f"\n` → ` **{DRIVER.count['deletions']}** deletions saved" +
+					f"\n`  → ` **{deletions_count}** total `|` size **{order_suffix(deletions_size)}**" +
+					f"\n` → ` **{DRIVER.count['users']}** users seen" +
+					f"\n`  → ` **{user_count}** total `|` size **{order_suffix(user_size)}**" +
+					f"\n` → ` **{DRIVER.count['chats']}** chats visited" +
+					f"\n`  → ` **{chat_count}** total `|` size **{order_suffix(chat_size)}**" +
 					f"\n` → ` DB total size **{order_suffix(db_size)}**" +
 					f"\n` → ` **{medianumber}** documents archived (size **{order_suffix(mediasize)}**)")
 	await client.set_offline()
