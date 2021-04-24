@@ -27,8 +27,8 @@ HELP.add_help(["freq", "frequent"], "find frequent words in messages",
 				"last 100 messages. By default, 10 most frequent words are shown, but number of results " +
 				"can be changed with `-r`. By default, only words of `len > 3` will be considered. " +
 				"A minimum word len can be specified with `-min`. Will search in current group or any specified with `-g`. " +
-				"A single user can be specified with `-u` : only messages from that user will count if provided.",
-				args="[-r <n>] [-min <n>] [-g <group>] [-u <user>] [n] [-i <n>]", public=True)
+				"A single user can be specified with `-u` : only messages from that user will count if provided. Change " +
+				"update interval with `-i`.", args="[-r <n>] [-min <n>] [-g <group>] [-u <user>] [n] [-i <n>]", public=True)
 @alemiBot.on_message(is_allowed & filterCommand(["freq", "frequent"], list(alemiBot.prefixes), options={
 	"results" : ["-r", "-res"],
 	"minlen" : ["-min"],
@@ -42,20 +42,21 @@ async def frequency_cmd(client, message):
 	results = int(message.command["results"]) if "results" in message.command else 10
 	number = int(message.command["cmd"][0]) if "cmd" in message.command else 100
 	min_len = int(message.command["minlen"]) if "minlen" in message.command else 3
-	update_interval = int(message.command["interval"]) if "interval" in message.command else 1500
-	group = None
-	if "group" in message.command:
-		val = message.command["group"]
-		group = await client.get_chat(int(val) if val.isnumeric() else val)
-	else:
-		group = message.chat
+	update_interval = int(message.command["interval"]) if "interval" in message.command else 5000
+	query = {"text":{"$exists":1}}
+	if "-all" not in message.command["flags"]:
+		if "group" in message.command:
+			val = message.command["group"]
+			group = await client.get_chat(int(val) if val.isnumeric() else val)
+			query["chat"] = group.id
+		else:
+			query["chat"] = message.chat.id
 	user = None
-	logger.info(f"Counting {results} most frequent words in last {number} messages")
-	query = {"chat":group.id,"text":{"$exists":1}}
 	if "user" in message.command:
 		val = message.command["user"]
 		user = await client.get_users(int(val) if val.isnumeric() else val)
 		query["user"] = user.id
+	logger.info(f"Counting {results} most frequent words in last {number} messages")
 	response = await edit_or_reply(message, f"` → ` Counting word occurrences...")
 	words = []
 	curr = 0
@@ -68,7 +69,7 @@ async def frequency_cmd(client, message):
 				await response.edit(f"` → [{curr}/{number}] ` Counting word occurrences...")
 	count = Counter(words).most_common()
 	from_who = f"(from **{get_username(user)}**)" if user else ""
-	output = f"`→ {get_channel(group)}` {from_who}\n` → ` **{results}** most frequent words __(len > {min_len})__ in last **{curr}** messages:\n"
+	output = f"`→ {get_channel(group) if group else '__all__'}` {from_who}\n` → ` **{results}** most frequent words __(len > {min_len})__ in last **{curr}** messages:\n"
 	for i in range(results):
 		output += f"`{i+1:02d}]{'-'*(results-i-1)}>` `{count[i][0]}` `({count[i][1]})`\n"
 	await response.edit(output, parse_mode="markdown")
