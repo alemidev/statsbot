@@ -87,6 +87,7 @@ async def joindate_cmd(client, message):
 			chat_title = get_channel(chat)
 			chat_id = chat.id
 	res = []
+	unk = []
 	await edit_or_reply(message, "`→ ` Querying...")
 	await client.send_chat_action(message.chat.id, "upload_document")
 	now = time()
@@ -97,14 +98,22 @@ async def joindate_cmd(client, message):
 		event = DRIVER.db.service.find_one({"new_chat_members":member.user.id}, sort=[("date", ASCENDING)])
 		if event:
 			res.append((get_username(member.user), event["date"]))
+		else:
+			unk.append(get_username(member.user))
 	res.sort(key=lambda x: x[1])
 	stars = 3
 	count = 0
 	out = f"`→ ` Join dates in {chat_title}\n"
 	for usr, date in res:
+		if count >= results:
+			break
 		out += f"` → ` **{usr}** [`{str(date)}`] {'☆'*stars}\n"
 		stars -= 1
 		count += 1
+	out += "\n"
+	for usr in unk:
 		if count >= results:
 			break
+		out += f"` → ` **{usr}** [`UNKNOWN`]\n"
+		count += 1
 	await edit_or_reply(message, out)
