@@ -1,4 +1,5 @@
 import functools
+import traceback
 
 from datetime import datetime
 from pymongo import MongoClient
@@ -43,8 +44,14 @@ class DatabaseDriver:
 				await fun(client, message)
 			except Exception as e:
 				logger.exception("Serialization error")
-				message.exception = e
-				self.db.exceptions.insert_one(convert_to_dict(message))
+				exc_data = {
+					"type" : repr(e),
+					"text" : str(e),
+					"traceback" : traceback.format_exc(),
+				}
+				doc = convert_to_dict(message)
+				doc["exception"] = exc_data
+				self.db.exceptions.insert_one(doc)
 		return wrapper
 
 	def parse_message_event(self, message:Message, file_name=None):
@@ -113,7 +120,6 @@ class DatabaseDriver:
 			flt = {"id": deletion["id"]}
 			if "chat" in deletion:
 				flt["chat"] = deletion["chat"]
-			self.db.messages.update_one(flt, {"$set":
-					{"deleted": datetime.utcfromtimestamp(deletion["date"])}})
+			self.db.messages.update_one(flt, {"$set": {"deleted": deletion["date"]}})
 
 DRIVER = DatabaseDriver()
