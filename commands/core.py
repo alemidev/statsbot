@@ -53,15 +53,15 @@ async def stats_cmd(client, message):
 
 	uptime = str(datetime.now() - client.start_time)
 	await msg.edit(original_text + f"\n`→ online for {uptime} `" +
-					f"\n` → ` **{DRIVER.count['messages']}** messages logged (+{DRIVER.count['edits']} edits)" +
+					f"\n` → ` **{DRIVER.counter['messages']}** messages logged (+{DRIVER.counter['edits']} edits)" +
 					f"\n`  → ` **{msg_count}** total `|` size **{order_suffix(msg_size)}**" +
-					f"\n` → ` **{DRIVER.count['service']}** events tracked" +
+					f"\n` → ` **{DRIVER.counter['service']}** events tracked" +
 					f"\n`  → ` **{service_count}** total `|` size **{order_suffix(service_size)}**" +
-					f"\n` → ` **{DRIVER.count['deletions']}** deletions saved" +
+					f"\n` → ` **{DRIVER.counter['deletions']}** deletions saved" +
 					f"\n`  → ` **{deletions_count}** total `|` size **{order_suffix(deletions_size)}**" +
-					f"\n` → ` **{DRIVER.count['users']}** users seen" +
+					f"\n` → ` **{DRIVER.counter['users']}** users seen" +
 					f"\n`  → ` **{user_count}** total `|` size **{order_suffix(user_size)}**" +
-					f"\n` → ` **{DRIVER.count['chats']}** chats visited" +
+					f"\n` → ` **{DRIVER.counter['chats']}** chats visited" +
 					f"\n`  → ` **{chat_count}** total `|` size **{order_suffix(chat_size)}**" +
 					f"\n` → ` DB total size **{order_suffix(db_size)}**" +
 					f"\n` → ` **{medianumber}** documents archived (size **{order_suffix(mediasize)}**)")
