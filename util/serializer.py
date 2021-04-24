@@ -43,6 +43,7 @@ def extract_message(msg:Message):
 		doc["scheduled"] = True
 	if msg.reply_to_message:
 		doc["reply"] = msg.reply_to_message.message_id
+	return doc
 
 def extract_service_message(msg:Message):
 	doc = {
