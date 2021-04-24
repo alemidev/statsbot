@@ -35,7 +35,7 @@ def extract_message(msg:Message):
 		"id" : msg.message_id,
 		"user" : msg.from_user.id if msg.from_user else \
 			msg.sender_chat.id if msg.sender_chat else None,
-		"chat" : msg.chat.id,
+		"chat" : msg.chat.id if msg.chat else None,
 		"date" : datetime.utcfromtimestamp(msg.date) if type(msg.date) is int else msg.date,
 	}
 	if parse_media_type(msg):
