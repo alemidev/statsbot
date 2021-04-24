@@ -9,25 +9,25 @@ Switch to admin db and run this command
 if __name__ == "__main__":
 	import traceback
 	from time import time
-	
+
 	from pymongo import ASCENDING
 	from pymongo.errors import DuplicateKeyError
-	
+
 	from plugins.statsbot.driver import DRIVER
-	
+
 	OLD_DB = "old"	# REPLACEME
 	OLD_COLLECTION = "events"	# REPLACEME
-	
+
 	class DictWrapper:
 		def __init__(self, storage:dict):
 			self.storage = storage 
-	
+
 		def __repr__(self):
 			return repr(self.storage)
-	
+
 		def __str__(self):
 			return str(self.storage)
-	
+
 		def __getattr__(self, name:str):
 			if name in self.storage:
 				if isinstance(self.storage[name], dict):
@@ -36,7 +36,7 @@ if __name__ == "__main__":
 					return [ (DictWrapper(e) if type(e) is dict else e) for e in self.storage[name]  ]
 				return self.storage[name]
 			return None
-	
+
 	def parse_dict(doc:dict):
 		if isinstance(doc, list):
 			DRIVER.parse_deletion_event([ DictWrapper(m) for m in doc ])
@@ -49,18 +49,19 @@ if __name__ == "__main__":
 				DRIVER.parse_message_event(DictWrapper(doc))
 		elif doc["_"] == "Delete":
 			DRIVER.parse_deletion_event([DictWrapper(doc)])
-	
+
 	total = DRIVER.client[OLD_DB][OLD_COLLECTION].count_documents({})
 	curr = 0
-	
+
 	LAST = time()
 	def progress(warn=False, interval=1):
 		global LAST
 		if time() - LAST > interval:
 			print(f"{'[!]' if warn else ''}\t{curr}/{total}           ", end="\r")
 			LAST = time()
-	
+
 	for doc in DRIVER.client[OLD_DB][OLD_COLLECTION].find({}):
+		curr += 1
 		try:
 			parse_dict(doc)
 			progress()
