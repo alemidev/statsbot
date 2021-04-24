@@ -94,8 +94,9 @@ async def joindate_cmd(client, message):
 		if time() - now > 5:
 			await client.send_chat_action(message.chat.id, "upload_document")
 			now = time()
-		res.append((get_username(member.user),
-			DRIVER.db.service.find_one({"new_chat_members":member.user.id}, sort=[("date", ASCENDING)])["date"]))
+		event = DRIVER.db.service.find_one({"new_chat_members":member.user.id}, sort=[("date", ASCENDING)])
+		if event:
+			res.append((get_username(member.user), event["date"]))
 	res.sort(key=lambda x: x[1])
 	stars = 3
 	count = 0
