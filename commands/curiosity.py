@@ -35,7 +35,7 @@ HELP.add_help(["freq", "frequent"], "find frequent words in messages",
 	"group" : ["-g", "-group"],
 	"user" : ["-u", "-user"],
 	"interval" : ["-i", "--interval"],
-}))
+}, flags=["-all"]))
 @report_error(logger)
 @set_offline
 async def frequency_cmd(client, message):
