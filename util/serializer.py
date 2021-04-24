@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from typing import Union, List
 
 from pyrogram.types import Message, User, Chat
@@ -33,7 +35,7 @@ def extract_message(msg:Message):
 		"user" : msg.from_user.id if msg.from_user else \
 			msg.sender_chat.id if msg.sender_chat else None,
 		"chat" : msg.chat.id,
-		"date" : msg.date,
+		"date" : datetime.utcfromtimestamp(msg.date),
 	}
 	if parse_media_type(msg):
 		doc["media"] = parse_media_type(msg)
@@ -52,7 +54,7 @@ def extract_service_message(msg:Message):
 		"user" : msg.from_user.id if msg.from_user else \
 			msg.sender_chat.id if msg.sender_chat else None,
 		"chat" : msg.chat.id,
-		"date" : msg.date,
+		"date" : datetime.utcfromtimestamp(msg.date),
 	}
 	if hasattr(msg, "new_chat_members") and msg.new_chat_members:
 		doc["new_chat_members"] = [ u.id for u in msg.new_chat_members ]
@@ -148,6 +150,6 @@ def extract_delete(deletions:List[Message]):
 			"_" : "Delete",
 			"id": deletion.message_id,
 			"chat": deletion.chat.id if deletion.chat else None,
-			"date": deletion.date,
+			"date": datetime.utcfromtimestamp(deletion.date),
 		})
 	return out
