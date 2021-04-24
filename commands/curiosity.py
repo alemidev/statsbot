@@ -1,4 +1,5 @@
 import re
+import json
 
 from collections import Counter
 
@@ -28,13 +29,15 @@ HELP.add_help(["freq", "frequent"], "find frequent words in messages",
 				"can be changed with `-r`. By default, only words of `len > 3` will be considered. " +
 				"A minimum word len can be specified with `-min`. Will search in current group or any specified with `-g`. " +
 				"A single user can be specified with `-u` : only messages from that user will count if provided. Change " +
-				"update interval with `-i`.", args="[-r <n>] [-min <n>] [-g <group>] [-u <user>] [n] [-i <n>]", public=True)
+				"update interval with `-i`. Extra parameters for the db query can be given with `-q`.",
+				args="[-r <n>] [-min <n>] [-g <group>] [-u <user>] [n] [-i <n>]", public=True)
 @alemiBot.on_message(is_allowed & filterCommand(["freq", "frequent"], list(alemiBot.prefixes), options={
 	"results" : ["-r", "-res"],
 	"minlen" : ["-min"],
 	"group" : ["-g", "-group"],
 	"user" : ["-u", "-user"],
 	"interval" : ["-i", "--interval"],
+	"query" : ["-q", "--query"],
 }, flags=["-all"]))
 @report_error(logger)
 @set_offline
@@ -44,6 +47,8 @@ async def frequency_cmd(client, message):
 	min_len = int(message.command["minlen"]) if "minlen" in message.command else 3
 	update_interval = int(message.command["interval"]) if "interval" in message.command else 10000
 	query = {"text":{"$exists":1}}
+	if "query" in message.command:
+		query = {**query, **json.loads(message.command["query"])}
 	group = None
 	if "-all" not in message.command["flags"]:
 		if "group" in message.command:
