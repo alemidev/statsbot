@@ -52,7 +52,7 @@ def extract_message(msg:Message):
 			doc["inline"] = convert_to_dict(msg.reply_markup.inline_keyboard) # ewww do it slimmer!
 		elif isinstance(msg.reply_markup, ReplyKeyboardRemove):
 			doc["keyboard"] = []
-	if hasattr(msg, "poll") and msg.poll:
+	if msg.poll:
 		doc["poll"] = {
 			"question" : msg.poll.question,
 			"options" : [ opt.text for opt in msg.poll.options ]
@@ -85,9 +85,8 @@ def extract_service_message(msg:Message):
 			doc[tp] = getattr(msg, tp)
 	if hasattr(msg, "pinned_message") and msg.pinned_message:
 		doc["pinned_message"] = msg.pinned_message.message_id
-	if hasattr(msg, "game_score") and msg.game_score:
-		logger.error(str(msg.game_score))
-		doc["game_score"] = msg.game_score
+	if hasattr(msg, "game_high_score") and msg.game_high_score:
+		doc["game_high_score"] = msg.game_high_score.score
 	if hasattr(msg, "voice_chat_started") and msg.voice_chat_started:
 		doc["voice_chat_started"] = True
 	if hasattr(msg, "voice_chat_ended") and msg.voice_chat_ended:
