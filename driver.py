@@ -7,6 +7,7 @@ from pyrogram.types import Message, ReplyKeyboardRemove, ReplyKeyboardMarkup, In
 
 from bot import alemiBot
 from util.serialization import convert_to_dict
+from util.getters import get_text
 
 from .util.serializer import diff, extract_chat, extract_message, extract_user, extract_delete, extract_service_message
 
@@ -101,7 +102,7 @@ class DatabaseDriver:
 		doc = {
 			"date": datetime.utcfromtimestamp(message.edit_date) \
 				if type(message.edit_date) is int else message.edit_date,
-			"text": message.text
+			"text": get_text(message.text, raw=True)
 		}
 		if message.reply_markup:
 			if isinstance(message.reply_markup, ReplyKeyboardMarkup):
