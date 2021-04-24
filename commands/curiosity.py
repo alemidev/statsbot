@@ -58,17 +58,17 @@ async def frequency_cmd(client, message):
 		query["user"] = user.id
 	response = await edit_or_reply(message, f"` → ` Counting word occurrences...")
 	words = []
-	count = 0
+	curr = 0
 	for doc in DRIVER.db.messages.find(query).sort("date", DESCENDING).limit(number):
 		if doc["text"]:
 			words += [ w for w in re.sub(r"[^0-9a-zA-Z\s\n]+", "", doc["text"].lower()).split() if len(w) > min_len ]
-			count += 1
-			if count % update_interval == 0:
+			curr += 1
+			if curr % update_interval == 0:
 				await client.send_chat_action(message.chat.id, "playing")
-				await response.edit(f"` → [{count}/{number}] ` Counting word occurrences...")
+				await response.edit(f"` → [{curr}/{number}] ` Counting word occurrences...")
 	count = Counter(words).most_common()
 	from_who = f"(from **{get_username(user)}**)" if user else ""
-	output = f"`→ {get_channel(group)}` {from_who}\n` → ` **{results}** most frequent words __(len > {min_len})__ in last **{number}** messages:\n"
+	output = f"`→ {get_channel(group)}` {from_who}\n` → ` **{results}** most frequent words __(len > {min_len})__ in last **{curr}** messages:\n"
 	for i in range(results):
 		output += f"`{i+1:02d}]{'-'*(results-i-1)}>` `{count[i][0]}` `({count[i][1]})`\n"
 	await response.edit(output, parse_mode="markdown")
