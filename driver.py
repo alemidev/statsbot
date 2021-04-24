@@ -1,5 +1,6 @@
 import functools
 
+from datetime import datetime
 from pymongo import MongoClient
 from pyrogram.types import Message
 
@@ -104,6 +105,7 @@ class DatabaseDriver:
 			flt = {"id": deletion["id"]}
 			if "chat" in deletion:
 				flt["chat"] = deletion["chat"]
-			self.db.messages.update_one(flt, {"$set": {"deleted": True}})
+			self.db.messages.update_one(flt, {"$set":
+					{"deleted": datetime.utcfromtimestamp(deletion["date"])}})
 
 DRIVER = DatabaseDriver()
