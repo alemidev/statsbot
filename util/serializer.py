@@ -158,6 +158,6 @@ def extract_delete(deletions:List[Message]):
 			"_" : "Delete",
 			"id": deletion.message_id,
 			"chat": deletion.chat.id if deletion.chat else None,
-			"date": datetime.utcfromtimestamp(deletion.date),
+			"date": datetime.now(), # It isn't included! Assume it happened when it was received
 		})
 	return out
