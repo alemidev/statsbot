@@ -72,7 +72,6 @@ def extract_service_message(msg:Message):
 		doc["new_chat_title"] = msg.new_chat_title
 	if hasattr(msg, "new_chat_photo") and msg.new_chat_photo:
 		doc["new_chat_photo"] = msg.new_chat_photo.file_unique_id
-		doc["user"] = msg.from_user.id
 	if hasattr(msg, "delete_chat_photo") and msg.delete_chat_photo:
 		doc["delete_chat_photo"] = True
 	for tp in ("group_chat_created", "supergroup_chat_created", "channel_chat_created"):
