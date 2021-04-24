@@ -70,7 +70,13 @@ async def frequency_cmd(client, message):
 				await response.edit(f"` → [{curr}/{number}] ` Counting word occurrences...")
 	count = Counter(words).most_common()
 	from_who = f"(from **{get_username(user)}**)" if user else ""
-	output = f"`→ {get_channel(group) if group else '__all__'}` {from_who}\n` → ` **{results}** most frequent words __(len > {min_len})__ in last **{curr}** messages:\n"
+	where = "**everywhere**"
+	if group:
+		if group.invite_link:
+			where = f"**[{get_channel(group)}]({group.invite_link})**"
+		else:
+			where = f"**{get_channel(group)}**"
+	output = f"`→ ` {where} {from_who}\n` → ` **{results}** most frequent words __(len > {min_len})__ in last **{curr}** messages:\n"
 	for i in range(results):
 		output += f"`{i+1:02d}]{'-'*(results-i-1)}>` `{count[i][0]}` `({count[i][1]})`\n"
 	await response.edit(output, parse_mode="markdown")
