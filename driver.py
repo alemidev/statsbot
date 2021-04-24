@@ -2,7 +2,7 @@ import functools
 
 from datetime import datetime
 from pymongo import MongoClient
-from pyrogram.types import Message
+from pyrogram.types import Message, ReplyKeyboardRemove, ReplyKeyboardMarkup, InlineKeyboardMarkup
 
 from bot import alemiBot
 from util.serialization import convert_to_dict
@@ -91,9 +91,17 @@ class DatabaseDriver:
 
 	def parse_edit_event(self, message:Message):
 		self.edits += 1
+		doc = { "date": datetime.utcfromtimestamp(message.edit_date), "text": message.text}
+		if message.reply_markup:
+			if isinstance(message.reply_markup, ReplyKeyboardMarkup):
+				doc["keyboard"] = message.reply_markup.keyboard
+			elif isinstance(message.reply_markup, InlineKeyboardMarkup):
+				doc["inline"] = message.reply_markup.inline_keyboard
+			elif isinstance(message.reply_markup, ReplyKeyboardRemove):
+				doc["keyboard"] = []
 		self.db.messages.update_one(
 			{"id": message.message_id, "chat": message.chat.id},
-			{"$push": {"edits": { "date": message.edit_date, "text": message.text} } }
+			{"$push": {"edits":	doc} }
 		)
 
 	def parse_deletion_event(self, message:Message):
