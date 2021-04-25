@@ -57,6 +57,7 @@ async def hist_cmd(client, message):
 
 HELP.add_help(["peek", "deld", "deleted", "removed"], "get deleted messages",
 				"request last deleted messages in this channel. Use `-t` to add timestamps. A number of messages to peek can be specified. " +
+				"Bots don't receive deletion events, so you must reply to a message to peek messages sent just before. " +
 				"If only one message is being peeked, any media attached will be included, otherwise the filename will be appended to message text. " +
 				"Owner can peek globally (`-all`) or in a specific group (`-g <id>`). Keep in mind that Telegram doesn't send easy to use " +
 				"deletion data, so the bot needs to lookup ids and messages in the database when he receives a deletion. Telegram doesn't even always include " +
@@ -74,6 +75,8 @@ async def deleted_cmd(client, message): # This is a mess omg
 	show_time = "-t" in args["flags"]
 	target_group = message.chat
 	offset = int(args["offset"]) if "offset" in args else 0
+	if client.me.is_bot and not message.reply_to_message:
+		return await edit_or_reply(message, "`[!] → ` You need to reply to a message")
 	if is_me(message):
 		if "-all" in args["flags"]:
 			target_group = None
@@ -85,9 +88,15 @@ async def deleted_cmd(client, message): # This is a mess omg
 	limit = 1
 	if "arg" in args:
 		limit = int(args["arg"])
+		if client.me.is_bot:
+			limit = min(limit, 5)
 	logger.info(f"Peeking {limit} messages")
 	count = 0
-	flt = {"deleted": True}
+	if client.me.is_bot: # bots don't receive delete events so peek must work slightly differently
+		date_limit = DRIVER.db.messages.find_one({"id":message.reply_to_message.id, "chat":target_group.id})['date']
+		flt = {"date": {"$lt":date_limit}}
+	else:
+		flt = {"deleted": True}
 	if target_group:
 		flt["chat"] = target_group.id
 	out = f"`→ Peeking {limit} message{'s' if limit > 1 else ''} " + \
