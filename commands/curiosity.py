@@ -83,5 +83,7 @@ async def frequency_cmd(client, message):
 			where = f"**{get_channel(group)}**"
 	output = f"`→ ` {where} {from_who}\n` → ` **{results}** most frequent words __(len > {min_len})__ in last **{curr}** messages:\n"
 	for i, word in enumerate(count):
-		output += f"`{i+1:02d}]{'-'*(results-i-1)}>` `{word[0]}` `({word[1]})`\n"
+		output += f"`{i:02d}]{'-'*(results-i)}>` `{word[0]}` `({word[1]})`\n"
+		if i >= results:
+			break
 	await response.edit(output, parse_mode="markdown")
