@@ -82,11 +82,12 @@ async def deleted_cmd(client, message): # This is a mess omg
 	show_time = "-t" in args["flags"]
 	msg_after = "-down" in args["flags"]
 	target_group = message.chat
+	all_groups = "-all" in args["flags"]
 	offset = int(args["offset"]) if "offset" in args else 0
 	if client.me.is_bot and not message.reply_to_message:
 		return await edit_or_reply(message, "`[!] → ` You need to reply to a message")
 	if is_me(message):
-		if "-all" in args["flags"]:
+		if all_groups:
 			target_group = None
 		elif "group" in args:
 			if args["group"].isnumeric():
@@ -112,10 +113,10 @@ async def deleted_cmd(client, message): # This is a mess omg
 		flt = {"deleted": True}
 	if target_group:
 		flt["chat"] = target_group.id
-	out = f"`→ Peeking {limit} message{'s' if limit > 1 else ''} " + \
-			('in ' + get_channel(target_group) if target_group is not None else '') + "`\n\n"
+	out = f"`→ ` Peeking `{limit}` message{'s' if limit > 1 else ''} " + \
+			(f"in **{get_channel(target_group)}**" if "group" in args else '') + "\n"
 	response = await edit_or_reply(message, out)
-	LINE = "{time}`[{m_id}]` **{user}** {where} → {text} {media}\n"
+	LINE = "{time}[`{m_id}`] **{user}** {where} → {text} {media}\n"
 	cursor = DRIVER.db.messages.find(flt).sort("date", ASCENDING if msg_after else DESCENDING)
 	for doc in cursor:
 		if offset > 0:
@@ -135,7 +136,7 @@ async def deleted_cmd(client, message): # This is a mess omg
 			time=str(doc["date"]) + " " if show_time else "",
 			m_id=doc["id"],
 			user=author,
-			where=get_channel(group) if target_group is None and group else "",
+			where=f"(__{get_channel(group)}__)" if all_groups else "",
 			text=doc["text"] if "text" in doc else "",
 			media=f"<~~{doc['media']}~~>" if "media" in doc else "",
 		)
