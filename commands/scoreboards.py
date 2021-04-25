@@ -42,7 +42,7 @@ async def top_messages_cmd(client, message):
 			chat_title = get_channel(chat)
 			chat_id = chat.id
 	res = []
-	await edit_or_reply(message, "`→ ` Querying...")
+	msg = await edit_or_reply(message, "`→ ` Querying...")
 	await client.send_chat_action(message.chat.id, "upload_document")
 	now = time()
 	async for member in message.chat.iter_members():
@@ -56,14 +56,17 @@ async def top_messages_cmd(client, message):
 	res.sort(key=lambda x: x[1], reverse=True)
 	stars = 3
 	count = 0
-	out = "`→ ` Messages sent\n" if global_search else f"`→ ` Messages sent in {chat_title}\n"
+	out = ""
+	if message.outgoing:
+		out = message.text + "\n"
+	out += "`→ ` Messages sent\n" if global_search else f"`→ ` Messages sent in {chat_title}\n"
 	for usr, msgs in res:
 		out += f"` → ` **{usr}** [`{msgs}`] {'☆'*stars}\n"
 		stars -= 1
 		count += 1
 		if count >= results:
 			break
-	await edit_or_reply(message, out)
+	await msg.edit(out)
 
 HELP.add_help(["joindate", "joindates", "join_date"], "list date users joined group",
 				"checks (tracked) join date for users in current chat. A specific group can be " +
@@ -88,7 +91,7 @@ async def joindate_cmd(client, message):
 			chat_id = chat.id
 	res = []
 	unk = []
-	await edit_or_reply(message, "`→ ` Querying...")
+	msg = await edit_or_reply(message, "`→ ` Querying...")
 	await client.send_chat_action(message.chat.id, "upload_document")
 	now = time()
 	async for member in message.chat.iter_members():
@@ -103,7 +106,10 @@ async def joindate_cmd(client, message):
 	res.sort(key=lambda x: x[1])
 	stars = 3
 	count = 0
-	out = f"`→ ` Join dates in {chat_title}\n"
+	out = ""
+	if message.outgoing:
+		out = message.text + "\n"
+	out += f"`→ ` Join dates in {chat_title}\n"
 	for usr, date in res:
 		if count >= results:
 			break
@@ -116,4 +122,4 @@ async def joindate_cmd(client, message):
 			break
 		out += f"` → ` **{usr}** [`UNKNOWN`]\n"
 		count += 1
-	await edit_or_reply(message, out)
+	await msg.edit(out)
