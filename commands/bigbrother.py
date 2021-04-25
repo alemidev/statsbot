@@ -49,7 +49,7 @@ async def hist_cmd(client, message):
 	if doc:
 		out = LINE.format(
 			date=f"[--{doc['date']}--]" if show_time else "",
-			author=f"**{get_username(await client.get_user(doc['user']))}** >" if show_author else "",
+			author=f"**{get_username(await client.get_users(doc['user']))}** >" if show_author else "",
 			text=doc["text"],
 		) 
 		if "edits" in doc:
