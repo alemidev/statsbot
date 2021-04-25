@@ -20,10 +20,10 @@ HELP.add_help(["hist", "history"], "get edit history of a message",
 				"request edit history of a message. You can specify a message id or reply to a message. " +
 				"By giving the `-t` flag, edit timestamps will be shown. You can check history of messages in " +
 				"different groups by giving the group id (or name) in the `-g` option.",
-				public=True, args="[-t] [-g <g>] [<id>]")
+				public=True, args="[-t] [-a] [-g <g>] [<id>]")
 @alemiBot.on_message(is_allowed & filterCommand(["history", "hist"], list(alemiBot.prefixes), options={
 	"group" : ["-g"]
-}, flags=["-t"]))
+}, flags=["-t", "-a"]))
 @report_error(logger)
 @set_offline
 async def hist_cmd(client, message):
@@ -31,6 +31,7 @@ async def hist_cmd(client, message):
 	m_id = None
 	c_id = message.chat.id
 	show_time = "-t" in args["flags"]
+	show_author = "-a" in args["flags"]
 	if message.reply_to_message is not None:
 		m_id = message.reply_to_message.message_id
 	elif "cmd" in args:
@@ -42,16 +43,21 @@ async def hist_cmd(client, message):
 			c_id = int(args["group"])
 		else:
 			c_id = (await client.get_chat(args["group"])).id
-	format_text = (lambda doc: f"` → ` [--{doc['date']}--] {doc['text']}\n") \
-					if show_time else \
-				  (lambda doc: f"` → ` {doc['text']}\n")
+	LINE = "` → ` {date} {author} {text}\n"
 	logger.info("Querying db for message history")
 	doc = DRIVER.db.messages.find_one({"id": m_id, "chat": c_id}, sort=[("date", DESCENDING)])
 	if doc:
-		out = format_text(doc) 
+		out = LINE.format(
+			date=f"[--{doc['date']}--]" if show_time else "",
+			author=f"**{get_username(await client.get_user(doc['user']))}** >" if show_author else "",
+			text=doc["text"],
+		) 
 		if "edits" in doc:
 			for edit in doc["edits"]:
-				out += format_text(edit)
+				out += LINE.format(
+					date=f"[--{edit['date']}--]" if show_time else "",
+					text=edit["text"],
+				)
 		await edit_or_reply(message, out)
 	else:
 		await edit_or_reply(message, "`[!] → ` Nothing found")
