@@ -100,9 +100,14 @@ async def deleted_cmd(client, message): # This is a mess omg
 			offset -=1
 			continue
 		author = f"~~{doc['user']}~~"
-		usr = await client.get_users(doc["user"])
-		if usr:
-			author = get_username(usr)
+		if str(doc["user"]).startswith("-100"):
+			usr = client.get_chat(doc["user"])
+			if usr and usr.username:
+				author = usr.username
+		else:
+			usr = await client.get_users(doc["user"])
+			if usr:
+				author = get_username(usr, mention=True)
 		out += LINE.format(
 			time=str(doc["date"]) + " " if show_time else "",
 			m_id=doc["id"],
