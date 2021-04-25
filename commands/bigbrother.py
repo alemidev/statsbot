@@ -108,13 +108,14 @@ async def deleted_cmd(client, message): # This is a mess omg
 			usr = await client.get_users(doc["user"])
 			if usr:
 				author = get_username(usr) # if mention=True sometimes it fails?
+		group = await client.get_chat(doc["chat"])
 		out += LINE.format(
 			time=str(doc["date"]) + " " if show_time else "",
 			m_id=doc["id"],
 			user=author,
-			where=get_channel(target_group) if target_group else "",
+			where=get_channel(group) if target_group is None and group else "",
 			text=doc["text"] if "text" in doc else "",
-			media=f"--{doc['media']}--" if "media" in doc else "",
+			media=f"<~~{doc['media']}~~>" if "media" in doc else "",
 		)
 		count += 1
 		if count >= limit:
