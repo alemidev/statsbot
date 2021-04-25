@@ -115,7 +115,10 @@ async def deleted_cmd(client, message): # This is a mess omg
 		flt["chat"] = target_group.id
 	out = f"`→ ` Peeking `{limit}` message{'s' if limit > 1 else ''} " + \
 			(f"in **{get_channel(target_group)}**" if "group" in args else '') + "\n"
-	response = await edit_or_reply(message, out)
+	if client.me.is_bot:
+		response = await edit_or_reply(message.reply_to_message, out)
+	else:
+		response = await edit_or_reply(message, out)
 	LINE = "{time}[`{m_id}`] **{user}** {where} → {text} {media}\n"
 	cursor = DRIVER.db.messages.find(flt).sort("date", ASCENDING if msg_after else DESCENDING)
 	for doc in cursor:
