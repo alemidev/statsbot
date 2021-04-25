@@ -43,7 +43,7 @@ HELP.add_help(["freq", "frequent"], "find frequent words in messages",
 @set_offline
 async def frequency_cmd(client, message):
 	results = int(message.command["results"]) if "results" in message.command else 10
-	number = int(message.command["cmd"][0]) if "cmd" in message.command else 100
+	number = int(message.command["cmd"][0]) if "cmd" in message.command else 10000
 	min_len = int(message.command["minlen"]) if "minlen" in message.command else 3
 	update_interval = int(message.command["interval"]) if "interval" in message.command else 10000
 	query = {"text":{"$exists":1}}
