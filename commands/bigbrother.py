@@ -101,11 +101,13 @@ async def deleted_cmd(client, message): # This is a mess omg
 	logger.info(f"Peeking {limit} messages")
 	count = 0
 	if client.me.is_bot: # bots don't receive delete events so peek must work slightly differently
-		date_limit = DRIVER.db.messages.find_one({"id":message.reply_to_message.message_id, "chat":target_group.id})['date']
+		msg = DRIVER.db.messages.find_one({"id":message.reply_to_message.message_id, "chat":target_group.id})
+		if not msg:
+			return await edit_or_reply(message, "`[!] → ` No record of requested message")
 		if msg_after:
-			flt = {"date": {"$gt":date_limit}}
+			flt = {"date": {"$gt":msg["date"]}}
 		else:
-			flt = {"date": {"$lt":date_limit}}
+			flt = {"date": {"$lt":msg["date"]}}
 	else:
 		flt = {"deleted": True}
 	if target_group:
