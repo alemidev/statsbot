@@ -3,7 +3,7 @@ from pymongo import ASCENDING, DESCENDING
 from bot import alemiBot
 
 from util.command import filterCommand
-from util.permission import is_allowed
+from util.permission import is_allowed, check_superuser
 from util.getters import get_username, get_channel
 from util.message import edit_or_reply, is_me
 from util.decorators import report_error, set_offline
@@ -38,7 +38,7 @@ async def hist_cmd(client, message):
 		m_id = int(args["cmd"][0])
 	if m_id is None:
 		return
-	if "group" in args:
+	if "group" in args and check_superuser(message):
 		if args["group"].isnumeric():
 			c_id = int(args["group"])
 		else:
@@ -86,7 +86,7 @@ async def deleted_cmd(client, message): # This is a mess omg
 	offset = int(args["offset"]) if "offset" in args else 0
 	if client.me.is_bot and not message.reply_to_message:
 		return await edit_or_reply(message, "`[!] → ` You need to reply to a message")
-	if is_me(message):
+	if check_superuser(message):
 		if all_groups:
 			target_group = None
 		elif "group" in args:
