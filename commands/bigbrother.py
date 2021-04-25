@@ -104,8 +104,8 @@ async def deleted_cmd(client, message): # This is a mess omg
 			m_id=doc["id"],
 			user=get_username(await client.get_users(doc["user"])),
 			where=get_channel(target_group) if target_group else "",
-			text=doc["text"],
-			media=doc["media"],
+			text=doc["text"] if "text" in doc else "",
+			media=f"--{doc['media']}--" if "media" in doc else "",
 		)
 		count += 1
 		if count >= limit:
