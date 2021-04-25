@@ -99,10 +99,14 @@ async def deleted_cmd(client, message): # This is a mess omg
 		if offset > 0:
 			offset -=1
 			continue
+		author = f"~~{doc['user']}~~"
+		usr = await client.get_users(doc["user"])
+		if usr:
+			author = get_username(usr)
 		out += LINE.format(
 			time=str(doc["date"]) + " " if show_time else "",
 			m_id=doc["id"],
-			user=get_username(await client.get_users(doc["user"])),
+			user=author,
 			where=get_channel(target_group) if target_group else "",
 			text=doc["text"] if "text" in doc else "",
 			media=f"--{doc['media']}--" if "media" in doc else "",
