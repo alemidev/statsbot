@@ -49,8 +49,9 @@ async def hist_cmd(client, message):
 	doc = DRIVER.db.messages.find_one({"id": m_id, "chat": c_id}, sort=[("date", DESCENDING)])
 	if doc:
 		out = format_text(doc) 
-		for edit in doc["edits"]:
-			out += format_text(edit)
+		if "edits" in doc:
+			for edit in doc["edits"]:
+				out += format_text(edit)
 		await edit_or_reply(message, out)
 	else:
 		await edit_or_reply(message, "`[!] → ` Nothing found")
