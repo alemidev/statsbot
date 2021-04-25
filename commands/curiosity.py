@@ -56,6 +56,7 @@ async def frequency_cmd(client, message):
 			group = await client.get_chat(int(val) if val.isnumeric() else val)
 			query["chat"] = group.id
 		else:
+			group = message.chat
 			query["chat"] = message.chat.id
 	user = None
 	if "user" in message.command:
