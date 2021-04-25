@@ -94,7 +94,7 @@ async def deleted_cmd(client, message): # This is a mess omg
 			('in ' + get_channel(target_group) if target_group is not None else '') + "`\n\n"
 	response = await edit_or_reply(message, out)
 	LINE = "{time}`[{m_id}]` **{user}** {where} → {text} {media}\n"
-	cursor = DRIVER.db.messages.find(flt)
+	cursor = DRIVER.db.messages.find(flt).sort("date", DESCENDING)
 	for doc in cursor:
 		if offset > 0:
 			offset -=1
