@@ -103,7 +103,7 @@ async def deleted_cmd(client, message): # This is a mess omg
 			time=str(doc["date"]) + " " if show_time else "",
 			m_id=doc["id"],
 			user=get_username(await client.get_users(doc["user"])),
-			where=get_channel(target_group) if target_group is None else "",
+			where=get_channel(target_group) if target_group else "",
 			text=doc["text"],
 			media=doc["media"],
 		)
