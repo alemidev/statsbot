@@ -1,4 +1,4 @@
-from pymongo import DESCENDING
+from pymongo import ASCENDING, DESCENDING
 
 from bot import alemiBot
 
@@ -64,7 +64,7 @@ async def hist_cmd(client, message):
 
 HELP.add_help(["peek", "deld", "deleted", "removed"], "get deleted messages",
 				"request last deleted messages in this channel. Use `-t` to add timestamps. A number of messages to peek can be specified. " +
-				"Bots don't receive deletion events, so you must reply to a message to peek messages sent just before. " +
+				"Bots don't receive deletion events, so you must reply to a message to peek messages sent just before (or after with `-down`). " +
 				"If only one message is being peeked, any media attached will be included, otherwise the filename will be appended to message text. " +
 				"Owner can peek globally (`-all`) or in a specific group (`-g <id>`). Keep in mind that Telegram doesn't send easy to use " +
 				"deletion data, so the bot needs to lookup ids and messages in the database when he receives a deletion. Telegram doesn't even always include " +
@@ -74,12 +74,13 @@ HELP.add_help(["peek", "deld", "deleted", "removed"], "get deleted messages",
 @alemiBot.on_message(is_allowed & filterCommand(["peek", "deld", "deleted", "removed"], list(alemiBot.prefixes), options={
 	"group" : ["-g", "-group"],
 	"offset" : ["-o", "-offset"],
-}, flags=["-t", "-all", "-sys"]))
+}, flags=["-t", "-all", "-down"]))
 @report_error(logger)
 @set_offline
 async def deleted_cmd(client, message): # This is a mess omg
 	args = message.command
 	show_time = "-t" in args["flags"]
+	msg_after = "-down" in args["flags"]
 	target_group = message.chat
 	offset = int(args["offset"]) if "offset" in args else 0
 	if client.me.is_bot and not message.reply_to_message:
@@ -101,7 +102,10 @@ async def deleted_cmd(client, message): # This is a mess omg
 	count = 0
 	if client.me.is_bot: # bots don't receive delete events so peek must work slightly differently
 		date_limit = DRIVER.db.messages.find_one({"id":message.reply_to_message.message_id, "chat":target_group.id})['date']
-		flt = {"date": {"$lt":date_limit}}
+		if msg_after:
+			flt = {"date": {"$gt":date_limit}}
+		else:
+			flt = {"date": {"$lt":date_limit}}
 	else:
 		flt = {"deleted": True}
 	if target_group:
@@ -110,7 +114,7 @@ async def deleted_cmd(client, message): # This is a mess omg
 			('in ' + get_channel(target_group) if target_group is not None else '') + "`\n\n"
 	response = await edit_or_reply(message, out)
 	LINE = "{time}`[{m_id}]` **{user}** {where} → {text} {media}\n"
-	cursor = DRIVER.db.messages.find(flt).sort("date", DESCENDING)
+	cursor = DRIVER.db.messages.find(flt).sort("date", ASCENDING if msg_after else DESCENDING)
 	for doc in cursor:
 		if offset > 0:
 			offset -=1
