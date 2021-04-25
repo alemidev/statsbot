@@ -57,6 +57,12 @@ def extract_message(msg:Message):
 			"question" : msg.poll.question,
 			"options" : [ opt.text for opt in msg.poll.options ]
 		}
+	if msg.contact:
+		doc["contact"] = {"phone": msg.contact.phone_number}
+		if msg.contact.first_name:
+			doc["contact"]["first_name"] = msg.contact.first_name
+		if msg.contact.last_name:
+			doc["contact"]["last_name"] = msg.contact.last_name
 	return doc
 
 def extract_service_message(msg:Message):
