@@ -90,7 +90,7 @@ async def joindate_cmd(client, message):
 			chat_title = get_channel(chat)
 			chat_id = chat.id
 	res = []
-	unk = []
+	creator = "~~UNKNOWN~~"
 	msg = await edit_or_reply(message, "`→ ` Querying...")
 	await client.send_chat_action(message.chat.id, "upload_document")
 	now = time()
@@ -98,11 +98,10 @@ async def joindate_cmd(client, message):
 		if time() - now > 5:
 			await client.send_chat_action(message.chat.id, "upload_document")
 			now = time()
-		event = DRIVER.db.service.find_one({"new_chat_members":member.user.id,"chat":chat_id}, sort=[("date", ASCENDING)])
-		if event:
-			res.append((get_username(member.user), event["date"]))
+		if member.status == "creator":
+			creator = get_username(member.user)
 		else:
-			unk.append(get_username(member.user))
+			res.append((get_username(member.user), member.joined_date))
 	res.sort(key=lambda x: x[1])
 	stars = 3
 	count = 0
@@ -110,16 +109,11 @@ async def joindate_cmd(client, message):
 	if message.outgoing:
 		out = message.text + "\n"
 	out += f"`→ ` Join dates in {chat_title}\n"
+	out += f"`→ ` **{creator}** [`CREATOR`]\n"
 	for usr, date in res:
 		if count >= results:
 			break
 		out += f"` → ` **{usr}** [`{str(date)}`] {'☆'*stars}\n"
 		stars -= 1
-		count += 1
-	out += "\n"
-	for usr in unk:
-		if count >= results:
-			break
-		out += f"` → ` **{usr}** [`UNKNOWN`]\n"
 		count += 1
 	await msg.edit(out)
