@@ -1,4 +1,5 @@
 from time import time
+from datetime import datetime
 
 from pymongo import ASCENDING
 
@@ -101,7 +102,8 @@ async def joindate_cmd(client, message):
 		if member.status == "creator":
 			creator = get_username(member.user)
 		else:
-			res.append((get_username(member.user), member.joined_date))
+			res.append((get_username(member.user), datetime.utcfromtimestamp(member.joined_date) if
+							type(member.joined_date) is int else member.joined_date))
 	res.sort(key=lambda x: x[1])
 	stars = 3
 	count = 0
