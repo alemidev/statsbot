@@ -35,7 +35,7 @@ def extract_message(msg:Message):
 		"user" : msg.from_user.id if msg.from_user else \
 			msg.sender_chat.id if msg.sender_chat else None,
 		"chat" : msg.chat.id if msg.chat else None,
-		"date" : datetime.fromtimestamp(msg.date) if type(msg.date) is int else msg.date,
+		"date" : datetime.utcfromtimestamp(msg.date) if type(msg.date) is int else msg.date,
 	}
 	if parse_media_type(msg):
 		doc["media"] = parse_media_type(msg)
@@ -71,7 +71,7 @@ def extract_service_message(msg:Message):
 		"user" : msg.from_user.id if msg.from_user else \
 			msg.sender_chat.id if msg.sender_chat else None,
 		"chat" : msg.chat.id,
-		"date" : datetime.fromtimestamp(msg.date) if type(msg.date) is int else msg.date,
+		"date" : datetime.utcfromtimestamp(msg.date) if type(msg.date) is int else msg.date,
 	}
 	if hasattr(msg, "new_chat_members") and msg.new_chat_members:
 		doc["new_chat_members"] = [ u.id for u in msg.new_chat_members ]

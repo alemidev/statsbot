@@ -125,7 +125,7 @@ class DatabaseDriver:
 	def parse_edit_event(self, message:Message):
 		self.counter.edits
 		doc = {
-			"date": datetime.fromtimestamp(message.edit_date) \
+			"date": datetime.utcfromtimestamp(message.edit_date) \
 				if type(message.edit_date) is int else message.edit_date,
 			"text": get_text(message.text, raw=True)
 		}
