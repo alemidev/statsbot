@@ -104,7 +104,7 @@ async def joindate_cmd(client, message):
 		else: # Still query db, maybe user left and then joined again! Telegram only tells most recent join
 			event = DRIVER.db.service.find_one({"new_chat_members":member.user.id,"chat":chat_id}, sort=[("date", ASCENDING)])
 			if event:
-				res.append(get_username(member.user), event['date'])
+				res.append((get_username(member.user), event['date']))
 			else:
 				res.append((get_username(member.user), datetime.fromtimestamp(member.joined_date) if
 							type(member.joined_date) is int else member.joined_date))
