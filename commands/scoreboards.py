@@ -43,7 +43,7 @@ async def stats_cmd(client, message):
 	oldest = oldest
 	await edit_or_reply(message, f"`→ ` Hi {get_username(get_user(message))}\n" +
 								 f"` → ` You sent **{total_messages}** messages\n" +
-								 f"` → ` You visited **{visited_chats}** chats\n" +
+								 f"` → ` You visited **{max(visited_chats, partecipated_chats)}** chats\n" +
 								 f"`  → ` You partecipated in **{partecipated_chats}** chats\n" +
 								 f"` → ` Your oldest sighting is `{oldest}`"
 	)
