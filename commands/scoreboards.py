@@ -83,10 +83,10 @@ async def joindate_cmd(client, message):
 			else message.command["chat"]
 		target_chat = await client.get_chat(tgt)
 	res = []
-	creator = "~~UNKNOWN~~"
 	msg = await edit_or_reply(message, "`→ ` Querying...")
 	await client.send_chat_action(message.chat.id, "upload_document")
 	now = time()
+	creator = None
 	if "cmd" in message.command:
 		for uname in message.command["cmd"]:
 			if time() - now > 5:
@@ -96,6 +96,7 @@ async def joindate_cmd(client, message):
 			res.append((get_username(member.user), datetime.utcfromtimestamp(member.joined_date)
 								if type(member.joined_date) is int else member.joined_date))
 	else:
+		creator = "~~UNKNOWN~~"
 		async for member in target_chat.iter_members():
 			if time() - now > 5:
 				await client.send_chat_action(message.chat.id, "upload_document")
@@ -116,7 +117,8 @@ async def joindate_cmd(client, message):
 	if message.outgoing:
 		out = message.text + "\n"
 	out += f"`→ ` Join dates in {get_channel(target_chat)}\n"
-	out += f"`→ ` **{creator}** [`CREATOR`]\n"
+	if creator:
+		out += f"`→ ` **{creator}** [`CREATED`]\n"
 	for usr, date in res:
 		if count >= results:
 			break
