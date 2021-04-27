@@ -93,8 +93,8 @@ async def joindate_cmd(client, message):
 				await client.send_chat_action(message.chat.id, "upload_document")
 				now = time()
 			member = await client.get_chat_member(target_chat.id, uname)
-			res.append(get_username(member.user), datetime.utcfromtimestamp(member.joined_date)
-								if type(member.joined_date) is int else member.joined_date)
+			res.append((get_username(member.user), datetime.utcfromtimestamp(member.joined_date)
+								if type(member.joined_date) is int else member.joined_date))
 	else:
 		async for member in target_chat.iter_members():
 			if time() - now > 5:
