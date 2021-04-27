@@ -31,8 +31,8 @@ async def stats_cmd(client, message):
 		return await edit_or_reply(message, "`[!] → ` You are no one")
 	uid = user.id
 	total_messages = DRIVER.db.messages.count_documents({"user":uid})
-	visited_chats = DRIVER.db.service.distinct("chat", {"user":uid})
-	partecipated_chats = DRIVER.db.messages.distinct("chat", {"user":uid})
+	visited_chats = len(DRIVER.db.service.distinct("chat", {"user":uid}))
+	partecipated_chats = len(DRIVER.db.messages.distinct("chat", {"user":uid}))
 	oldest = 9999999999999
 	oldest_message = DRIVER.db.messages.find_one({"user":uid}, sort=[("date",ASCENDING)])
 	if oldest_message:
