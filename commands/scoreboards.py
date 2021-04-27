@@ -8,7 +8,7 @@ from bot import alemiBot
 from util.command import filterCommand
 from util.permission import is_allowed, check_superuser
 from util.message import edit_or_reply
-from util.getters import get_username, get_channel
+from util.getters import get_username, get_channel, get_user
 from util.decorators import report_error, set_offline
 from util.help import HelpCategory
 
