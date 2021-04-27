@@ -5,12 +5,13 @@ import os
 
 from datetime import datetime
 
-from pymongo import DESCENDING
+from pymongo import DESCENDING, ASCENDING
 
 from bot import alemiBot
 
 from util.command import filterCommand
 from util.text import tokenize_json, order_suffix
+from util.getters import get_user, get_username
 from util.permission import is_allowed, is_superuser
 from util.message import edit_or_reply
 from util.decorators import report_error, set_offline
@@ -23,12 +24,12 @@ logger = logging.getLogger(__name__)
 
 HELP = HelpCategory("DATABASE")
 
-HELP.add_help(["stats", "stat"], "get stats",
-				"Get uptime, disk usage for media and for db, number of tracked events.", public=True)
-@alemiBot.on_message(is_allowed & filterCommand(["stats", "stat"], list(alemiBot.prefixes)))
+HELP.add_help(["dbstats", "dbstat"], "get database stats",
+				"list collections entries and disk usage." ,public=False)
+@alemiBot.on_message(is_superuser & filterCommand(["dbstats", "dbstat"], list(alemiBot.prefixes)))
 @report_error(logger)
 @set_offline
-async def stats_cmd(client, message):
+async def dbstats_cmd(client, message):
 	logger.info("Getting stats")
 	original_text = message.text.markdown
 	msg = await edit_or_reply(message, "` → ` Fetching stats...")
@@ -53,16 +54,11 @@ async def stats_cmd(client, message):
 
 	uptime = str(datetime.now() - client.start_time)
 	await msg.edit(original_text + f"\n`→ online for {uptime} `" +
-					f"\n` → ` **{DRIVER.counter['messages']}** messages logged (+{DRIVER.counter['edits']} edits)" +
-					f"\n`  → ` **{msg_count}** total `|` size **{order_suffix(msg_size)}**" +
-					f"\n` → ` **{DRIVER.counter['service']}** events tracked" +
-					f"\n`  → ` **{service_count}** total `|` size **{order_suffix(service_size)}**" +
-					f"\n` → ` **{DRIVER.counter['deletions']}** deletions saved" +
-					f"\n`  → ` **{deletions_count}** total `|` size **{order_suffix(deletions_size)}**" +
-					f"\n` → ` **{DRIVER.counter['users']}** users seen" +
-					f"\n`  → ` **{user_count}** total `|` size **{order_suffix(user_size)}**" +
-					f"\n` → ` **{DRIVER.counter['chats']}** chats visited" +
-					f"\n`  → ` **{chat_count}** total `|` size **{order_suffix(chat_size)}**" +
+					f"\n` → ` **{msg_count}** messages logged (+{DRIVER.counter['messages']} new | **{order_suffix(msg_size)}**)" +
+					f"\n` → ` **{service_count}** events tracked (+{DRIVER.counter['service']} new | **{order_suffix(service_size)}**)" +
+					f"\n` → ` **{deletions_count}** deletions saved (+{DRIVER.counter['deletions']} new | **{order_suffix(deletions_size)}**)" +
+					f"\n` → ` **{user_count}** users seen (+{DRIVER.counter['users']} new | **{order_suffix(user_size)}**)" +
+					f"\n` → ` **{chat_count}** chats visited (+{DRIVER.counter['chats']} new | **{order_suffix(chat_size)}**)" +
 					f"\n` → ` DB total size **{order_suffix(db_size)}**" +
 					f"\n` → ` **{medianumber}** documents archived (size **{order_suffix(mediasize)}**)")
 	await client.set_offline()
