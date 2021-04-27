@@ -40,7 +40,7 @@ async def stats_cmd(client, message):
 	oldest_event = DRIVER.db.service.find_one({"user":uid}, sort=[("date",ASCENDING)])
 	if oldest_event:
 		oldest = min(oldest, oldest_event["date"])
-	oldest = datetime.utcfromtimestamp(oldest)
+	oldest = oldest
 	await edit_or_reply(message, f"`→ ` Hi {get_username(get_user(message))}\n" +
 								 f"` → ` You sent **{total_messages}** messages\n" +
 								 f"` → ` You visited **{visited_chats}** chats\n" +
