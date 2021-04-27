@@ -21,7 +21,7 @@ HELP = HelpCategory("SCOREBOARDS")
 
 HELP.add_help(["stats", "stat"], "get your stats",
 				"will show your first sighting and count your sent messages, " +
-				"chats you visited, chats you partecipated in.", args="[-dbg]", public=True)
+				"chats you visited, chats you partecipated in.", public=True)
 @alemiBot.on_message(is_allowed & filterCommand(["stats", "stat"], list(alemiBot.prefixes)))
 @report_error(logger)
 @set_offline
@@ -33,14 +33,13 @@ async def stats_cmd(client, message):
 	total_messages = DRIVER.db.messages.count_documents({"user":uid})
 	visited_chats = len(DRIVER.db.service.distinct("chat", {"user":uid}))
 	partecipated_chats = len(DRIVER.db.messages.distinct("chat", {"user":uid}))
-	oldest = 9999999999999
+	oldest = datetime.now()
 	oldest_message = DRIVER.db.messages.find_one({"user":uid}, sort=[("date",ASCENDING)])
 	if oldest_message:
 		oldest = oldest_message["date"]
 	oldest_event = DRIVER.db.service.find_one({"user":uid}, sort=[("date",ASCENDING)])
 	if oldest_event:
 		oldest = min(oldest, oldest_event["date"])
-	oldest = oldest
 	await edit_or_reply(message, f"`→ ` Hi {get_username(get_user(message))}\n" +
 								 f"` → ` You sent **{total_messages}** messages\n" +
 								 f"` → ` You visited **{max(visited_chats, partecipated_chats)}** chats\n" +
