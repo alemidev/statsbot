@@ -23,52 +23,57 @@ logger = logging.getLogger(__name__)
 HELP = HelpCategory("CURIOSITY")
 
 HELP.add_help(["freq", "frequent"], "find frequent words in messages",
-				"find most used words in last messages. If no number is given, will search only " +
-				"last 100 messages. By default, 10 most frequent words are shown, but number of results " +
+				"find most used words. By default, 10 most frequent words are shown, but number of results " +
 				"can be changed with `-r`. By default, only words of `len > 3` will be considered. " +
-				"A minimum word len can be specified with `-min`. Will search in current group by default. Perform " +
-				"a db-wide search with flag `-all`, search in a specific group with `-g` (only for superuser). " +
-				"A single user can be specified with `-u` : only messages from that user will count if provided. " +
+				"Minimum word len can be specified with `-min`. Perform a global search with flag `-all` or " +
+				"search in a specific group with `-g` (only for superuser). Provide an username/user_id as argument " +
+				"to count only messages from that user (or reply to a message)." +
 				"Extra parameters for the db query can be given with `-q`. (only for superuser)",
-				args="[-r <n>] [-min <n>] [-all | -g <group>] [-u <user>] [-q <{q}>] [n]", public=True)
+				args="[-r <n>] [-min <n>] [-l <n>] [-all | -g <group>] [user] [-q <{q}>]", public=True)
 @alemiBot.on_message(is_allowed & filterCommand(["freq", "frequent"], list(alemiBot.prefixes), options={
-	"results" : ["-r", "-res"],
+	"limit" : ["-l", "--limit"],
+	"results" : ["-r", "--results"],
 	"minlen" : ["-min"],
-	"group" : ["-g", "-group"],
-	"user" : ["-u", "-user"],
+	"group" : ["-g", "--group"],
 	"query" : ["-q", "--query"],
 }, flags=["-all"]))
 @report_error(logger)
 @set_offline
 async def frequency_cmd(client, message):
-	results = int(message.command["results"]) if "results" in message.command else 10
-	number = int(message.command["cmd"][0]) if "cmd" in message.command else 10000
+	results = min(int(message.command["results"]), 100) if "results" in message.command else 10
+	limit = int(message.command["limit"]) if "limit" in message.command else 0
 	min_len = int(message.command["minlen"]) if "minlen" in message.command else 3
-	query = {"text":{"$exists":1}}
-	extra_query = False
+	# Build query
+	query = {"text":{"$exists":1}} # only msgs with text
+	extra_query = False # Extra query
 	if check_superuser(message) and "query" in message.command:
 		extra_query = True
 		query = {**query, **json.loads(message.command["query"])}
+	# Add group filter to query
 	group = message.chat
-	if "-all" in message.command["flags"]:
-		group = None
-	elif check_superuser(message) and "group" in message.command:
-		tgt = int(message.command["group"])	if message.command["group"].isnumeric() \
-			else message.command["group"] 
-		group = await client.get_chat(tgt)
-
+	if check_superuser(message):
+		if "-all" in message.command["flags"]:
+			group = None
+		elif "group" in message.command:
+			tgt = int(message.command["group"])	if message.command["group"].isnumeric() \
+				else message.command["group"] 
+			group = await client.get_chat(tgt)
 	if group:
 		query["chat"] = group.id
+	# Add user filter to query
 	user = None
-	if "user" in message.command:
-		val = message.command["user"]
+	if "cmd" in message.command:
+		val = message.command["cmd"][0]
 		user = await client.get_users(int(val) if val.isnumeric() else val)
 		query["user"] = user.id
-	logger.info(f"Counting {results} most frequent words in last {number} messages")
+	logger.info(f"Counting {results} most frequent words")
 	response = await edit_or_reply(message, f"` → ` Querying...")
 	words = []
 	curr = 0
-	for doc in DRIVER.db.messages.find(query).sort("date", DESCENDING).limit(number):
+	cursor = DRIVER.db.messages.find(query).sort("date", DESCENDING)
+	if limit > 0:
+		cursor.limit(limit)
+	for doc in cursor:
 		if doc["text"]:
 			words += [ w for w in re.sub(r"[^0-9a-zA-Z\s\n]+", "", doc["text"].lower()).split() if len(w) > min_len ]
 			curr += 1
