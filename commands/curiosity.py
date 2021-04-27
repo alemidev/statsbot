@@ -29,7 +29,7 @@ HELP.add_help(["freq", "frequent"], "find frequent words in messages",
 				"search in a specific group with `-g` (only for superuser). Provide an username/user_id as argument " +
 				"to count only messages from that user (or reply to a message)." +
 				"Extra parameters for the db query can be given with `-q`. (only for superuser)",
-				args="[-r <n>] [-min <n>] [-l <n>] [-all | -g <group>] [user] [-q <{q}>]", public=True)
+				args="[-r <n>] [-min <n>] [-l <n>] [-all | -g <group>] [<user>] [-q <{q}>]", public=True)
 @alemiBot.on_message(is_allowed & filterCommand(["freq", "frequent"], list(alemiBot.prefixes), options={
 	"limit" : ["-l", "--limit"],
 	"results" : ["-r", "--results"],

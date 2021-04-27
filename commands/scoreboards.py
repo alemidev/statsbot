@@ -66,9 +66,10 @@ async def top_messages_cmd(client, message):
 	await msg.edit(out)
 
 HELP.add_help(["joindate", "joindates", "join_date"], "list date users joined group",
-				"checks (tracked) join date for users in current chat. A specific group can be " +
+				"checks join date for users in current chat (tracks previous joins!). A specific group can be " +
 				"specified with `-g` (only by superusers). By default, will only list oldest 25 members, but " +
-				"number of results can be specified with `-r`", args="[-g <group>] [-r <n>]", public=True)
+				"number of results can be specified with `-r`. A list of users can be provided and only their joindates " +
+				"will be checked.", args="[-g <group>] [-r <n>] [<users>]", public=True)
 @alemiBot.on_message(is_allowed & filterCommand(["joindate", "joindates", "join_date"], list(alemiBot.prefixes), options={
 	"chat" : ["-g", "--group"],
 	"results" : ["-r", "--results"],
@@ -87,7 +88,8 @@ async def joindate_cmd(client, message):
 	msg = await edit_or_reply(message, "`→ ` Querying...")
 	await client.send_chat_action(message.chat.id, "upload_document")
 	now = time()
-	async for member in target_chat.iter_members():
+	iterator = message.command["cmd"] if "cmd" in message.command else target_chat.iter_members()
+	async for member in iterator:
 		if time() - now > 5:
 			await client.send_chat_action(message.chat.id, "upload_document")
 			now = time()
@@ -101,7 +103,7 @@ async def joindate_cmd(client, message):
 				res.append((get_username(member.user), datetime.utcfromtimestamp(member.joined_date) if
 							type(member.joined_date) is int else member.joined_date))
 	res.sort(key=lambda x: x[1])
-	stars = 3
+	stars = 3 if len(res) > 3 else 0
 	count = 0
 	out = ""
 	if message.outgoing:
