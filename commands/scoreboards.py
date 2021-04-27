@@ -19,6 +19,30 @@ logger = logging.getLogger(__name__)
 
 HELP = HelpCategory("SCOREBOARDS")
 
+HELP.add_help(["stats", "stat"], "get your stats",
+				"will show your first sighting and count your sent messages, " +
+				"chats you visited, chats you partecipated in.", args="[-dbg]", public=True)
+@alemiBot.on_message(is_allowed & filterCommand(["stats", "stat"], list(alemiBot.prefixes)))
+@report_error(logger)
+@set_offline
+async def stats_cmd(client, message):
+	user = get_user(message)
+	if not user:
+		return await edit_or_reply(message, "`[!] → ` You are no one")
+	uid = user.id
+	total_messages = DRIVER.db.messages.count_documents({"user":uid})
+	visited_chats = DRIVER.db.service.distinct("chat", {"user":uid})
+	partecipated_chats = DRIVER.db.messages.distinct("chat", {"user":uid})
+	oldest_message = DRIVER.db.messages.find({"user":uid}).sort("date",ASCENDING).limit(1)
+	oldest_event = DRIVER.db.service.find({"user":uid}).sort("date",ASCENDING).limit(1)
+	oldest = datetime.utcfromtimestamp(min(oldest_event, oldest_message))
+	await edit_or_reply(message, f"`→ ` Hi {get_username(get_user(message))}\n" +
+								 f"` → ` You sent **{total_messages}** messages\n" +
+								 f"` → ` You visited **{visited_chats}** chats\n" +
+								 f"`  → ` You partecipated in **{partecipated_chats}** chats\n" +
+								 f"` → ` Your oldest sighting is `{oldest}`"
+	)
+
 HELP.add_help(["topmsg", "topmsgs", "top_messages"], "list tracked messages for users",
 				"checks (tracked) number of messages sent by group members in this chat. " +
 				"Add flag `-all` to list all messages tracked of users in this chat, or `-g` and " +
