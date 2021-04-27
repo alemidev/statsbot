@@ -67,7 +67,7 @@ async def frequency_cmd(client, message):
 		user = await client.get_users(int(val) if val.isnumeric() else val)
 		query["user"] = user.id
 	logger.info(f"Counting {results} most frequent words")
-	response = await edit_or_reply(message, f"` → ` Querying...")
+	response = await edit_or_reply(message, f"`→ ` Querying...")
 	words = []
 	curr = 0
 	cursor = DRIVER.db.messages.find(query).sort("date", DESCENDING)
