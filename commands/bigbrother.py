@@ -70,7 +70,7 @@ HELP.add_help(["peek", "deld", "deleted", "removed"], "get deleted messages",
 				"deletion data, so the bot needs to lookup ids and messages in the database when he receives a deletion. Telegram doesn't even always include " +
 				"the chat id, so false positives may happen. For specific searches, use the query (`.q`) command. An offset can be " +
 				"specified with `-o` : if given, the most `<offset>` recent messages will be skipped and older messages will be peeked.",
-				public=True, args="[-t] [-g [id] | -all] [-o <n>] [<num>]")
+				public=True, args="[-t] [-g [id] | -all] [-o <n>] [<num>] [-down]")
 @alemiBot.on_message(is_allowed & filterCommand(["peek", "deld", "deleted", "removed"], list(alemiBot.prefixes), options={
 	"group" : ["-g", "-group"],
 	"offset" : ["-o", "-offset"],
