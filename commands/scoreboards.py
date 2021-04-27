@@ -33,9 +33,14 @@ async def stats_cmd(client, message):
 	total_messages = DRIVER.db.messages.count_documents({"user":uid})
 	visited_chats = DRIVER.db.service.distinct("chat", {"user":uid})
 	partecipated_chats = DRIVER.db.messages.distinct("chat", {"user":uid})
+	oldest = 9999999999999
 	oldest_message = DRIVER.db.messages.find_one({"user":uid}, sort=[("date",ASCENDING)])
+	if oldest_message:
+		oldest = oldest_message["date"]
 	oldest_event = DRIVER.db.service.find_one({"user":uid}, sort=[("date",ASCENDING)])
-	oldest = datetime.utcfromtimestamp(min(oldest_event, oldest_message))
+	if oldest_event:
+		oldest = min(oldest, oldest_event["date"])
+	oldest = datetime.utcfromtimestamp(oldest)
 	await edit_or_reply(message, f"`→ ` Hi {get_username(get_user(message))}\n" +
 								 f"` → ` You sent **{total_messages}** messages\n" +
 								 f"` → ` You visited **{visited_chats}** chats\n" +
