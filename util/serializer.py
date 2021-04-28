@@ -14,19 +14,16 @@ logger = logging.getLogger(__name__)
 
 def diff(old:Union[dict,str,int], new:Union[dict,str,int]):
 	if not isinstance(old, dict):
-		if old != new:
-			return new
-		return None
+		return new
 	elif not isinstance(new, dict):
+		logger.warning(f"Replacing dict {old} with value {new} while serializing")
 		return new
 	out = {}
 	for key in new:
 		if key not in old:
 			out[key] = new[key]
 		elif old[key] != new[key]:
-			d = diff(old[key], new[key])
-			if d:
-				out[key] = d
+			out[key] = diff(old[key], new[key])
 	return out
 
 def extract_message(msg:Message):
