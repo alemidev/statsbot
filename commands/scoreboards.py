@@ -59,8 +59,8 @@ HELP.add_help(["topmsg", "topmsgs", "top_messages"], "list tracked messages for 
 @report_error(logger)
 @set_offline
 async def top_messages_cmd(client, message):
-	global_search = "-all" in message.command["flags"]
-	results = int(message.command["results"]) if "results" in message.command else 25
+	results = min(int(message.command["results"]), 100) if "results" in message.command else 25
+	global_search = check_superuser(message) and "-all" in message.command["flags"]
 	target_chat = message.chat
 	if check_superuser(message) and "chat" in message.command:
 		tgt = int(message.command["chat"]) if message.command["chat"].isnumeric() \
@@ -70,16 +70,27 @@ async def top_messages_cmd(client, message):
 	msg = await edit_or_reply(message, "`→ ` Querying...")
 	await client.send_chat_action(message.chat.id, "upload_document")
 	now = time()
-	async for member in target_chat.iter_members():
-		if time() - now > 5:
-			await client.send_chat_action(message.chat.id, "upload_document")
-			now = time()
-		flt = {"user": member.user.id}
-		if not global_search:
-			flt["chat"] = target_chat.id
-		res.append((get_username(member.user), DRIVER.db.messages.count_documents(flt)))
+	if "cmd" in message.command:
+		for uname in message.command["cmd"]:
+			if time() - now > 5:
+				await client.send_chat_action(message.chat.id, "upload_document")
+				now = time()
+			user = await client.get_user(uname)
+			flt = {"user": user.id}
+			if not global_search:
+				flt["chat"] = target_chat.id
+			res.append((get_username(user), DRIVER.db.messages.count_documents(flt)))
+	else:
+		async for member in target_chat.iter_members():
+			if time() - now > 5:
+				await client.send_chat_action(message.chat.id, "upload_document")
+				now = time()
+			flt = {"user": member.user.id}
+			if not global_search:
+				flt["chat"] = target_chat.id
+			res.append((get_username(member.user), DRIVER.db.messages.count_documents(flt)))
 	res.sort(key=lambda x: x[1], reverse=True)
-	stars = 3
+	stars = 3 if len(res) > 3 else 0
 	count = 0
 	out = ""
 	if message.outgoing:
@@ -94,7 +105,7 @@ async def top_messages_cmd(client, message):
 	await msg.edit(out)
 
 HELP.add_help(["joindate", "joindates", "join_date"], "list date users joined group",
-				"checks join date for users in current chat (tracks previous joins!). A specific group can be " +
+				"checks join date for users in current chat (will count previous joins if available). A specific group can be " +
 				"specified with `-g` (only by superusers). By default, will only list oldest 25 members, but " +
 				"number of results can be specified with `-r`", args="[-g <group>] [-r <n>] [<users>]", public=True)
 @alemiBot.on_message(is_allowed & filterCommand(["joindate", "joindates", "join_date"], list(alemiBot.prefixes), options={
@@ -110,6 +121,8 @@ async def joindate_cmd(client, message):
 		tgt = int(message.command["chat"]) if message.command["chat"].isnumeric() \
 			else message.command["chat"]
 		target_chat = await client.get_chat(tgt)
+	if target_chat.type in ("bot", "private"):
+		return await edit_or_reply(message, "`[!] → ` Can't query join dates in private chat")
 	res = []
 	msg = await edit_or_reply(message, "`→ ` Querying...")
 	await client.send_chat_action(message.chat.id, "upload_document")
@@ -121,8 +134,7 @@ async def joindate_cmd(client, message):
 				await client.send_chat_action(message.chat.id, "upload_document")
 				now = time()
 			member = await client.get_chat_member(target_chat.id, uname)
-			res.append((get_username(member.user), datetime.utcfromtimestamp(member.joined_date)
-								if type(member.joined_date) is int else member.joined_date))
+			res.append((get_username(member.user), datetime.utcfromtimestamp(member.joined_date)))
 	else:
 		creator = "~~UNKNOWN~~"
 		async for member in target_chat.iter_members():
