@@ -31,22 +31,29 @@ async def stats_cmd(client, message):
 	user = get_user(message)
 	if not user:
 		return await edit_or_reply(message, "`[!] → ` You are no one")
-	msg = await edit_or_reply(message, "`→ ` Querying...")
-	uid = user.id
+	uid = user.id # spammy upload_document but I hope telegram won't be too angry
+	await client.send_chat_action(message.chat.id, "upload_document")
 	total_messages = DRIVER.db.messages.count_documents({"user":uid})
+	await client.send_chat_action(message.chat.id, "upload_document")
 	total_media = DRIVER.db.messages.count_documents({"user":uid,"media":{"$exists":1}})
+	await client.send_chat_action(message.chat.id, "upload_document")
 	total_edits = DRIVER.db.messages.count_documents({"user":uid,"edits":{"$exists":1}})
+	await client.send_chat_action(message.chat.id, "upload_document")
 	visited_chats = len(DRIVER.db.service.distinct("chat", {"user":uid}))
+	await client.send_chat_action(message.chat.id, "upload_document")
 	partecipated_chats = len(DRIVER.db.messages.distinct("chat", {"user":uid}))
+	await client.send_chat_action(message.chat.id, "upload_document")
 	oldest = datetime.now()
 	oldest_message = DRIVER.db.messages.find_one({"user":uid}, sort=[("date",ASCENDING)])
 	if oldest_message:
 		oldest = oldest_message["date"]
+	await client.send_chat_action(message.chat.id, "upload_document")
 	oldest_event = DRIVER.db.service.find_one({"user":uid}, sort=[("date",ASCENDING)])
 	if oldest_event:
 		oldest = min(oldest, oldest_event["date"])
+	await client.send_chat_action(message.chat.id, "upload_document")
 	welcome = random.choice(["Hi", "Hello", "Welcome", "Nice to see you", "What's up", "Good day"])
-	await edit_or_reply(msg, f"`→ ` {welcome} {get_username(get_user(message))}\n" +
+	await edit_or_reply(message, f"`→ ` {welcome} {get_username(get_user(message))}\n" +
 								 f"` → ` You sent **{total_messages}** messages\n" +
 								 f"`  → ` **{total_media}** were media\n" +
 								 f"`  → ` Of these, **{total_edits}** were edited\n" +
@@ -80,7 +87,7 @@ async def top_messages_cmd(client, message):
 	now = time()
 	if "cmd" in message.command:
 		for uname in message.command["cmd"]:
-			if time() - now > 5:
+			if time() - now > 4:
 				await client.send_chat_action(message.chat.id, "upload_document")
 				now = time()
 			user = await client.get_user(uname)
@@ -96,7 +103,7 @@ async def top_messages_cmd(client, message):
 		res.append((get_username(user), DRIVER.db.messages.count_documents(flt)))
 	else:
 		async for member in target_chat.iter_members():
-			if time() - now > 5:
+			if time() - now > 4:
 				await client.send_chat_action(message.chat.id, "upload_document")
 				now = time()
 			flt = {"user": member.user.id}
@@ -144,7 +151,7 @@ async def joindate_cmd(client, message):
 	creator = None
 	if "cmd" in message.command:
 		for uname in message.command["cmd"]:
-			if time() - now > 5:
+			if time() - now > 4:
 				await client.send_chat_action(message.chat.id, "upload_document")
 				now = time()
 			member = await client.get_chat_member(target_chat.id, uname)
@@ -152,7 +159,7 @@ async def joindate_cmd(client, message):
 	else:
 		creator = "~~UNKNOWN~~"
 		async for member in target_chat.iter_members():
-			if time() - now > 5:
+			if time() - now > 4:
 				await client.send_chat_action(message.chat.id, "upload_document")
 				now = time()
 			if member.status == "creator":
