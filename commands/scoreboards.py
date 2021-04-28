@@ -31,6 +31,8 @@ async def stats_cmd(client, message):
 		return await edit_or_reply(message, "`[!] → ` You are no one")
 	uid = user.id
 	total_messages = DRIVER.db.messages.count_documents({"user":uid})
+	total_media = DRIVER.db.messages.count_documents({"user":uid,"media":{"$exists":1}})
+	total_edits = DRIVER.db.messages.count_documents({"user":uid,"edits":{"$exists":1}})
 	visited_chats = len(DRIVER.db.service.distinct("chat", {"user":uid}))
 	partecipated_chats = len(DRIVER.db.messages.distinct("chat", {"user":uid}))
 	oldest = datetime.now()
@@ -42,6 +44,8 @@ async def stats_cmd(client, message):
 		oldest = min(oldest, oldest_event["date"])
 	await edit_or_reply(message, f"`→ ` Hi {get_username(get_user(message))}\n" +
 								 f"` → ` You sent **{total_messages}** messages\n" +
+								 f"`  → ` **{total_media}** were media\n" +
+								 f"`  → ` Of these, **{total_edits}** were edited\n" +
 								 f"` → ` You visited **{max(visited_chats, partecipated_chats)}** chats\n" +
 								 f"`  → ` You partecipated in **{partecipated_chats}** chats\n" +
 								 f"` → ` First saw you `{oldest}`"
