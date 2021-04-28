@@ -20,8 +20,8 @@ async def log_message_hook(client, message): # TODO handle edits!
 @alemiBot.on_message(~filters.edited & filters.service, group=999999) # happen last and always!
 @DRIVER.log_error_event
 async def log_service_message_hook(client, message): # TODO handle edits!
-	DRIVER.parse_service_event(message)
-
+	if DRIVER.log_messages:
+		DRIVER.parse_service_event(message)
 
 @alemiBot.on_message(filters.edited, group=999999) # happen last and always!
 @DRIVER.log_error_event
