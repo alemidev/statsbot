@@ -3,6 +3,7 @@ import os
 import json
 import asyncio
 
+from time import time
 from datetime import datetime
 from pymongo import ASCENDING, DESCENDING
 
@@ -30,13 +31,13 @@ HELP.add_help(["dbstats", "dbstat"], "get database stats",
 @set_offline
 async def dbstats_cmd(client, message):
 	logger.info("Getting stats")
-	original_text = message.text.markdown
-	msg = await edit_or_reply(message, "` → ` Fetching stats...")
+	await client.send_chat_action(message.chat.id, "upload_document")
 	msg_count = DRIVER.db.messages.count({})
 	user_count = DRIVER.db.users.count({})
 	chat_count = DRIVER.db.chats.count({})
 	deletions_count = DRIVER.db.deletions.count({})
 	service_count = DRIVER.db.service.count({})
+	await client.send_chat_action(message.chat.id, "upload_document")
 	msg_size = DRIVER.db.command("collstats", "messages")['totalSize']
 	user_size = DRIVER.db.command("collstats", "users")['totalSize']
 	chat_size = DRIVER.db.command("collstats", "chats")['totalSize']
@@ -52,7 +53,7 @@ async def dbstats_cmd(client, message):
 	mediasize = float(stdout.decode('utf-8').split("\t")[0])
 
 	uptime = str(datetime.now() - client.start_time)
-	await msg.edit(original_text + f"\n`→ online for {uptime} `" +
+	await edit_or_reply(message, f"`→ online for {uptime} `" +
 					f"\n` → ` **{msg_count}** msgs logged (+{DRIVER.counter['messages']} new | **{order_suffix(msg_size)}**)" +
 					f"\n` → ` **{service_count}** events tracked (+{DRIVER.counter['service']} new | **{order_suffix(service_size)}**)" +
 					f"\n` → ` **{deletions_count}** deletions saved (+{DRIVER.counter['deletions']} new | **{order_suffix(deletions_size)}**)" +
@@ -60,7 +61,6 @@ async def dbstats_cmd(client, message):
 					f"\n` → ` **{chat_count}** chats visited (+{DRIVER.counter['chats']} new | **{order_suffix(chat_size)}**)" +
 					f"\n` → ` DB total size **{order_suffix(db_size)}**" +
 					f"\n` → ` **{medianumber}** documents archived (size **{order_suffix(mediasize)}**)")
-	await client.set_offline()
 
 HELP.add_help(["query", "q", "log"], "interact with db",
 				"make queries to the underlying database (MongoDB) to request documents. You can just get the number or matches with `-count` flag. " +
@@ -105,10 +105,17 @@ async def query_cmd(client, message):
 		if "-id" not in message.command["flags"]:
 			flt["_id"] = False
 		cursor = collection.find(q, flt).sort("date", -1)
+
+	await client.send_chat_action(message.chat.id, "upload_document")
+	now = time()
+
 	if "-count" in args["flags"]:
 		buf = [ cursor.count() ]
 	else:
 		for doc in cursor.limit(lim):
+			if time() - now > 5:
+				await client.send_chat_action(message.chat.id, "upload_document")
+				now = time()
 			buf.append(doc)
 
 	raw = json.dumps(buf, indent=2, default=str, ensure_ascii=False)
@@ -217,14 +224,19 @@ async def deleted_cmd(client, message): # This is a mess omg
 		flt = {"deleted": True}
 	if target_group:
 		flt["chat"] = target_group.id
+
+	await client.send_chat_action(message.chat.id, "upload_document")
+	now = time()
 	out = f"`→ ` Peeking `{limit}` message{'s' if limit > 1 else ''} " + \
 			("down " if msg_after else "") + \
 			(f"in **{get_channel(target_group)}** " if "group" in args else '') + \
 			(f"from [here]({message.reply_to_message.link}) " if client.me.is_bot else "") + "\n"
-	response = await edit_or_reply(message, out)
 	LINE = "{time}[`{m_id}`] **{user}** {where} → {text} {media}\n"
 	cursor = DRIVER.db.messages.find(flt).sort("date", ASCENDING if msg_after else DESCENDING)
 	for doc in cursor:
+		if time() - now > 5:
+			await client.send_chat_action(message.chat.id, "upload_document")
+			now = time()
 		if offset > 0:
 			offset -=1
 			continue
@@ -251,4 +263,4 @@ async def deleted_cmd(client, message): # This is a mess omg
 			break
 	if count == 0:
 		out += "`[!] → ` Nothing to display"
-	await response.edit(out)
+	await edit_or_reply(message, out)

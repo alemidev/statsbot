@@ -1,6 +1,7 @@
 import re
 import json
 
+from time import time
 from collections import Counter
 
 from pyrogram import filters
@@ -67,13 +68,17 @@ async def frequency_cmd(client, message):
 		user = await client.get_users(int(val) if val.isnumeric() else val)
 		query["user"] = user.id
 	logger.info(f"Counting {results} most frequent words")
-	response = await edit_or_reply(message, f"`→ ` Querying...")
-	words = []
-	curr = 0
+	await client.send_chat_action(message.chat.id, "upload_document")
+	now = time()
+	words = []             		
+	curr = 0               		
 	cursor = DRIVER.db.messages.find(query).sort("date", DESCENDING)
 	if limit > 0:
 		cursor.limit(limit)
 	for doc in cursor:
+		if time() - now > 4:
+			await client.send_chat_action(message.chat.id, "upload_document")
+			now = time()
 		if doc["text"]:
 			words += [ w for w in re.sub(r"[^0-9a-zA-Z\s\n]+", "", doc["text"].lower()).split() if len(w) > min_len ]
 			curr += 1
@@ -89,4 +94,4 @@ async def frequency_cmd(client, message):
 		output += f"`{i:02d}]{'-'*(results-i)}>` `{word[0]}` `({word[1]})`\n"
 		if i >= results:
 			break
-	await edit_or_reply(response, output, parse_mode="markdown")
+	await edit_or_reply(message, output, parse_mode="markdown")
