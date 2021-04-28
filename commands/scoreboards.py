@@ -1,3 +1,5 @@
+import random
+
 from time import time
 from datetime import datetime
 
@@ -42,7 +44,8 @@ async def stats_cmd(client, message):
 	oldest_event = DRIVER.db.service.find_one({"user":uid}, sort=[("date",ASCENDING)])
 	if oldest_event:
 		oldest = min(oldest, oldest_event["date"])
-	await edit_or_reply(message, f"`→ ` Hi {get_username(get_user(message))}\n" +
+	welcome = random.choice(["Hi", "Hello", "Welcome", "Nice to see you", "What's up", "Good day"])
+	await edit_or_reply(message, f"`→ ` {welcome} {get_username(get_user(message))}\n" +
 								 f"` → ` You sent **{total_messages}** messages\n" +
 								 f"`  → ` **{total_media}** were media\n" +
 								 f"`  → ` Of these, **{total_edits}** were edited\n" +
