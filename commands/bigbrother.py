@@ -53,10 +53,10 @@ async def dbstats_cmd(client, message):
 
 	uptime = str(datetime.now() - client.start_time)
 	await msg.edit(original_text + f"\n`→ online for {uptime} `" +
-					f"\n` → ` **{msg_count}** messages logged (+{DRIVER.counter['messages']} new | **{order_suffix(msg_size)}**)" +
+					f"\n` → ` **{msg_count}** msgs logged (+{DRIVER.counter['messages']} new | **{order_suffix(msg_size)}**)" +
 					f"\n` → ` **{service_count}** events tracked (+{DRIVER.counter['service']} new | **{order_suffix(service_size)}**)" +
 					f"\n` → ` **{deletions_count}** deletions saved (+{DRIVER.counter['deletions']} new | **{order_suffix(deletions_size)}**)" +
-					f"\n` → ` **{user_count}** users seen (+{DRIVER.counter['users']} new | **{order_suffix(user_size)}**)" +
+					f"\n` → ` **{user_count}** users met (+{DRIVER.counter['users']} new | **{order_suffix(user_size)}**)" +
 					f"\n` → ` **{chat_count}** chats visited (+{DRIVER.counter['chats']} new | **{order_suffix(chat_size)}**)" +
 					f"\n` → ` DB total size **{order_suffix(db_size)}**" +
 					f"\n` → ` **{medianumber}** documents archived (size **{order_suffix(mediasize)}**)")
