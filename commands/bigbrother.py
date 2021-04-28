@@ -57,7 +57,7 @@ async def dbstats_cmd(client, message):
 	mediasize = float(stdout.decode('utf-8').split("\t")[0])
 
 	uptime = str(datetime.now() - client.start_time)
-	await edit_or_reply(message, f"`→ online for {uptime} `" +
+	await edit_or_reply(message, f"`→ ` **online for** `{uptime}`" +
 					f"\n` → ` **{msg_count}** msgs logged (+{DRIVER.counter['messages']} new | **{order_suffix(msg_size)}**)" +
 					f"\n` → ` **{service_count}** events tracked (+{DRIVER.counter['service']} new | **{order_suffix(service_size)}**)" +
 					f"\n` → ` **{deletions_count}** deletions saved (+{DRIVER.counter['deletions']} new | **{order_suffix(deletions_size)}**)" +
