@@ -31,6 +31,7 @@ async def stats_cmd(client, message):
 	user = get_user(message)
 	if not user:
 		return await edit_or_reply(message, "`[!] → ` You are no one")
+	msg = await edit_or_reply(message, "`→ ` Querying...")
 	uid = user.id
 	total_messages = DRIVER.db.messages.count_documents({"user":uid})
 	total_media = DRIVER.db.messages.count_documents({"user":uid,"media":{"$exists":1}})
@@ -45,7 +46,7 @@ async def stats_cmd(client, message):
 	if oldest_event:
 		oldest = min(oldest, oldest_event["date"])
 	welcome = random.choice(["Hi", "Hello", "Welcome", "Nice to see you", "What's up", "Good day"])
-	await edit_or_reply(message, f"`→ ` {welcome} {get_username(get_user(message))}\n" +
+	await edit_or_reply(msg, f"`→ ` {welcome} {get_username(get_user(message))}\n" +
 								 f"` → ` You sent **{total_messages}** messages\n" +
 								 f"`  → ` **{total_media}** were media\n" +
 								 f"`  → ` Of these, **{total_edits}** were edited\n" +
