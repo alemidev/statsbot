@@ -2,8 +2,11 @@ import random
 
 from time import time
 from datetime import datetime
-
+from uuid import uuid4
+                             
 from pymongo import ASCENDING
+
+from pyrogram.types import InputTextMessageContent, InlineQueryResultArticle, InlineKeyboardMarkup, InlineKeyboardButton
 
 from bot import alemiBot
 
@@ -20,6 +23,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 HELP = HelpCategory("SCOREBOARDS")
+
 
 HELP.add_help(["stats", "stat"], "get your stats",
 				"will show your first sighting and count your sent messages, " +
@@ -40,6 +44,8 @@ async def stats_cmd(client, message):
 	await prog.tick()
 	total_edits = DRIVER.db.messages.count_documents({"user":uid,"edits":{"$exists":1}})
 	await prog.tick()
+	total_replies = DRIVER.db.messages.count_documents({"user":uid,"reply":{"$exists":1}})
+	await prog.tick()
 	visited_chats = len(DRIVER.db.service.distinct("chat", {"user":uid}))
 	await prog.tick()
 	partecipated_chats = len(DRIVER.db.messages.distinct("chat", {"user":uid}))
@@ -54,12 +60,13 @@ async def stats_cmd(client, message):
 		oldest = min(oldest, oldest_event["date"])
 	await prog.tick()
 	welcome = random.choice(["Hi", "Hello", "Welcome", "Nice to see you", "What's up", "Good day"])
-	await edit_or_reply(message, f"`→ ` {welcome} {get_username(get_user(message))}\n" +
+	await edit_or_reply(message, f"`→ ` {welcome} {get_username(user)}\n" +
 								 f"` → ` You sent **{total_messages}** messages\n" +
 								 f"`  → ` **{total_media}** were media\n" +
-								 f"`  → ` Of these, **{total_edits}** were edited\n" +
+								 f"`  → ` **{total_replies}** were replies\n" +
+								 f"`  → ` **{total_edits}** were edited\n" +
 								 f"` → ` You visited **{max(visited_chats, partecipated_chats)}** chats\n" +
-								 f"`  → ` You partecipated in **{partecipated_chats}** chats\n" +
+								 f"`  → ` and partecipated in **{partecipated_chats}**\n" +
 								 f"` → ` First saw you `{oldest}`"
 	)
 
