@@ -80,6 +80,12 @@ async def top_messages_cmd(client, message):
 			if not global_search:
 				flt["chat"] = target_chat.id
 			res.append((get_username(user), DRIVER.db.messages.count_documents(flt)))
+	elif target_chat.type in ("bot", "private"):
+		user = get_user(message)
+		flt = {"user": user.id}
+		if not global_search:
+			flt["chat"] = target_chat.id
+		res.append((get_username(user), DRIVER.db.messages.count_documents(flt)))
 	else:
 		async for member in target_chat.iter_members():
 			if time() - now > 5:
