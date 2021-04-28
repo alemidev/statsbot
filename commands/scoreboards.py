@@ -44,7 +44,7 @@ async def stats_cmd(client, message):
 								 f"` → ` You sent **{total_messages}** messages\n" +
 								 f"` → ` You visited **{max(visited_chats, partecipated_chats)}** chats\n" +
 								 f"`  → ` You partecipated in **{partecipated_chats}** chats\n" +
-								 f"` → ` Your oldest sighting is `{oldest}`"
+								 f"` → ` First saw you `{oldest}`"
 	)
 
 HELP.add_help(["topmsg", "topmsgs", "top_messages"], "list tracked messages for users",
