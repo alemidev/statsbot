@@ -12,7 +12,7 @@ from bot import alemiBot
 from util.command import filterCommand
 from util.permission import is_allowed, is_superuser, check_superuser
 from util.getters import get_username, get_channel
-from util.message import edit_or_reply, is_me
+from util.message import ProgressChatAction, edit_or_reply, is_me
 from util.text import tokenize_json, order_suffix
 from util.decorators import report_error, set_offline
 from util.help import HelpCategory
@@ -31,19 +31,23 @@ HELP.add_help(["dbstats", "dbstat"], "get database stats",
 @set_offline
 async def dbstats_cmd(client, message):
 	logger.info("Getting stats")
-	await client.send_chat_action(message.chat.id, "upload_document")
+	prog = ProgressChatAction(client, message.chat.id)
+	await prog.tick()
 	msg_count = DRIVER.db.messages.count({})
+	await prog.tick()
 	user_count = DRIVER.db.users.count({})
 	chat_count = DRIVER.db.chats.count({})
+	await prog.tick()
 	deletions_count = DRIVER.db.deletions.count({})
 	service_count = DRIVER.db.service.count({})
-	await client.send_chat_action(message.chat.id, "upload_document")
+	await prog.tick()
 	msg_size = DRIVER.db.command("collstats", "messages")['totalSize']
 	user_size = DRIVER.db.command("collstats", "users")['totalSize']
 	chat_size = DRIVER.db.command("collstats", "chats")['totalSize']
 	deletions_size = DRIVER.db.command("collstats", "deletions")['totalSize']
 	service_size = DRIVER.db.command("collstats", "service")['totalSize']
 	db_size = DRIVER.db.command("dbstats")["totalSize"]
+	await prog.tick()
 	medianumber = len(os.listdir("data/scraped_media"))
 	proc = await asyncio.create_subprocess_exec( # This is not cross platform!
 		"du", "-b", "data/scraped_media",
@@ -106,16 +110,13 @@ async def query_cmd(client, message):
 			flt["_id"] = False
 		cursor = collection.find(q, flt).sort("date", -1)
 
-	await client.send_chat_action(message.chat.id, "upload_document")
-	now = time()
 
 	if "-count" in args["flags"]:
 		buf = [ cursor.count() ]
 	else:
+		prog = ProgressChatAction(client, message.chat.id)
 		for doc in cursor.limit(lim):
-			if time() - now > 5:
-				await client.send_chat_action(message.chat.id, "upload_document")
-				now = time()
+			await prog.tick()
 			buf.append(doc)
 
 	raw = json.dumps(buf, indent=2, default=str, ensure_ascii=False)
@@ -225,8 +226,7 @@ async def deleted_cmd(client, message): # This is a mess omg
 	if target_group:
 		flt["chat"] = target_group.id
 
-	await client.send_chat_action(message.chat.id, "upload_document")
-	now = time()
+	prog = ProgressChatAction(client, message.chat.id)
 	out = f"`→ ` Peeking `{limit}` message{'s' if limit > 1 else ''} " + \
 			("down " if msg_after else "") + \
 			(f"in **{get_channel(target_group)}** " if "group" in args else '') + \
@@ -234,9 +234,7 @@ async def deleted_cmd(client, message): # This is a mess omg
 	LINE = "{time}[`{m_id}`] **{user}** {where} → {text} {media}\n"
 	cursor = DRIVER.db.messages.find(flt).sort("date", ASCENDING if msg_after else DESCENDING)
 	for doc in cursor:
-		if time() - now > 5:
-			await client.send_chat_action(message.chat.id, "upload_document")
-			now = time()
+		await prog.tick()
 		if offset > 0:
 			offset -=1
 			continue

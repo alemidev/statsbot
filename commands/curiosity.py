@@ -10,7 +10,7 @@ from pymongo import DESCENDING
 from bot import alemiBot
 
 from util.permission import is_allowed, is_superuser, check_superuser
-from util.message import edit_or_reply
+from util.message import ProgressChatAction, edit_or_reply
 from util.getters import get_text, get_username, get_channel
 from util.command import filterCommand
 from util.decorators import report_error, set_offline
@@ -68,17 +68,14 @@ async def frequency_cmd(client, message):
 		user = await client.get_users(int(val) if val.isnumeric() else val)
 		query["user"] = user.id
 	logger.info(f"Counting {results} most frequent words")
-	await client.send_chat_action(message.chat.id, "upload_document")
-	now = time()
+	prog = ProgressChatAction(client, message.chat.id)
 	words = []             		
 	curr = 0               		
 	cursor = DRIVER.db.messages.find(query).sort("date", DESCENDING)
 	if limit > 0:
 		cursor.limit(limit)
 	for doc in cursor:
-		if time() - now > 4:
-			await client.send_chat_action(message.chat.id, "upload_document")
-			now = time()
+		await prog.tick()
 		if doc["text"]:
 			words += [ w for w in re.sub(r"[^0-9a-zA-Z\s\n]+", "", doc["text"].lower()).split() if len(w) > min_len ]
 			curr += 1

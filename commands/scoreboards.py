@@ -9,7 +9,7 @@ from bot import alemiBot
 
 from util.command import filterCommand
 from util.permission import is_allowed, check_superuser
-from util.message import edit_or_reply
+from util.message import ProgressChatAction, edit_or_reply
 from util.getters import get_username, get_channel, get_user
 from util.decorators import report_error, set_offline
 from util.help import HelpCategory
@@ -31,27 +31,28 @@ async def stats_cmd(client, message):
 	user = get_user(message)
 	if not user:
 		return await edit_or_reply(message, "`[!] → ` You are no one")
-	uid = user.id # spammy upload_document but I hope telegram won't be too angry
-	await client.send_chat_action(message.chat.id, "upload_document")
+	prog = ProgressChatAction(client, message.chat.id)
+	await prog.tick()
+	uid = user.id
 	total_messages = DRIVER.db.messages.count_documents({"user":uid})
-	await client.send_chat_action(message.chat.id, "upload_document")
+	await prog.tick()
 	total_media = DRIVER.db.messages.count_documents({"user":uid,"media":{"$exists":1}})
-	await client.send_chat_action(message.chat.id, "upload_document")
+	await prog.tick()
 	total_edits = DRIVER.db.messages.count_documents({"user":uid,"edits":{"$exists":1}})
-	await client.send_chat_action(message.chat.id, "upload_document")
+	await prog.tick()
 	visited_chats = len(DRIVER.db.service.distinct("chat", {"user":uid}))
-	await client.send_chat_action(message.chat.id, "upload_document")
+	await prog.tick()
 	partecipated_chats = len(DRIVER.db.messages.distinct("chat", {"user":uid}))
-	await client.send_chat_action(message.chat.id, "upload_document")
+	await prog.tick()
 	oldest = datetime.now()
 	oldest_message = DRIVER.db.messages.find_one({"user":uid}, sort=[("date",ASCENDING)])
 	if oldest_message:
 		oldest = oldest_message["date"]
-	await client.send_chat_action(message.chat.id, "upload_document")
+	await prog.tick()
 	oldest_event = DRIVER.db.service.find_one({"user":uid}, sort=[("date",ASCENDING)])
 	if oldest_event:
 		oldest = min(oldest, oldest_event["date"])
-	await client.send_chat_action(message.chat.id, "upload_document")
+	await prog.tick()
 	welcome = random.choice(["Hi", "Hello", "Welcome", "Nice to see you", "What's up", "Good day"])
 	await edit_or_reply(message, f"`→ ` {welcome} {get_username(get_user(message))}\n" +
 								 f"` → ` You sent **{total_messages}** messages\n" +
@@ -82,14 +83,10 @@ async def top_messages_cmd(client, message):
 			else message.command["chat"]
 		target_chat = await client.get_chat(tgt)
 	res = []
-	msg = await edit_or_reply(message, "`→ ` Querying...")
-	await client.send_chat_action(message.chat.id, "upload_document")
-	now = time()
+	prog = ProgressChatAction(client, message.chat.id)
 	if "cmd" in message.command:
 		for uname in message.command["cmd"]:
-			if time() - now > 4:
-				await client.send_chat_action(message.chat.id, "upload_document")
-				now = time()
+			await prog.tick()
 			user = await client.get_user(uname)
 			flt = {"user": user.id}
 			if not global_search:
@@ -103,9 +100,7 @@ async def top_messages_cmd(client, message):
 		res.append((get_username(user), DRIVER.db.messages.count_documents(flt)))
 	else:
 		async for member in target_chat.iter_members():
-			if time() - now > 4:
-				await client.send_chat_action(message.chat.id, "upload_document")
-				now = time()
+			await prog.tick()
 			flt = {"user": member.user.id}
 			if not global_search:
 				flt["chat"] = target_chat.id
@@ -113,17 +108,14 @@ async def top_messages_cmd(client, message):
 	res.sort(key=lambda x: x[1], reverse=True)
 	stars = 3 if len(res) > 3 else 0
 	count = 0
-	out = ""
-	if message.outgoing:
-		out = message.text + "\n"
-	out += "`→ ` Messages sent globally\n" if global_search else f"`→ ` Messages sent in {get_channel(target_chat)}\n"
+	out = "`→ ` Messages sent globally\n" if global_search else f"`→ ` Messages sent in {get_channel(target_chat)}\n"
 	for usr, msgs in res:
 		out += f"` → ` **{usr}** [`{msgs}`] {'☆'*stars}\n"
 		stars -= 1
 		count += 1
 		if count >= results:
 			break
-	await msg.edit(out)
+	await edit_or_reply(message, out)
 
 HELP.add_help(["joindate", "joindates", "join_date"], "list date users joined group",
 				"checks join date for users in current chat (will count previous joins if available). A specific group can be " +
@@ -145,23 +137,17 @@ async def joindate_cmd(client, message):
 	if target_chat.type in ("bot", "private"):
 		return await edit_or_reply(message, "`[!] → ` Can't query join dates in private chat")
 	res = []
-	msg = await edit_or_reply(message, "`→ ` Querying...")
-	await client.send_chat_action(message.chat.id, "upload_document")
-	now = time()
+	prog = ProgressChatAction(client, message.chat.id)
 	creator = None
 	if "cmd" in message.command:
 		for uname in message.command["cmd"]:
-			if time() - now > 4:
-				await client.send_chat_action(message.chat.id, "upload_document")
-				now = time()
+			await prog.tick()
 			member = await client.get_chat_member(target_chat.id, uname)
 			res.append((get_username(member.user), datetime.utcfromtimestamp(member.joined_date)))
 	else:
 		creator = "~~UNKNOWN~~"
 		async for member in target_chat.iter_members():
-			if time() - now > 4:
-				await client.send_chat_action(message.chat.id, "upload_document")
-				now = time()
+			await prog.tick()
 			if member.status == "creator":
 				creator = get_username(member.user)
 			else: # Still query db, maybe user left and then joined again! Telegram only tells most recent join
@@ -169,8 +155,7 @@ async def joindate_cmd(client, message):
 				if event:
 					res.append((get_username(member.user), event['date']))
 				else:
-					res.append((get_username(member.user), datetime.utcfromtimestamp(member.joined_date) if
-								type(member.joined_date) is int else member.joined_date))
+					res.append((get_username(member.user), datetime.utcfromtimestamp(member.joined_date)))
 	res.sort(key=lambda x: x[1])
 	stars = 3 if len(res) > 3 else 0
 	count = 0
@@ -186,4 +171,4 @@ async def joindate_cmd(client, message):
 		out += f"` → ` **{usr}** [`{str(date)}`] {'☆'*stars}\n"
 		stars -= 1
 		count += 1
-	await msg.edit(out)
+	await edit_or_reply(message, out)
