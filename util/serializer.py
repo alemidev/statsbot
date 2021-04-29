@@ -64,6 +64,8 @@ def extract_message(msg:Message):
 			doc["contact"]["user_id"] = msg.contact.user_id
 		if msg.contact.vcard:
 			doc["contact"]["vcard"] = msg.contact.vcard
+	if msg.via_bot:
+		doc["via_bot"] = msg.via_bot.username
 	return doc
 
 def extract_service_message(msg:Message):
