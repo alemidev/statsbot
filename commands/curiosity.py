@@ -67,7 +67,7 @@ async def frequency_cmd(client, message):
 		val = message.command["cmd"][0]
 		user = await client.get_users(int(val) if val.isnumeric() else val)
 		query["user"] = user.id
-	logger.info(f"Counting {results} most frequent words")
+	logger.info("Counting %d most frequent words", results)
 	prog = ProgressChatAction(client, message.chat.id)
 	words = []             		
 	curr = 0               		
@@ -77,7 +77,7 @@ async def frequency_cmd(client, message):
 	for doc in cursor:
 		await prog.tick()
 		if doc["text"]:
-			words += [ w for w in re.sub(r"[^0-9a-zA-Z\s\n]+", "", doc["text"].lower()).split() if len(w) > min_len ]
+			words += [ w for w in re.sub(r"[^0-9a-zA-Z\s\n\-\_\@\\\/]+", "", doc["text"].lower()).split() if len(w) > min_len ]
 			curr += 1
 	count = Counter(words).most_common()
 	# Build output message
