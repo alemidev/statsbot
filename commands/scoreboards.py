@@ -166,10 +166,7 @@ async def joindate_cmd(client, message):
 	res.sort(key=lambda x: x[1])
 	stars = 3 if len(res) > 3 else 0
 	count = 0
-	out = ""
-	if message.outgoing:
-		out = message.text + "\n"
-	out += f"`→ ` Join dates in {get_channel(target_chat)}\n"
+	out = f"`→ ` Join dates in {get_channel(target_chat)}\n"
 	if creator:
 		out += f"`→ ` **{creator}** [`CREATED`]\n"
 	for usr, date in res:
