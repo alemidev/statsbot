@@ -11,7 +11,10 @@ from bot import alemiBot
 from util.serialization import convert_to_dict
 from util.getters import get_text
 
-from .util.serializer import diff, extract_chat, extract_message, extract_user, extract_delete, extract_service_message
+from plugins.statsbot.util.serializer import (
+	diff, extract_chat, extract_message, extract_user, extract_delete, 
+	extract_service_message, extract_edit_message
+)
 
 import logging
 
@@ -97,7 +100,7 @@ class DatabaseDriver:
 				self.counter.users
 			if usr: # don't insert if no diff!
 				self.db.users.update_one({"id": usr_id}, {"$set": usr}, upsert=True)
-		
+
 		if message.sender_chat:
 			chat = extract_chat(message)
 			chat_id = chat["id"]
@@ -124,18 +127,7 @@ class DatabaseDriver:
 
 	def parse_edit_event(self, message:Message):
 		self.counter.edits
-		doc = {
-			"date": datetime.utcfromtimestamp(message.edit_date) \
-				if type(message.edit_date) is int else message.edit_date,
-			"text": get_text(message.text, raw=True)
-		}
-		if message.reply_markup:
-			if isinstance(message.reply_markup, ReplyKeyboardMarkup):
-				doc["keyboard"] = message.reply_markup.keyboard
-			elif isinstance(message.reply_markup, InlineKeyboardMarkup):
-				doc["inline"] = convert_to_dict(message.reply_markup.inline_keyboard) # TODO do it slimmer!
-			elif isinstance(message.reply_markup, ReplyKeyboardRemove):
-				doc["keyboard"] = []
+		doc = extract_edit_message(message)
 		self.db.messages.update_one(
 			{"id": message.message_id, "chat": message.chat.id},
 			{"$push": {"edits":	doc} }

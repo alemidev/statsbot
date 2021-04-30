@@ -40,6 +40,8 @@ def extract_message(msg:Message):
 		doc["media"] = parse_media_type(msg)
 	if get_text(msg, raw=True):
 		doc["text"] = get_text(msg, raw=True)
+		if msg.entities:
+			doc["formatted"] = get_text(msg) # Also get markdown formatted text
 	if msg.from_scheduled:
 		doc["scheduled"] = True
 	if msg.author_signature:
@@ -84,21 +86,21 @@ def extract_message(msg:Message):
 			"url": msg.web_page.url,
 			"type": msg.web_page.type,
 		}
-	if msg.entities:
-		doc["entities"] = []
-		for ent in msg.entities:
-			entity = {
-				"type": ent.type,
-				"offset": ent.offset,
-				"length": ent.length,
-			}
-			if ent.language:
-				entity["language"] = ent.language
-			if ent.user:
-				entity["user"] = ent.user.id
-			if ent.url:
-				entity["url"] = ent.url
-			doc["entities"].append(entity)
+	return doc
+
+def extract_edit_message(msg:Message):
+	doc = { "date": datetime.utcfromtimestamp(msg.edit_date) }
+	if get_text(msg, raw=True):
+		doc["text"] = get_text(msg, raw=True)
+		if msg.entities:
+			doc["formatted"] = get_text(msg)
+	if msg.reply_markup:
+		if isinstance(msg.reply_markup, ReplyKeyboardMarkup):
+			doc["keyboard"] = msg.reply_markup.keyboard
+		elif isinstance(msg.reply_markup, InlineKeyboardMarkup):
+			doc["inline"] = convert_to_dict(msg.reply_markup.inline_keyboard) # TODO do it slimmer!
+		elif isinstance(msg.reply_markup, ReplyKeyboardRemove):
+			doc["keyboard"] = []
 	return doc
 
 def extract_service_message(msg:Message):
