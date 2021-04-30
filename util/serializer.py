@@ -48,11 +48,13 @@ def extract_message(msg:Message):
 		doc["reply"] = msg.reply_to_message.message_id
 	if msg.forward_date:
 		doc["forward"] = {
-			"id": msg.forward_from_message_id,
 			"user": msg.forward_from.id if msg.forward_from else msg.forward_sender_name,
-			"chat": msg.forward_from_chat.id if msg.forward_from_chat else None,
 			"date": datetime.utcfromtimestamp(msg.forward_date),
 		}
+		if msg.forward_from_message_id:
+			doc["id"] = msg.forward_from_message_id
+		if msg.forward_from_chat:
+			doc["chat"] = msg.forward_from_chat.id
 	if msg.via_bot:
 		doc["via_bot"] = msg.via_bot.username
 	if msg.reply_markup:
@@ -82,6 +84,21 @@ def extract_message(msg:Message):
 			"url": msg.web_page.url,
 			"type": msg.web_page.type,
 		}
+	if msg.entities:
+		doc["entities"] = []
+		for ent in msg.entities:
+			entity = {
+				"type": ent.type,
+				"offset": ent.offset,
+				"length": ent.length,
+			}
+			if ent.language:
+				entity["language"] = ent.language
+			if ent.user:
+				entity["user"] = ent.user.id
+			if ent.url:
+				entity["url"] = ent.url
+			doc["entities"].append(entity)
 	return doc
 
 def extract_service_message(msg:Message):
