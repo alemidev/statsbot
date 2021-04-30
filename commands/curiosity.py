@@ -89,7 +89,7 @@ async def frequency_cmd(client, message):
 		where = f"--[{get_channel(group)}]({group.invite_link})--" if group.invite_link else f"--{get_channel(group)}--"
 	output = f"`→ ` {where} {from_who} {extra}\n`→ ` **{results}** most frequent words __(len > {min_len})__ in last **{curr}** messages:\n"
 	for i, word in enumerate(count):
-		output += f"` → ` [`{word[1]}`] **{word[0]}** {'☆'*stars}\n"
+		output += f"` → ` __{i+1:02d}__ [`{word[1]}`] **{word[0]}** {'☆'*stars}\n"
 		stars -=1
 		if i >= results:
 			break
