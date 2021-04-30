@@ -84,12 +84,12 @@ async def frequency_cmd(client, message):
 	stars = 5 if len(count) > 5 else 0
 	from_who = f"(from **{get_username(user)}**)" if user else ""
 	extra = f" | + `{query}`" if extra_query else ""
-	where = "**everywhere**"
+	where = "--everywhere--"
 	if group:
-		where = f"**[{get_channel(group)}]({group.invite_link})**" if group.invite_link else f"**{get_channel(group)}**"
-	output = f"`→ ` {where} {from_who} {extra}\n` → ` **{results}** most frequent words __(len > {min_len})__ in last **{curr}** messages:\n"
+		where = f"--[{get_channel(group)}]({group.invite_link})--" if group.invite_link else f"--{get_channel(group)}--"
+	output = f"`→ ` {where} {from_who} {extra}\n`→ ` **{results}** most frequent words __(len > {min_len})__ in last **{curr}** messages:\n"
 	for i, word in enumerate(count):
-		output += f"` → ` --{word[0]}-- [`{word[1]}`] {'☆'*stars}\n"
+		output += f"` → ` [`{word[1]}`] {'☆'*stars} **{word[0]}**\n"
 		stars -=1
 		if i >= results:
 			break
