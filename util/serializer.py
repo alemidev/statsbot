@@ -2,7 +2,7 @@ from datetime import datetime
 
 from typing import Union, List
 
-from pyrogram.types import Message, User, Chat, ReplyKeyboardMarkup, ReplyKeyboardRemove, InlineKeyboardMarkup
+from pyrogram.types import Message, ReplyKeyboardMarkup, ReplyKeyboardRemove, InlineKeyboardMarkup
 
 from util.message import parse_media_type
 from util.getters import get_text
@@ -16,7 +16,7 @@ def diff(old:Union[dict,str,int], new:Union[dict,str,int]):
 	if not isinstance(old, dict):
 		return new
 	elif not isinstance(new, dict):
-		logger.warning(f"Replacing dict {old} with value {new} while serializing")
+		logger.warning("Replacing dict %s with value %s while serializing", str(old), str(new))
 		return new
 	out = {}
 	for key in new:
@@ -32,7 +32,7 @@ def extract_message(msg:Message):
 		"user" : msg.from_user.id if msg.from_user else \
 			msg.sender_chat.id if msg.sender_chat else None,
 		"chat" : msg.chat.id if msg.chat else None,
-		"date" : datetime.utcfromtimestamp(msg.date) if type(msg.date) is int else msg.date,
+		"date" : datetime.utcfromtimestamp(msg.date),
 	}
 	if parse_media_type(msg):
 		doc["media"] = parse_media_type(msg)
@@ -40,8 +40,19 @@ def extract_message(msg:Message):
 		doc["text"] = get_text(msg, raw=True)
 	if msg.from_scheduled:
 		doc["scheduled"] = True
+	if msg.author_signature:
+		doc["author"] = msg.author_signature
 	if msg.reply_to_message:
 		doc["reply"] = msg.reply_to_message.message_id
+	if msg.forward_date:
+		doc["forward"] = {
+			"id": msg.forward_from_message_id,
+			"user": msg.forward_from.id if msg.forward_from else msg.forward_sender_name,
+			"chat": msg.forward_from_chat.id if msg.forward_from_chat else None,
+			"date": datetime.utcfromtimestamp(msg.forward_date),
+		}
+	if msg.via_bot:
+		doc["via_bot"] = msg.via_bot.username
 	if msg.reply_markup:
 		if isinstance(msg.reply_markup, ReplyKeyboardMarkup):
 			doc["keyboard"] = msg.reply_markup.keyboard
@@ -64,8 +75,11 @@ def extract_message(msg:Message):
 			doc["contact"]["user_id"] = msg.contact.user_id
 		if msg.contact.vcard:
 			doc["contact"]["vcard"] = msg.contact.vcard
-	if msg.via_bot:
-		doc["via_bot"] = msg.via_bot.username
+	if msg.web_page:
+		doc["web_page"] = {
+			"url": msg.web_page.url,
+			"type": msg.web_page.type,
+		}
 	return doc
 
 def extract_service_message(msg:Message):
@@ -74,7 +88,7 @@ def extract_service_message(msg:Message):
 		"user" : msg.from_user.id if msg.from_user else \
 			msg.sender_chat.id if msg.sender_chat else None,
 		"chat" : msg.chat.id,
-		"date" : datetime.utcfromtimestamp(msg.date) if type(msg.date) is int else msg.date,
+		"date" : datetime.utcfromtimestamp(msg.date),
 	}
 	if hasattr(msg, "new_chat_members") and msg.new_chat_members:
 		doc["new_chat_members"] = [ u.id for u in msg.new_chat_members ]
