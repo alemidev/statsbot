@@ -77,7 +77,7 @@ async def frequency_cmd(client, message):
 	for doc in cursor:
 		await prog.tick()
 		if doc["text"]:
-			words += [ w for w in re.sub(r"[^0-9a-zA-Z\s\n\-\_\@\\\/]+", "", doc["text"].lower()).split() if len(w) > min_len ]
+			words += [ w for w in re.sub(r"[^0-9a-zA-Z\s\n\-\_\@]+", "", doc["text"].lower()).split() if len(w) > min_len ]
 			curr += 1
 	count = Counter(words).most_common()
 	# Build output message
