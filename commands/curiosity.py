@@ -80,15 +80,18 @@ async def frequency_cmd(client, message):
 			words += [ w for w in re.sub(r"[^0-9a-zA-Z\s\n]+", "", doc["text"].lower()).split() if len(w) > min_len ]
 			curr += 1
 	count = Counter(words).most_common()
-	# BELOW HERE IS VERY SPAGHETTI, TODO make understandable
+	# Build output message
+	stars = 5 if len(count) > 5 else 0
+	count = 0
 	from_who = f"(from **{get_username(user)}**)" if user else ""
-	extra = f"`{query}`" if extra_query else ""
+	extra = f" | + `{query}`" if extra_query else ""
 	where = "**everywhere**"
 	if group:
 		where = f"**[{get_channel(group)}]({group.invite_link})**" if group.invite_link else f"**{get_channel(group)}**"
 	output = f"`→ ` {where} {from_who} {extra}\n` → ` **{results}** most frequent words __(len > {min_len})__ in last **{curr}** messages:\n"
 	for i, word in enumerate(count):
-		output += f"`{i:02d}]{'-'*(results-i)}>` `{word[0]}` `({word[1]})`\n"
+		output += f"` → ` --{word[0]}-- [`{word[1]}`] {'☆'*stars}\n"
+		stars -=1
 		if i >= results:
 			break
-	await edit_or_reply(message, output, parse_mode="markdown")
+	await edit_or_reply(message, output)
