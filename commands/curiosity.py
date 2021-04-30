@@ -82,7 +82,6 @@ async def frequency_cmd(client, message):
 	count = Counter(words).most_common()
 	# Build output message
 	stars = 5 if len(count) > 5 else 0
-	count = 0
 	from_who = f"(from **{get_username(user)}**)" if user else ""
 	extra = f" | + `{query}`" if extra_query else ""
 	where = "**everywhere**"
