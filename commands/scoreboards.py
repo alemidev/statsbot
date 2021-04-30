@@ -170,9 +170,9 @@ async def joindate_cmd(client, message):
 	if creator:
 		out += f"`→ ` **{creator}** [`CREATED`]\n"
 	for usr, date in res:
-		if count >= results:
-			break
 		out += f"` → ` **{usr}** [`{str(date)}`] {'☆'*stars}\n"
 		stars -= 1
 		count += 1
+		if count >= results:
+			break
 	await edit_or_reply(message, out)

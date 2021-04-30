@@ -91,6 +91,6 @@ async def frequency_cmd(client, message):
 	for i, word in enumerate(count):
 		output += f"` → ` [`{word[1]}`] **{word[0]}** {'☆'*stars}\n"
 		stars -=1
-		if i >= results:
+		if i >= results - 1:
 			break
 	await edit_or_reply(message, output)
