@@ -34,6 +34,8 @@ def extract_message(msg:Message):
 		"chat" : msg.chat.id if msg.chat else None,
 		"date" : datetime.utcfromtimestamp(msg.date),
 	}
+	if msg.empty:
+		doc["empty"] = True
 	if parse_media_type(msg):
 		doc["media"] = parse_media_type(msg)
 	if get_text(msg, raw=True):
