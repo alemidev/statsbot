@@ -14,7 +14,7 @@ from util.command import filterCommand
 from util.permission import is_allowed, check_superuser
 from util.message import ProgressChatAction, edit_or_reply
 from util.getters import get_username, get_channel, get_user
-from util.decorators import report_error, set_offline
+from util.decorators import report_error, set_offline, cancel_chat_action
 from util.help import HelpCategory
 
 from ..driver import DRIVER
@@ -31,6 +31,7 @@ HELP.add_help(["stats", "stat"], "get your stats",
 @alemiBot.on_message(is_allowed & filterCommand(["stats", "stat"], list(alemiBot.prefixes)))
 @report_error(logger)
 @set_offline
+@cancel_chat_action
 async def stats_cmd(client, message):
 	user = get_user(message)
 	if not user:
@@ -81,6 +82,7 @@ HELP.add_help(["topmsg", "topmsgs", "top_messages"], "list tracked messages for 
 }, flags=["-all"]))
 @report_error(logger)
 @set_offline
+@cancel_chat_action
 async def top_messages_cmd(client, message):
 	results = min(int(message.command["results"]), 100) if "results" in message.command else 25
 	global_search = check_superuser(message) and "-all" in message.command["flags"]
@@ -136,6 +138,7 @@ HELP.add_help(["joindate", "joindates", "join_date"], "list date users joined gr
 }))
 @report_error(logger)
 @set_offline
+@cancel_chat_action
 async def joindate_cmd(client, message):
 	results = int(message.command["results"]) if "results" in message.command else 25
 	target_chat = message.chat
