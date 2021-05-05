@@ -16,7 +16,7 @@ from util.command import filterCommand
 from util.decorators import report_error, set_offline
 from util.help import HelpCategory
 
-from ..driver import DRIVER
+from plugins.statsbot.driver import DRIVER
 
 import logging
 logger = logging.getLogger(__name__)
@@ -93,4 +93,36 @@ async def frequency_cmd(client, message):
 		stars -=1
 		if i >= results - 1:
 			break
+	await edit_or_reply(message, output)
+
+HELP.add_help(["active"], "find members active in last messages",
+				"will iterate previous messages (default 100) to find members who sent at least 1 message. " +
+				"Specify another group with `-g` (only for superuser).",
+				args="[-g <group>] [<number>]", public=True)
+@alemiBot.on_message(is_allowed & filterCommand(["active"], list(alemiBot.prefixes), options={
+	"group" : ["-g", "--group"],
+}))
+@report_error(logger)
+@set_offline
+async def active_cmd(client, message):
+	number = int(message.command["cmd"][0]) if "cmd" in message.command else 100
+	target_group = message.chat
+	if check_superuser(message) and "group" in message.command:
+		arg = message.command["group"]
+		target_group = await client.get_chat(int(arg) if arg.isnumeric() else arg)
+	query = {"chat":target_group.id}
+	logger.info("Finding active users in last %d messages", number)
+	prog = ProgressChatAction(client, message.chat.id)
+	users = set()
+	for doc in DRIVER.db.messages.find(query).sort("date", DESCENDING).limit(number):
+		await prog.tick()
+		if doc["user"]:
+			users.add(doc["user"])
+	users = await client.get_users(users)
+	# Build output message
+	output = f"`→ ` Active members in last {number} messages:\n"
+	if target_group.id != message.chat.id:
+		output += f"`→ ` **{get_username(target_group)}**\n"
+	for usr in users:
+		output += f"` → ` **{get_username(usr)}**\n"
 	await edit_or_reply(message, output)
