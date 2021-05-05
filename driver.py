@@ -1,10 +1,11 @@
 import functools
 import traceback
 
+from datetime import datetime
 from typing import Any
 
 from pymongo import MongoClient
-from pyrogram.types import Message
+from pyrogram.types import Message, User
 
 from bot import alemiBot
 from util.serialization import convert_to_dict
@@ -149,5 +150,10 @@ class DatabaseDriver:
 			if "chat" in deletion:
 				flt["chat"] = deletion["chat"]
 			self.db.messages.update_one(flt, {"$set": {"deleted": deletion["date"]}})
+
+	def parse_status_update_event(self, user:User):
+		if user.status == "offline": # just update last online date
+			self.db.users.update_one({"id": user.id}, # there are a ton of these, can't diff user every time I get one
+				{"$set": {"last_online_date": datetime.utcfromtimestamp(user.last_online_date)} })
 
 DRIVER = DatabaseDriver()
