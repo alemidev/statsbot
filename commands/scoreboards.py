@@ -91,6 +91,8 @@ async def top_messages_cmd(client, message):
 		target_chat = await client.get_chat(tgt)
 	res = []
 	prog = ProgressChatAction(client, message.chat.id)
+	out = "`→ ` Messages sent globally\n" if global_search else f"`→ ` Messages sent in {get_username(target_chat)}\n"
+	msg = await edit_or_reply(message, out)
 	if "cmd" in message.command:
 		for uname in message.command["cmd"]:
 			await prog.tick()
@@ -115,14 +117,14 @@ async def top_messages_cmd(client, message):
 	res.sort(key=lambda x: x[1], reverse=True)
 	stars = 3 if len(res) > 3 else 0
 	count = 0
-	out = "`→ ` Messages sent globally\n" if global_search else f"`→ ` Messages sent in {get_channel(target_chat)}\n"
+	out = ""
 	for usr, msgs in res:
 		out += f"` → ` **{usr}** [`{msgs}`] {'☆'*stars}\n"
 		stars -= 1
 		count += 1
 		if count >= results:
 			break
-	await edit_or_reply(message, out)
+	await edit_or_reply(msg, out)
 
 HELP.add_help(["joindate", "joindates", "join_date"], "list date users joined group",
 				"checks join date for users in current chat (will count previous joins if available). A specific group can be " +
@@ -145,6 +147,8 @@ async def joindate_cmd(client, message):
 		return await edit_or_reply(message, "`[!] → ` Can't query join dates in private chat")
 	res = []
 	prog = ProgressChatAction(client, message.chat.id)
+	out = f"`→ ` Join dates in {get_channel(target_chat)}\n"
+	msg = await edit_or_reply(message, out)
 	creator = None
 	if "cmd" in message.command:
 		for uname in message.command["cmd"]:
@@ -166,7 +170,7 @@ async def joindate_cmd(client, message):
 	res.sort(key=lambda x: x[1])
 	stars = 3 if len(res) > 3 else 0
 	count = 0
-	out = f"`→ ` Join dates in {get_channel(target_chat)}\n"
+	out = ""
 	if creator:
 		out += f"`→ ` **{creator}** [`CREATED`]\n"
 	for usr, date in res:
@@ -175,4 +179,4 @@ async def joindate_cmd(client, message):
 		count += 1
 		if count >= results:
 			break
-	await edit_or_reply(message, out)
+	await edit_or_reply(msg, out)
