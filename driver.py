@@ -1,15 +1,13 @@
 import functools
 import traceback
 
-from datetime import datetime
 from typing import Any
 
 from pymongo import MongoClient
-from pyrogram.types import Message, ReplyKeyboardRemove, ReplyKeyboardMarkup, InlineKeyboardMarkup
+from pyrogram.types import Message
 
 from bot import alemiBot
 from util.serialization import convert_to_dict
-from util.getters import get_text
 
 from plugins.statsbot.util.serializer import (
 	diff, extract_chat, extract_message, extract_user, extract_delete, 
@@ -21,17 +19,21 @@ import logging
 logger = logging.getLogger(__name__)
 
 class Counter:
-	"""Auto-Increasing Counter. Has a dict of keys which start at 0. Every time an attr is accessed, value
-	   of key with same name is auto increased (added equal to 0 if missing). To get values,
-	   use hash [] access (__getitem__). Initialize this with a list of strings (not really necessary)"""
+	"""Auto-Increasing Counter. Has a dict of keys which start at 0. Every time an attr is accessed, a new function
+	   increasing value of key with same name is returned (inserted equal to 0 if missing). To get values,
+	   use hash [] access (__getitem__). Initialize this with a list of strings (not really necessary)
+	   Increase (and add new value if missing) just with
+	   		counter.something() """
 	def __init__(self, keys:list):
 		self.storage = { k : 0 for k in keys }
 
 	def __getattr__(self, name:str) -> int:
 		if name not in self.storage:
 			self.storage[name] = 0
-		self.storage[name] += 1
-		return self.storage[name]
+		def incr():
+			self.storage[name] += 1
+			return self.storage[name]
+		return incr
 
 	def __str__(self) -> str:
 		return str(self.storage)
@@ -59,6 +61,7 @@ class DatabaseDriver:
 		if password:
 			kwargs["password"] = password
 		self.log_messages = alemiBot.config.get("database", "log_messages", fallback=True)
+		self.log_service = alemiBot.config.get("database", "log_service", fallback=True)
 		self.log_media = alemiBot.config.get("database", "log_media", fallback=False)
 
 		self.counter = Counter(["service", "messages", "deletions", "edits", "users", "chats"])
@@ -71,11 +74,11 @@ class DatabaseDriver:
 		async def wrapper(client, message):
 			try:
 				await fun(client, message)
-			except Exception as e:
+			except Exception as ex:
 				logger.exception("Serialization error")
 				exc_data = {
-					"type" : repr(e),
-					"text" : str(e),
+					"type" : repr(ex),
+					"text" : str(ex),
 					"traceback" : traceback.format_exc(),
 				}
 				doc = convert_to_dict(message)
@@ -83,12 +86,15 @@ class DatabaseDriver:
 				self.db.exceptions.insert_one(doc)
 		return wrapper
 
+	def log_raw_event(self, event:Any):
+		self.db.raw.insert_one(convert_to_dict(event))
+
 	def parse_message_event(self, message:Message, file_name=None):
 		msg = extract_message(message)
 		if file_name:
 			msg["file"] = file_name
 		self.db.messages.insert_one(msg)
-		self.counter.messages
+		self.counter.messages()
 
 		if message.from_user:
 			usr = extract_user(message)
@@ -97,7 +103,7 @@ class DatabaseDriver:
 			if prev:
 				usr = diff(prev, usr)
 			else:
-				self.counter.users
+				self.counter.users()
 			if usr: # don't insert if no diff!
 				self.db.users.update_one({"id": usr_id}, {"$set": usr}, upsert=True)
 
@@ -108,7 +114,7 @@ class DatabaseDriver:
 			if prev:
 				chat = diff(prev, chat)
 			else:
-				self.counter.chats
+				self.counter.chats()
 			if chat: # don't insert if no diff!
 				self.db.chats.update_one({"id": chat_id}, {"$set": chat}, upsert=True)
 
@@ -121,12 +127,12 @@ class DatabaseDriver:
 			if prev:
 				chat = diff(prev, chat)
 			else:
-				self.counter.chats
+				self.counter.chats()
 			if chat: # don't insert if no diff!
 				self.db.chats.update_one({"id": chat_id}, {"$set": chat}, upsert=True)
 
 	def parse_edit_event(self, message:Message):
-		self.counter.edits
+		self.counter.edits()
 		doc = extract_edit_message(message)
 		self.db.messages.update_one(
 			{"id": message.message_id, "chat": message.chat.id},
@@ -137,7 +143,7 @@ class DatabaseDriver:
 		deletions = extract_delete(message)
 		for deletion in deletions:
 			self.db.deletions.insert_one(deletion)
-			self.counter.deletions
+			self.counter.deletions()
 
 			flt = {"id": deletion["id"]}
 			if "chat" in deletion:
