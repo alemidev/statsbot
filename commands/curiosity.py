@@ -110,6 +110,10 @@ async def active_cmd(client, message):
 	if check_superuser(message) and "group" in message.command:
 		arg = message.command["group"]
 		target_group = await client.get_chat(int(arg) if arg.isnumeric() else arg)
+	output = f"`→ ` Active members in last {number} messages:\n"
+	if target_group.id != message.chat.id:
+		output += f"`→ ` in **{get_username(target_group)}**\n"
+	msg = await edit_or_reply(message, output) # Send a placeholder first to not mention everyone
 	query = {"chat":target_group.id}
 	logger.info("Finding active users in last %d messages", number)
 	prog = ProgressChatAction(client, message.chat.id)
@@ -120,9 +124,7 @@ async def active_cmd(client, message):
 			users.add(doc["user"])
 	users = await client.get_users(users)
 	# Build output message
-	output = f"`→ ` Active members in last {number} messages:\n"
-	if target_group.id != message.chat.id:
-		output += f"`→ ` **{get_username(target_group)}**\n"
+	output = ""
 	for usr in users:
 		output += f"` → ` **{get_username(usr)}**\n"
-	await edit_or_reply(message, output)
+	await edit_or_reply(msg, output)
