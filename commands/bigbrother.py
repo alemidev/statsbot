@@ -168,6 +168,7 @@ async def hist_cmd(client, message):
 				out += LINE.format(
 					date=f"[--{edit['date']}--]" if show_time else "",
 					text=edit["text"],
+					author="",
 				)
 		await edit_or_reply(message, out)
 	else:
