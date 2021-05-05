@@ -49,7 +49,7 @@ async def log_chat_member_updates(_, update):
 
 @alemiBot.on_user_status(group=999999)
 @DRIVER.log_error_event
-async def log_user_status(_, status):
+async def log_user_status(_, user):
 	"""Log user status updates"""
 	if DRIVER.log_service:
-		DRIVER.log_raw_event(status) # TODO parse these
+		DRIVER.parse_status_update_event(user)
