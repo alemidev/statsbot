@@ -114,7 +114,7 @@ async def active_cmd(client, message):
 		target_group = await client.get_chat(int(arg) if arg.isnumeric() else arg)
 	output = f"`→ ` Active members in last {number} messages:\n"
 	if target_group.id != message.chat.id:
-		output += f"`→ ` in **{get_username(target_group)}**\n"
+		output = f"`→ ` **{get_username(target_group)}**\n" + output
 	msg = await edit_or_reply(message, output) # Send a placeholder first to not mention everyone
 	query = {"chat":target_group.id}
 	logger.info("Finding active users in last %d messages", number)
