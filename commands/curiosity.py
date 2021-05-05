@@ -13,7 +13,7 @@ from util.permission import is_allowed, is_superuser, check_superuser
 from util.message import ProgressChatAction, edit_or_reply
 from util.getters import get_text, get_username, get_channel
 from util.command import filterCommand
-from util.decorators import report_error, set_offline
+from util.decorators import report_error, set_offline, cancel_chat_action
 from util.help import HelpCategory
 
 from plugins.statsbot.driver import DRIVER
@@ -40,6 +40,7 @@ HELP.add_help(["freq", "frequent"], "find frequent words in messages",
 }, flags=["-all"]))
 @report_error(logger)
 @set_offline
+@cancel_chat_action
 async def frequency_cmd(client, message):
 	results = min(int(message.command["results"]), 100) if "results" in message.command else 10
 	limit = int(message.command["limit"]) if "limit" in message.command else 0
@@ -104,6 +105,7 @@ HELP.add_help(["active"], "find members active in last messages",
 }))
 @report_error(logger)
 @set_offline
+@cancel_chat_action
 async def active_cmd(client, message):
 	number = int(message.command["cmd"][0]) if "cmd" in message.command else 100
 	target_group = message.chat
