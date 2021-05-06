@@ -32,7 +32,7 @@ async def dbstats_cmd(client, message):
 	logger.info("Getting stats")
 	prog = ProgressChatAction(client, message.chat.id)
 	await prog.tick()
-	oldest_msg = DRIVER.db.messages.find_one({}, sort=[("date", ASCENDING)])
+	oldest_msg = DRIVER.db.messages.find_one({"date":{"$ne":None}}, sort=[("date", ASCENDING)])
 	await prog.tick()
 	msg_count = DRIVER.db.messages.count({})
 	await prog.tick()
