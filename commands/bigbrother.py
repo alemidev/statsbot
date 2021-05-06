@@ -32,6 +32,8 @@ async def dbstats_cmd(client, message):
 	logger.info("Getting stats")
 	prog = ProgressChatAction(client, message.chat.id)
 	await prog.tick()
+	oldest_msg = DRIVER.db.messages.find_one({}, sort=[("date", ASCENDING)])
+	await prog.tick()
 	msg_count = DRIVER.db.messages.count({})
 	await prog.tick()
 	user_count = DRIVER.db.users.count({})
@@ -57,6 +59,7 @@ async def dbstats_cmd(client, message):
 
 	uptime = str(datetime.now() - client.start_time)
 	await edit_or_reply(message, f"`→ ` **online for** `{uptime}`" +
+					f"\n`→ ` **first event** `{oldest_msg['date']}`" +
 					f"\n` → ` **{msg_count}** msgs logged (+{DRIVER.counter['messages']} new | **{order_suffix(msg_size)}**)" +
 					f"\n` → ` **{service_count}** events tracked (+{DRIVER.counter['service']} new | **{order_suffix(service_size)}**)" +
 					f"\n` → ` **{deletions_count}** deletions saved (+{DRIVER.counter['deletions']} new | **{order_suffix(deletions_size)}**)" +
