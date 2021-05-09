@@ -25,7 +25,7 @@ Install `alemidev/statsbot` (since it's private, either install with `-ssh` or i
 Data is kept in 5 (+1) collections. Fields marked with `[opt]` are optional.
 ## Chats
 Each chat encountered is serialized as
-```json
+```
 {
 	"id" : <int>,
 	"title" : <str>,
@@ -49,7 +49,7 @@ Each chat encountered is serialized as
 
 ## Users
 Users met are serialized when first seen and fields are updated when needed
-```json
+```
 {
 	"id" : <int>,
 	"first_name" : <str>,
@@ -79,7 +79,7 @@ Users met are serialized when first seen and fields are updated when needed
 
 ## Messages
 Each message contains only the bare minimun information
-```json
+```
 {
 	"id": <int>,
 	"user" : <int>,
@@ -132,7 +132,7 @@ Each message contains only the bare minimun information
 
 ## Service
 Service messages are stored in a separate collection
-```json
+```
 {
 	"id": <int>,
 	"user" : <int|null>,
@@ -158,7 +158,7 @@ Service messages are stored in a separate collection
 
 ## Deletions
 Each deletion is marked directly on the message itself, but a log of all deletion events is still kept
-```json
+```
 {
 	"id" : <int>,
 	"chat" : <int|null>
