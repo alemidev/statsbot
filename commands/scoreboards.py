@@ -25,14 +25,17 @@ logger = logging.getLogger(__name__)
 HELP = HelpCategory("SCOREBOARDS")
 
 
-HELP.add_help(["stats", "stat"], "get your stats",
-				"will show your first sighting and count your sent messages, " +
-				"chats you visited, chats you partecipated in.", public=True)
+@HELP.add(sudo=False)
 @alemiBot.on_message(is_allowed & filterCommand(["stats", "stat"], list(alemiBot.prefixes)))
 @report_error(logger)
 @set_offline
 @cancel_chat_action
 async def stats_cmd(client, message):
+	"""get your stats
+
+	Will show your first sighting and count your sent messages, \
+	chats you visited, chats you partecipated in, edits and media sent.
+	"""
 	user = get_user(message)
 	if not user:
 		return await edit_or_reply(message, "`[!] → ` You are no one")
@@ -71,11 +74,7 @@ async def stats_cmd(client, message):
 								 f"` → ` First saw you `{oldest}`"
 	)
 
-HELP.add_help(["topmsg", "topmsgs", "top_messages"], "list tracked messages for users",
-				"checks (tracked) number of messages sent by group members in this chat. " +
-				"Add flag `-all` to list all messages tracked of users in this chat, or `-g` and " +
-				"specify a group to count in (only for superusers). By default, will only list top 25 members, but " +
-				"number of results can be specified with `-r`", args="[-all | -g <group>] [-r <n>]", public=True)
+@HELP.add(sudo=False)
 @alemiBot.on_message(is_allowed & filterCommand(["topmsg", "topmsgs", "top_messages"], list(alemiBot.prefixes), options={
 	"chat" : ["-g", "--group"],
 	"results" : ["-r", "--results"],
@@ -84,6 +83,12 @@ HELP.add_help(["topmsg", "topmsgs", "top_messages"], "list tracked messages for 
 @set_offline
 @cancel_chat_action
 async def top_messages_cmd(client, message):
+	"""list tracked messages for users
+
+	Checks (tracked) number of messages sent by group members in this chat.
+	Add flag `-all` to list all messages tracked of users in this chat, or `-g` and specify a group to count in (only for superusers).
+	By default, will only list top 25 members, but number of results can be specified with `-r`.
+	"""
 	results = min(int(message.command["results"]), 100) if "results" in message.command else 25
 	global_search = check_superuser(message) and "-all" in message.command["flags"]
 	target_chat = message.chat
@@ -128,10 +133,7 @@ async def top_messages_cmd(client, message):
 			break
 	await edit_or_reply(msg, out)
 
-HELP.add_help(["joindate", "joindates", "join_date"], "list date users joined group",
-				"checks join date for users in current chat (will count previous joins if available). A specific group can be " +
-				"specified with `-g` (only by superusers). By default, will only list oldest 25 members, but " +
-				"number of results can be specified with `-r`", args="[-g <group>] [-r <n>] [<users>]", public=True)
+@HELP.add(cmd="[<users>]", sudo=False)
 @alemiBot.on_message(is_allowed & filterCommand(["joindate", "joindates", "join_date"], list(alemiBot.prefixes), options={
 	"chat" : ["-g", "--group"],
 	"results" : ["-r", "--results"],
@@ -140,6 +142,12 @@ HELP.add_help(["joindate", "joindates", "join_date"], "list date users joined gr
 @set_offline
 @cancel_chat_action
 async def joindate_cmd(client, message):
+	"""list date users joined group
+
+	Checks join date for users in current chat (will count previous joins if available).
+	A specific group can be specified with `-g` (only by superusers).
+	By default, will only list oldest 25 members, but number of results can be specified with `-r`.
+	"""
 	results = int(message.command["results"]) if "results" in message.command else 25
 	target_chat = message.chat
 	if check_superuser(message) and "chat" in message.command:
