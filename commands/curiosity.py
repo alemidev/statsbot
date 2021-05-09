@@ -23,14 +23,7 @@ logger = logging.getLogger(__name__)
 
 HELP = HelpCategory("CURIOSITY")
 
-HELP.add_help(["freq", "frequent"], "find frequent words in messages",
-				"find most used words. By default, 10 most frequent words are shown, but number of results " +
-				"can be changed with `-r`. By default, only words of `len > 3` will be considered. " +
-				"Minimum word len can be specified with `-min`. Perform a global search with flag `-all` or " +
-				"search in a specific group with `-g` (only for superuser). Provide an username/user_id as argument " +
-				"to count only messages from that user (or reply to a message)." +
-				"Extra parameters for the db query can be given with `-q`. (only for superuser)",
-				args="[-r <n>] [-min <n>] [-l <n>] [-all | -g <group>] [<user>] [-q <{q}>]", public=True)
+@HELP.add(cmd="[<user>]", sudo=False)
 @alemiBot.on_message(is_allowed & filterCommand(["freq", "frequent"], list(alemiBot.prefixes), options={
 	"limit" : ["-l", "--limit"],
 	"results" : ["-r", "--results"],
@@ -42,6 +35,14 @@ HELP.add_help(["freq", "frequent"], "find frequent words in messages",
 @set_offline
 @cancel_chat_action
 async def frequency_cmd(client, message):
+	"""find frequent words in messages
+
+	By default, 10 most frequent words are shown, but number of results can be changed with `-r`.
+	By default, only words of `len > 3` will be considered. Minimum word len can be specified with `-min`.
+	Perform a global search with flag `-all` or search in a specific group with `-g` (only for superuser).
+	Provide an username/user_id as argument to count only messages from that user (or reply to a message).
+	Extra parameters for the db query can be given with `-q`. (only for superuser)
+	"""
 	results = min(int(message.command["results"]), 100) if "results" in message.command else 10
 	limit = int(message.command["limit"]) if "limit" in message.command else 0
 	min_len = int(message.command["minlen"]) if "minlen" in message.command else 3
@@ -68,7 +69,6 @@ async def frequency_cmd(client, message):
 		val = message.command["cmd"][0]
 		user = await client.get_users(int(val) if val.isnumeric() else val)
 		query["user"] = user.id
-	logger.info("Counting %d most frequent words", results)
 	prog = ProgressChatAction(client, message.chat.id)
 	words = []             		
 	curr = 0               		
@@ -96,10 +96,7 @@ async def frequency_cmd(client, message):
 			break
 	await edit_or_reply(message, output)
 
-HELP.add_help(["active"], "find members active in last messages",
-				"will iterate previous messages (default 100) to find members who sent at least 1 message. " +
-				"Specify another group with `-g` (only for superuser).",
-				args="[-g <group>] [<number>]", public=True)
+@HELP.add(cmd="[<number>]", sudo=False)
 @alemiBot.on_message(is_allowed & filterCommand(["active"], list(alemiBot.prefixes), options={
 	"group" : ["-g", "--group"],
 }))
@@ -107,6 +104,11 @@ HELP.add_help(["active"], "find members active in last messages",
 @set_offline
 @cancel_chat_action
 async def active_cmd(client, message):
+	"""find members active in last messages
+
+	Will iterate previous messages (default 100) to find members who sent at least 1 message.
+	Specify another group with `-g` (only for superuser).
+	"""
 	number = int(message.command["cmd"][0]) if "cmd" in message.command else 100
 	target_group = message.chat
 	if check_superuser(message) and "group" in message.command:
@@ -117,7 +119,6 @@ async def active_cmd(client, message):
 		output = f"`→ ` **{get_username(target_group)}**\n" + output
 	msg = await edit_or_reply(message, output) # Send a placeholder first to not mention everyone
 	query = {"chat":target_group.id}
-	logger.info("Finding active users in last %d messages", number)
 	prog = ProgressChatAction(client, message.chat.id)
 	users = set()
 	for doc in DRIVER.db.messages.find(query).sort("date", DESCENDING).limit(number):
