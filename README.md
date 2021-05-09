@@ -22,12 +22,15 @@ dbname = <db>
 Install `alemidev/statsbot` (since it's private, either install with `-ssh` or insert user+pwd in terminal for `git clone` via https)
 
 # Data Structure
-Data is kept in 5 (+1) collections. Fields marked with `[opt]` are optional.
+Data is kept in 5 (+1) collections.
+Fields marked with `[opt]` are optional.
+Fields marked with `$` are used as keys in the collection.
+Each collection with a `date` field is also indexed by date (DESCENDING).
 ## Chats
 Each chat encountered is serialized as
 ```
 {
-	"id" : <int>,
+$	"id" : <int>,
 	"title" : <str>,
 	"type" : <str>,
 	"flags" : {
@@ -51,7 +54,7 @@ Each chat encountered is serialized as
 Users met are serialized when first seen and fields are updated when needed
 ```
 {
-	"id" : <int>,
+$	"id" : <int>,
 	"first_name" : <str>,
 	"last_name" : <str|null>,
 	"username" : <str|null>,
@@ -81,9 +84,9 @@ Users met are serialized when first seen and fields are updated when needed
 Each message contains only the bare minimun information
 ```
 {
-	"id": <int>,
+$	"id": <int>,
+$	"chat" : <int>,
 	"user" : <int>,
-	"chat" : <int>,
 	"date" : <iso-date>,
 	[opt] "empty" : <bool>,
 	[opt] "media" : <str>,
@@ -134,9 +137,9 @@ Each message contains only the bare minimun information
 Service messages are stored in a separate collection
 ```
 {
-	"id": <int>,
+$	"id": <int>,
+$	"chat" : <int>,
 	"user" : <int|null>,
-	"chat" : <int>,
 	"date" : <iso-date>,
 	[opt] "new_chat_members" : [ <str> ],
 	[opt] "left_chat_member" : <int>,
@@ -160,8 +163,8 @@ Service messages are stored in a separate collection
 Each deletion is marked directly on the message itself, but a log of all deletion events is still kept
 ```
 {
-	"id" : <int>,
-	"chat" : <int|null>
+$	"id" : <int>,
+$	"chat" : <int|null>
 	"date" : <iso-date>, // added by bot as it gets received
 }
 ```
