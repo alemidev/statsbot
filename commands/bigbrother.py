@@ -91,35 +91,30 @@ async def query_cmd(client, message):
 	collection to query with `-coll`. You can also specify which database to use with `-db` option, but the user \
 	which the bot is using to login will need permissions to read.
 	"""
-	if "arg" not in message.command:
+	if len(message.command) < 1:
 		return await edit_or_reply(message, "`[!] → ` No input")
-	args = message.command
 	buf = []
 	cursor = None
-	lim = 10
-	if "limit" in args:
-		lim = int(args["limit"])
+	lim = int(message.command["limit"] or 10)
 	
 	database = DRIVER.db
-	if "database" in args:
-		database = DRIVER.client[args["database"]]
+	if "database" in message.command:
+		database = DRIVER.client[message.command["database"]]
 	collection = database.messages
-	if "collection" in args:
-		collection = database[args["collection"]]
+	if "collection" in message.command:
+		collection = database[message.command["collection"]]
 
-	if "-cmd" in args["flags"]:
-		cursor = [ database.command(*args["cmd"]) ] # ewww but small patch
+	if message.command["-cmd"]:
+		cursor = [ database.command(*message.command.args) ] # ewww but small patch
 	else:
-		q = json.loads(args["cmd"][0])
-		flt = {}
-		if "filter" in args:
-			flt = json.loads(args["filter"])
-		if "-id" not in message.command["flags"]:
+		q = json.loads(message.command[0])
+		flt = json.loads(message.command["filter"] or '{}')
+		if not message.command["-id"]:
 			flt["_id"] = False
 		cursor = collection.find(q, flt).sort("date", -1)
 
 
-	if "-count" in args["flags"]:
+	if message.command["-count"]:
 		buf = [ cursor.count() ]
 	else:
 		prog = ProgressChatAction(client, message.chat.id)
@@ -149,22 +144,21 @@ async def hist_cmd(client, message):
 	By giving the `-t` flag, edit timestamps will be shown.
 	Superuser can check history of messages in different groups by giving the group id (or name) in the `-g` option.
 	"""
-	args = message.command
 	m_id = None
 	c_id = message.chat.id
-	show_time = "-t" in args["flags"]
-	show_author = "-a" in args["flags"]
+	show_time = message.command["-t"]
+	show_author = message.command["-a"]
 	if message.reply_to_message is not None:
 		m_id = message.reply_to_message.message_id
-	elif "cmd" in args:
-		m_id = int(args["cmd"][0])
+	elif len(message.command) > 0:
+		m_id = int(message.command[0])
 	if m_id is None:
 		return
-	if "group" in args and check_superuser(message):
-		if args["group"].isnumeric():
-			c_id = int(args["group"])
+	if "group" in message.command and check_superuser(message):
+		if message.command["group"].isnumeric():
+			c_id = int(message.command["group"])
 		else:
-			c_id = (await client.get_chat(args["group"])).id
+			c_id = (await client.get_chat(message.command["group"])).id
 	LINE = "` → ` {date} {author} {text}\n"
 	doc = DRIVER.db.messages.find_one({"id": m_id, "chat": c_id}, sort=[("date", DESCENDING)])
 	if doc:
@@ -205,25 +199,24 @@ async def deleted_cmd(client, message): # This is a mess omg
 	Telegram doesn't even always include the chat id, so false positives may happen.
 	For specific searches, use the query (`.q`) command.
 	"""
-	args = message.command
-	show_time = "-t" in args["flags"]
-	msg_after = "-down" in args["flags"]
+	show_time = message.command["-t"]
+	msg_after = message.command["-down"]
+	all_groups = message.command["-all"]
 	target_group = message.chat
-	all_groups = "-all" in args["flags"]
-	offset = int(args["offset"]) if "offset" in args else 0
+	offset = int(message.command["offset"] or 0)
 	if client.me.is_bot and not message.reply_to_message:
 		return await edit_or_reply(message, "`[!] → ` You need to reply to a message")
 	if check_superuser(message):
 		if all_groups:
 			target_group = None
-		elif "group" in args:
-			if args["group"].isnumeric():
-				target_group = await client.get_chat(int(args["group"]))
+		elif "group" in message.command:
+			if message.command["group"].isnumeric():
+				target_group = await client.get_chat(int(message.command["group"]))
 			else:
-				target_group = await client.get_chat(args["group"])
+				target_group = await client.get_chat(message.command["group"])
 	limit = 1
-	if "arg" in args:
-		limit = int(args["arg"])
+	if len(message.command) > 1:
+		limit = int(message.command[0])
 		if client.me.is_bot:
 			limit = min(limit, 5)
 	count = 0
@@ -243,7 +236,7 @@ async def deleted_cmd(client, message): # This is a mess omg
 	prog = ProgressChatAction(client, message.chat.id)
 	out = f"`→ ` Peeking `{limit}` message{'s' if limit > 1 else ''} " + \
 			("down " if msg_after else "") + \
-			(f"in **{get_channel(target_group)}** " if "group" in args else '') + \
+			(f"in **{get_channel(target_group)}** " if "group" in message.command else '') + \
 			(f"from [here]({message.reply_to_message.link}) " if client.me.is_bot else "") + "\n"
 	LINE = "{time}[`{m_id}`] **{user}** {where} → {text} {media}\n"
 	cursor = DRIVER.db.messages.find(flt).sort("date", ASCENDING if msg_after else DESCENDING)

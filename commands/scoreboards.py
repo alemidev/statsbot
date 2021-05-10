@@ -89,8 +89,8 @@ async def top_messages_cmd(client, message):
 	Add flag `-all` to list all messages tracked of users in this chat, or `-g` and specify a group to count in (only for superusers).
 	By default, will only list top 25 members, but number of results can be specified with `-r`.
 	"""
-	results = min(int(message.command["results"]), 100) if "results" in message.command else 25
-	global_search = check_superuser(message) and "-all" in message.command["flags"]
+	results = min(int(message.command["results"] or 25), 100)
+	global_search = check_superuser(message) and message.command["-all"]
 	target_chat = message.chat
 	if check_superuser(message) and "chat" in message.command:
 		tgt = int(message.command["chat"]) if message.command["chat"].isnumeric() \
@@ -100,8 +100,8 @@ async def top_messages_cmd(client, message):
 	prog = ProgressChatAction(client, message.chat.id)
 	out = "`→ ` Messages sent globally\n" if global_search else f"`→ ` Messages sent in {get_username(target_chat)}\n"
 	msg = await edit_or_reply(message, out)
-	if "cmd" in message.command:
-		for uname in message.command["cmd"]:
+	if len(message.command) > 0:
+		for uname in message.command.arg:
 			await prog.tick()
 			user = await client.get_user(uname)
 			flt = {"user": user.id}
@@ -148,7 +148,7 @@ async def joindate_cmd(client, message):
 	A specific group can be specified with `-g` (only by superusers).
 	By default, will only list oldest 25 members, but number of results can be specified with `-r`.
 	"""
-	results = int(message.command["results"]) if "results" in message.command else 25
+	results = min(int(message.command["results"] or 25), 100)
 	target_chat = message.chat
 	if check_superuser(message) and "chat" in message.command:
 		tgt = int(message.command["chat"]) if message.command["chat"].isnumeric() \
@@ -161,8 +161,8 @@ async def joindate_cmd(client, message):
 	out = f"`→ ` Join dates in {get_channel(target_chat)}\n"
 	msg = await edit_or_reply(message, out)
 	creator = None
-	if "cmd" in message.command:
-		for uname in message.command["cmd"]:
+	if len(message.command) > 0:
+		for uname in message.command.arg:
 			await prog.tick()
 			member = await client.get_chat_member(target_chat.id, uname)
 			res.append((get_username(member.user), datetime.utcfromtimestamp(member.joined_date)))
