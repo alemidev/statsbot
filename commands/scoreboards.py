@@ -103,7 +103,7 @@ async def top_messages_cmd(client, message):
 	if len(message.command) > 0:
 		for uname in message.command.arg:
 			await prog.tick()
-			user = await client.get_user(uname)
+			user = await client.get_users(uname)
 			flt = {"user": user.id}
 			if not global_search:
 				flt["chat"] = target_chat.id
