@@ -37,6 +37,9 @@ async def stats_cmd(client, message):
 	chats you visited, chats you partecipated in, edits and media sent.
 	"""
 	user = get_user(message)
+	if len(message.command) > 0 and check_superuser(message):
+		user = await client.get_users(int(message.command[0])
+				if message.command[0].isnumeric() else message.command[0])
 	if not user:
 		return await edit_or_reply(message, "`[!] → ` You are no one")
 	prog = ProgressChatAction(client, message.chat.id)
