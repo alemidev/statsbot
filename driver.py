@@ -6,6 +6,7 @@ from typing import Any
 
 from pymongo import MongoClient
 from pyrogram.types import Message, User
+from pymongo.errors import ServerSelectionTimeoutError
 
 from bot import alemiBot
 from util.serialization import convert_to_dict
@@ -61,6 +62,7 @@ class DatabaseDriver:
 		password = alemiBot.config.get("database", "password", fallback=None)
 		if password:
 			kwargs["password"] = password
+		kwargs["connectTimeoutMS"] = int(alemiBot.config.get("database", "timeout", fallback=3000))
 		self.log_messages = alemiBot.config.get("database", "log_messages", fallback=True)
 		self.log_service = alemiBot.config.get("database", "log_service", fallback=True)
 		self.log_media = alemiBot.config.get("database", "log_media", fallback=False)
@@ -70,11 +72,14 @@ class DatabaseDriver:
 		self.client = MongoClient(host, port, **kwargs)
 		self.db = self.client[alemiBot.config.get("database", "dbname", fallback="alemibot")]
 
-	def log_error_event(self, fun):
-		@functools.wraps(fun)
+	def log_error_event(self, func):
+		@functools.wraps(func)
 		async def wrapper(client, message):
 			try:
-				await fun(client, message)
+				await func(client, message)
+			except ServerSelectionTimeoutError as ex:
+				logger.error("Could not connect to MongoDB")
+				logger.info(str(message))
 			except Exception as ex:
 				logger.exception("Serialization error")
 				exc_data = {
@@ -86,6 +91,15 @@ class DatabaseDriver:
 				doc["exception"] = exc_data
 				self.db.exceptions.insert_one(doc)
 		return wrapper
+
+	def catch_timeout(self, func):
+		@functools.wraps(func)
+		def wrapper(*args, **kwargs):
+			try:
+				func(*args, **kwargs)
+			except ServerSelectionTimeoutError as exc:
+				logger.error("Could not connect to MongoDB")
+
 
 	def log_raw_event(self, event:Any):
 		self.db.raw.insert_one(convert_to_dict(event))
