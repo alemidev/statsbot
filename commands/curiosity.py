@@ -43,9 +43,9 @@ async def frequency_cmd(client, message):
 	Provide an username/user_id as argument to count only messages from that user (or reply to a message).
 	Extra parameters for the db query can be given with `-q`. (only for superuser)
 	"""
-	results = min(int(message.command["results"]), 100) if "results" in message.command else 10
-	limit = int(message.command["limit"]) if "limit" in message.command else 0
-	min_len = int(message.command["minlen"]) if "minlen" in message.command else 3
+	results = min(int(message.command["results"] or 10), 100)
+	limit = int(message.command["limit"] or 0)
+	min_len = int(message.command["minlen"] or 3)
 	# Build query
 	query = {"text":{"$exists":1}} # only msgs with text
 	extra_query = False # Extra query
@@ -55,7 +55,7 @@ async def frequency_cmd(client, message):
 	# Add group filter to query
 	group = message.chat
 	if check_superuser(message):
-		if "-all" in message.command["flags"]:
+		if message.command["-all"]:
 			group = None
 		elif "group" in message.command:
 			tgt = int(message.command["group"])	if message.command["group"].isnumeric() \
@@ -65,8 +65,8 @@ async def frequency_cmd(client, message):
 		query["chat"] = group.id
 	# Add user filter to query
 	user = None
-	if "cmd" in message.command:
-		val = message.command["cmd"][0]
+	if len(message.command) > 0:
+		val = message.command[0]
 		user = await client.get_users(int(val) if val.isnumeric() else val)
 		query["user"] = user.id
 	prog = ProgressChatAction(client, message.chat.id)
@@ -109,7 +109,7 @@ async def active_cmd(client, message):
 	Will iterate previous messages (default 100) to find members who sent at least 1 message.
 	Specify another group with `-g` (only for superuser).
 	"""
-	number = int(message.command["cmd"][0]) if "cmd" in message.command else 100
+	number = int(message.command[0] or 100)
 	target_group = message.chat
 	if check_superuser(message) and "group" in message.command:
 		arg = message.command["group"]
