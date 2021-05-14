@@ -35,7 +35,7 @@ async def graph_cmd(client, message):
 	Plot will show most recent values to the right (so 0 is the oldest day).
 	"""
 	prog = ProgressChatAction(client, message.chat.id, action="playing")
-	length = min(int(message.command[0] or 30), 90)
+	length = int(message.command[0] or 30)
 	target_group = message.chat
 	if check_superuser(message):
 		if "group" in message.command:
@@ -43,6 +43,8 @@ async def graph_cmd(client, message):
 			target_group = await client.get_chat(int(arg) if arg.isnumeric() else arg)
 		elif message.command["-all"]:
 			target_group = None
+	else: # cap length if cmd not run by superuser
+		length = min(length, 90)
 
 	now = datetime.now()
 	query = {"date":{"$gte": now - timedelta(length)}}
