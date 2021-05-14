@@ -23,6 +23,9 @@ logger = logging.getLogger(__name__)
 
 HELP = HelpCategory("BIGBROTHER")
 
+def n_sep(num):
+	return f"{num:,}".replace(",", "ॱ")
+
 @HELP.add()
 @alemiBot.on_message(is_superuser & filterCommand(["dbstats", "dbstat"], list(alemiBot.prefixes)))
 @report_error(logger)
@@ -36,39 +39,46 @@ async def dbstats_cmd(client, message):
 	await prog.tick()
 	oldest_msg = DRIVER.db.messages.find_one({"date":{"$ne":None}}, sort=[("date", ASCENDING)])
 	await prog.tick()
-	msg_count = DRIVER.db.messages.count({})
+	msg_count = n_sep(DRIVER.db.messages.count({}))
 	await prog.tick()
-	user_count = DRIVER.db.users.count({})
-	chat_count = DRIVER.db.chats.count({})
+	user_count = n_sep(DRIVER.db.users.count({}))
 	await prog.tick()
-	deletions_count = DRIVER.db.deletions.count({})
-	service_count = DRIVER.db.service.count({})
+	chat_count = n_sep(DRIVER.db.chats.count({}))
 	await prog.tick()
-	msg_size = DRIVER.db.command("collstats", "messages")['totalSize']
-	user_size = DRIVER.db.command("collstats", "users")['totalSize']
-	chat_size = DRIVER.db.command("collstats", "chats")['totalSize']
-	deletions_size = DRIVER.db.command("collstats", "deletions")['totalSize']
-	service_size = DRIVER.db.command("collstats", "service")['totalSize']
-	db_size = DRIVER.db.command("dbstats")["totalSize"]
+	deletions_count = n_sep(DRIVER.db.deletions.count({}))
 	await prog.tick()
-	medianumber = len(os.listdir("data/scraped_media"))
+	service_count = n_sep(DRIVER.db.service.count({}))
+	await prog.tick()
+	msg_size = order_suffix(DRIVER.db.command("collstats", "messages")['totalSize'])
+	await prog.tick()
+	user_size = order_suffix(DRIVER.db.command("collstats", "users")['totalSize'])
+	await prog.tick()
+	chat_size = order_suffix(DRIVER.db.command("collstats", "chats")['totalSize'])
+	await prog.tick()
+	deletions_size = order_suffix(DRIVER.db.command("collstats", "deletions")['totalSize'])
+	await prog.tick()
+	service_size = order_suffix(DRIVER.db.command("collstats", "service")['totalSize'])
+	await prog.tick()
+	db_size = order_suffix(DRIVER.db.command("dbstats")["totalSize"])
+	await prog.tick()
+	medianumber = n_sep(len(os.listdir("data/scraped_media")))
 	proc = await asyncio.create_subprocess_exec( # This is not cross platform!
 		"du", "-b", "data/scraped_media",
 		stdout=asyncio.subprocess.PIPE,
 		stderr=asyncio.subprocess.STDOUT)
 	stdout, _stderr = await proc.communicate()
-	mediasize = float(stdout.decode('utf-8').split("\t")[0])
+	mediasize = order_suffix(float(stdout.decode('utf-8').split("\t")[0]))
 
 	uptime = str(datetime.now() - client.start_time)
 	await edit_or_reply(message, f"`→ ` **online for** `{uptime}`" +
 					f"\n`→ ` **first event** `{oldest_msg['date']}`" +
-					f"\n` → ` **{msg_count}** msgs logged (+{DRIVER.counter['messages']} new | **{order_suffix(msg_size)}**)" +
-					f"\n` → ` **{service_count}** events tracked (+{DRIVER.counter['service']} new | **{order_suffix(service_size)}**)" +
-					f"\n` → ` **{deletions_count}** deletions saved (+{DRIVER.counter['deletions']} new | **{order_suffix(deletions_size)}**)" +
-					f"\n` → ` **{user_count}** users met (+{DRIVER.counter['users']} new | **{order_suffix(user_size)}**)" +
-					f"\n` → ` **{chat_count}** chats visited (+{DRIVER.counter['chats']} new | **{order_suffix(chat_size)}**)" +
-					f"\n` → ` DB total size **{order_suffix(db_size)}**" +
-					f"\n` → ` **{medianumber}** documents archived (size **{order_suffix(mediasize)}**)")
+					f"\n` → ` **{msg_count}** msgs logged (+{n_sep(DRIVER.counter['messages'])} new | **{msg_size}**)" +
+					f"\n` → ` **{service_count}** events tracked (+{n_sep(DRIVER.counter['service'])} new | **{service_size}**)" +
+					f"\n` → ` **{deletions_count}** deletions saved (+{n_sep(DRIVER.counter['deletions'])} new | **{deletions_size}**)" +
+					f"\n` → ` **{user_count}** users met (+{n_sep(DRIVER.counter['users'])} new | **{user_size}**)" +
+					f"\n` → ` **{chat_count}** chats visited (+{n_sep(DRIVER.counter['chats'])} new | **{chat_size}**)" +
+					f"\n` → ` DB total size **{db_size}**" +
+					f"\n` → ` **{medianumber}** documents archived (size **{mediasize}**)")
 
 @HELP.add(cmd="<{query}>")
 @alemiBot.on_message(is_superuser & filterCommand(["query", "q", "log"], list(alemiBot.prefixes), options={
