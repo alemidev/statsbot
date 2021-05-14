@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 HELP = HelpCategory("BIGBROTHER")
 
 def n_sep(num):
-	return f"{num:,}".replace(",", "ॱ")
+	return f"{num:,}".replace(",", " ")
 
 @HELP.add()
 @alemiBot.on_message(is_superuser & filterCommand(["dbstats", "dbstat"], list(alemiBot.prefixes)))
