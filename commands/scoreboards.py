@@ -130,7 +130,7 @@ async def top_messages_cmd(client, message):
 	count = 0
 	out = ""
 	for usr, msgs in res:
-		out += f"` → ` --{usr}-- [**{sep(msgs)}**] {'☆'*stars}\n"
+		out += f"` → ` **{usr}** [**{sep(msgs)}**] {'☆'*stars}\n"
 		stars -= 1
 		count += 1
 		if count >= results:
