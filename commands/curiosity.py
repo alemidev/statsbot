@@ -11,6 +11,7 @@ from bot import alemiBot
 
 from util.permission import is_allowed, is_superuser, check_superuser
 from util.message import ProgressChatAction, edit_or_reply
+from util.text import sep
 from util.getters import get_text, get_username, get_channel
 from util.command import filterCommand
 from util.decorators import report_error, set_offline, cancel_chat_action
@@ -69,6 +70,16 @@ async def frequency_cmd(client, message):
 		val = message.command[0]
 		user = await client.get_users(int(val) if val.isnumeric() else val)
 		query["user"] = user.id
+
+	# Build output message
+	from_who = f"(from **{get_username(user)}**)" if user else ""
+	extra = f" | + `{query}`" if extra_query else ""
+	where = "--everywhere--"
+	if group:
+		where = f"--[{get_channel(group)}]({group.invite_link})--" if group.invite_link else f"--{get_channel(group)}--"
+	output = f"`→ ` {where} {from_who} {extra}\n`→ ` **{results}** most frequent words __(len > {min_len})__ in last **{curr}** messages:\n"
+	msg = await edit_or_reply(message, output) # placeholder msg so we don't ping if usernames show up
+	# Iterate db
 	prog = ProgressChatAction(client, message.chat.id)
 	words = []             		
 	curr = 0               		
@@ -81,20 +92,13 @@ async def frequency_cmd(client, message):
 			words += [ w for w in re.sub(r"[^0-9a-zA-Z\s\n\-\_\@]+", "", doc["text"].lower()).split() if len(w) > min_len ]
 			curr += 1
 	count = Counter(words).most_common()
-	# Build output message
 	stars = 5 if len(count) > 5 else 0
-	from_who = f"(from **{get_username(user)}**)" if user else ""
-	extra = f" | + `{query}`" if extra_query else ""
-	where = "--everywhere--"
-	if group:
-		where = f"--[{get_channel(group)}]({group.invite_link})--" if group.invite_link else f"--{get_channel(group)}--"
-	output = f"`→ ` {where} {from_who} {extra}\n`→ ` **{results}** most frequent words __(len > {min_len})__ in last **{curr}** messages:\n"
 	for i, word in enumerate(count):
-		output += f"` → ` [`{word[1]}`] **{word[0]}** {'☆'*stars}\n"
+		output += f"` → ` [**{sep(word[1])}**] `{word[0]}` {'☆'*stars}\n"
 		stars -=1
 		if i >= results - 1:
 			break
-	await edit_or_reply(message, output)
+	await edit_or_reply(msg, output)
 
 @HELP.add(cmd="[<number>]", sudo=False)
 @alemiBot.on_message(is_allowed & filterCommand(["active"], list(alemiBot.prefixes), options={
@@ -120,11 +124,11 @@ async def active_cmd(client, message):
 	msg = await edit_or_reply(message, output) # Send a placeholder first to not mention everyone
 	query = {"chat":target_group.id}
 	prog = ProgressChatAction(client, message.chat.id)
-	users = set()
+	users = [] # using a set() would save me a "in" check but sets don't have order. I want most recently active members on top
 	for doc in DRIVER.db.messages.find(query).sort("date", DESCENDING).limit(number):
 		await prog.tick()
-		if doc["user"]:
-			users.add(doc["user"])
+		if doc["user"] and doc["user"] not in users:
+			users.append(doc["user"])
 	users = await client.get_users(users)
 	# Build output message
 	output = ""

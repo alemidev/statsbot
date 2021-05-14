@@ -13,6 +13,7 @@ from bot import alemiBot
 from util.command import filterCommand
 from util.permission import is_allowed, check_superuser
 from util.message import ProgressChatAction, edit_or_reply
+from util.text import sep
 from util.getters import get_username, get_channel, get_user
 from util.decorators import report_error, set_offline, cancel_chat_action
 from util.help import HelpCategory
@@ -45,13 +46,13 @@ async def stats_cmd(client, message):
 	prog = ProgressChatAction(client, message.chat.id)
 	await prog.tick()
 	uid = user.id
-	total_messages = DRIVER.db.messages.count_documents({"user":uid})
+	total_messages = sep(DRIVER.db.messages.count_documents({"user":uid}))
 	await prog.tick()
-	total_media = DRIVER.db.messages.count_documents({"user":uid,"media":{"$exists":1}})
+	total_media = sep(DRIVER.db.messages.count_documents({"user":uid,"media":{"$exists":1}}))
 	await prog.tick()
-	total_edits = DRIVER.db.messages.count_documents({"user":uid,"edits":{"$exists":1}})
+	total_edits = sep(DRIVER.db.messages.count_documents({"user":uid,"edits":{"$exists":1}}))
 	await prog.tick()
-	total_replies = DRIVER.db.messages.count_documents({"user":uid,"reply":{"$exists":1}})
+	total_replies = sep(DRIVER.db.messages.count_documents({"user":uid,"reply":{"$exists":1}}))
 	await prog.tick()
 	visited_chats = len(DRIVER.db.service.distinct("chat", {"user":uid}))
 	await prog.tick()
@@ -72,8 +73,8 @@ async def stats_cmd(client, message):
 								 f"`  → ` **{total_media}** were media\n" +
 								 f"`  → ` **{total_replies}** were replies\n" +
 								 f"`  → ` **{total_edits}** were edited\n" +
-								 f"` → ` You visited **{max(visited_chats, partecipated_chats)}** chats\n" +
-								 f"`  → ` and partecipated in **{partecipated_chats}**\n" +
+								 f"` → ` You visited **{sep(max(visited_chats, partecipated_chats))}** chats\n" +
+								 f"`  → ` and partecipated in **{sep(partecipated_chats)}**\n" +
 								 f"` → ` First saw you `{oldest}`"
 	)
 
@@ -129,7 +130,7 @@ async def top_messages_cmd(client, message):
 	count = 0
 	out = ""
 	for usr, msgs in res:
-		out += f"` → ` **{usr}** [`{msgs}`] {'☆'*stars}\n"
+		out += f"` → ` **{usr}** [**{sep(msgs)}**] {'☆'*stars}\n"
 		stars -= 1
 		count += 1
 		if count >= results:
