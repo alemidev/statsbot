@@ -12,7 +12,7 @@ from util.command import filterCommand
 from util.permission import is_allowed, is_superuser, check_superuser
 from util.getters import get_username, get_channel
 from util.message import ProgressChatAction, edit_or_reply
-from util.text import tokenize_json, order_suffix
+from util.text import tokenize_json, order_suffix, sep
 from util.decorators import report_error, set_offline
 from util.help import HelpCategory
 
@@ -22,9 +22,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 HELP = HelpCategory("BIGBROTHER")
-
-def n_sep(num):
-	return f"{num:,}".replace(",", " ")
 
 @HELP.add()
 @alemiBot.on_message(is_superuser & filterCommand(["dbstats", "dbstat"], list(alemiBot.prefixes)))
@@ -39,15 +36,15 @@ async def dbstats_cmd(client, message):
 	await prog.tick()
 	oldest_msg = DRIVER.db.messages.find_one({"date":{"$ne":None}}, sort=[("date", ASCENDING)])
 	await prog.tick()
-	msg_count = n_sep(DRIVER.db.messages.count({}))
+	msg_count = sep(DRIVER.db.messages.count({}))
 	await prog.tick()
-	user_count = n_sep(DRIVER.db.users.count({}))
+	user_count = sep(DRIVER.db.users.count({}))
 	await prog.tick()
-	chat_count = n_sep(DRIVER.db.chats.count({}))
+	chat_count = sep(DRIVER.db.chats.count({}))
 	await prog.tick()
-	deletions_count = n_sep(DRIVER.db.deletions.count({}))
+	deletions_count = sep(DRIVER.db.deletions.count({}))
 	await prog.tick()
-	service_count = n_sep(DRIVER.db.service.count({}))
+	service_count = sep(DRIVER.db.service.count({}))
 	await prog.tick()
 	msg_size = order_suffix(DRIVER.db.command("collstats", "messages")['totalSize'])
 	await prog.tick()
@@ -61,7 +58,7 @@ async def dbstats_cmd(client, message):
 	await prog.tick()
 	db_size = order_suffix(DRIVER.db.command("dbstats")["totalSize"])
 	await prog.tick()
-	medianumber = n_sep(len(os.listdir("data/scraped_media")))
+	medianumber = sep(len(os.listdir("data/scraped_media")))
 	proc = await asyncio.create_subprocess_exec( # This is not cross platform!
 		"du", "-b", "data/scraped_media",
 		stdout=asyncio.subprocess.PIPE,
@@ -72,11 +69,11 @@ async def dbstats_cmd(client, message):
 	uptime = str(datetime.now() - client.start_time)
 	await edit_or_reply(message, f"`→ ` **online for** `{uptime}`" +
 					f"\n`→ ` **first event** `{oldest_msg['date']}`" +
-					f"\n` → ` **{msg_count}** msgs logged (+{n_sep(DRIVER.counter['messages'])} new | **{msg_size}**)" +
-					f"\n` → ` **{service_count}** events tracked (+{n_sep(DRIVER.counter['service'])} new | **{service_size}**)" +
-					f"\n` → ` **{deletions_count}** deletions saved (+{n_sep(DRIVER.counter['deletions'])} new | **{deletions_size}**)" +
-					f"\n` → ` **{user_count}** users met (+{n_sep(DRIVER.counter['users'])} new | **{user_size}**)" +
-					f"\n` → ` **{chat_count}** chats visited (+{n_sep(DRIVER.counter['chats'])} new | **{chat_size}**)" +
+					f"\n` → ` **{msg_count}** msgs logged (+{sep(DRIVER.counter['messages'])} new | **{msg_size}**)" +
+					f"\n` → ` **{service_count}** events tracked (+{sep(DRIVER.counter['service'])} new | **{service_size}**)" +
+					f"\n` → ` **{deletions_count}** deletions saved (+{sep(DRIVER.counter['deletions'])} new | **{deletions_size}**)" +
+					f"\n` → ` **{user_count}** users met (+{sep(DRIVER.counter['users'])} new | **{user_size}**)" +
+					f"\n` → ` **{chat_count}** chats visited (+{sep(DRIVER.counter['chats'])} new | **{chat_size}**)" +
 					f"\n` → ` DB total size **{db_size}**" +
 					f"\n` → ` **{medianumber}** documents archived (size **{mediasize}**)")
 
