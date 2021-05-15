@@ -74,7 +74,7 @@ async def graph_cmd(client, message):
 		await prog.tick()
 
 	buf = io.BytesIO()
-	dates = [ now - timedelta(i) for i in range(length) ]
+	dates = [ (now - timedelta(i)).date() for i in range(length) ]
 
 	fig, ax = plt.subplots()
 
