@@ -85,7 +85,7 @@ async def graph_cmd(client, message):
 	ax.xaxis.set_minor_locator(mdates.DayLocator())
 	# Set formatter for dates on X axis depending on length
 	if length <= 7:
-		ax.xaxis.set_major_formatter(mdates.DateFormatter('%a'))
+		ax.xaxis.set_minor_formatter(mdates.DateFormatter('%a'))
 	elif length <= 20:
 		ax.xaxis.set_major_formatter(mdates.DateFormatter('%a %-d'))
 	elif length <= 90:
