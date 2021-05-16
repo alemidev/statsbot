@@ -260,7 +260,7 @@ async def timeshift_cmd(client, message):
 		limit = min(limit, 100000)
 
 	# Build query
-	query = {}
+	query = {"date":{"$ne":None}}
 	if target_group:
 		query["chat"] = target_group.id
 	if "user" in message.command:
