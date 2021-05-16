@@ -268,10 +268,12 @@ async def timeshift_cmd(client, message):
 
 	# Create numpy holder
 	vals = np.zeros(24, dtype=np.int32)
+	count = 0
 	for msg in DRIVER.db.messages.find(query).limit(limit):
 		await prog.tick()
-		h = (now.time().hour + hrs_off) % 24
+		h = (msg['date'].time().hour + hrs_off) % 24
 		vals[h] += 1
+		count += 1
 
 	buf = io.BytesIO()
 	labels = [ f"{i:02d}:00-{i+1:02d}:00" for i in range(24) ]
@@ -289,5 +291,5 @@ async def timeshift_cmd(client, message):
 	loc = "sent --globally--" if not target_group else f"in --{get_username(target_group)}--" if target_group.id != message.chat.id else ""
 	frm = f"from **{get_username(target_user)}**" if target_user else ""
 	await client.send_photo(message.chat.id, buf, reply_to_message_id=message.message_id,
-									caption=f"`→ ` Messages per hour {frm} {loc}", progress=prog.tick)
+									caption=f"`→ ` Messages per hour {frm} {loc}\n` → ` last `{count}` messages", progress=prog.tick)
 
