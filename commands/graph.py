@@ -103,10 +103,10 @@ async def density_cmd(client, message):
 		ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
 
 	plot_title = "Msgs per day" + \
-		(f" (--{get_username(target_group)}--)" if target_group else '') + \
-		(f" [from **{get_username(target_user)}**]" if target_user else '') + \
+		(f" ({get_username(target_group)})" if target_group else '') + \
+		(f" [from {get_username(target_user)}]" if target_user else '') + \
 		(f" containing `{message.command['keyword']}`" if message.command["keyword"] else '') + \
-		f" | last **{sep(length)}** days"
+		f" | last {length} days"
 	ax.set_title(plot_title)
 	# Turn on grid
 	ax.grid(True)
@@ -223,8 +223,8 @@ async def heatmap_cmd(client, message):
 	                       ha="center", va="center", color="w")
 	
 	plot_title = "Msgs per weekday" + \
-		(f" (--{get_username(target_group)}--)" if target_group else '') + \
-		(f" [from **{get_username(target_user)}**]" if target_user else '') + \
+		(f" ({get_username(target_group)})" if target_group else '') + \
+		(f" [from {get_username(target_user)}]" if target_user else '') + \
 		(f" containing `{message.command['keyword']}`" if message.command["keyword"] else '')
 	ax.set_title(plot_title)
 	fig.tight_layout()
@@ -312,10 +312,10 @@ async def timeshift_cmd(client, message):
 	fig = plt.figure()
 	plt.bar(labels, vals)
 	plot_title = "Msgs at hour of day" + \
-		(f" (--{get_username(target_group)}--)" if target_group else '') + \
-		(f" [from **{get_username(target_user)}**]" if target_user else '') + \
+		(f" ({get_username(target_group)})" if target_group else '') + \
+		(f" [from {get_username(target_user)}]" if target_user else '') + \
 		(f" containing `{message.command['keyword']}`" if message.command["keyword"] else '') + \
-		f" | last **{sep(count)}**"
+		f" | last {sep(count)}"
 	plt.title(plot_title)
 	fig.savefig(buf, dpi=dpi)
 
