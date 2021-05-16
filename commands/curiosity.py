@@ -93,6 +93,7 @@ async def frequency_cmd(client, message):
 			curr += 1
 	count = Counter(words).most_common()
 	stars = 5 if len(count) > 5 else 0
+	output = ""
 	for i, word in enumerate(count):
 		output += f"` → ` [**{sep(word[1])}**] `{word[0]}` {'☆'*stars}\n"
 		stars -=1
