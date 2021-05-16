@@ -205,7 +205,7 @@ async def heatmap_cmd(client, message):
 	        text = ax.text(j, i, vals[i, j],
 	                       ha="center", va="center", color="w")
 	
-	ax.set_title("Msgs per weekday ({get_username(target_group) if target_group else 'global'})")
+	ax.set_title(f"Msgs per weekday ({get_username(target_group) if target_group else 'global'})")
 	fig.tight_layout()
 
 	fig.savefig(buf, dpi=dpi)
