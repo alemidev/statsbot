@@ -77,7 +77,7 @@ async def frequency_cmd(client, message):
 	where = "--everywhere--"
 	if group:
 		where = f"--[{get_channel(group)}]({group.invite_link})--" if group.invite_link else f"--{get_channel(group)}--"
-	output = f"`→ ` {where} {from_who} {extra}\n`→ ` **{results}** most frequent words __(len > {min_len})__ in last **{curr}** messages:\n"
+	output = f"`→ ` {where} {from_who} {extra}\n`→ ` **{results}** most frequent words __(len > {min_len})__ in last **{limit}** messages:\n"
 	msg = await edit_or_reply(message, output) # placeholder msg so we don't ping if usernames show up
 	# Iterate db
 	prog = ProgressChatAction(client, message.chat.id)
