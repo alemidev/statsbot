@@ -271,7 +271,7 @@ async def timeshift_cmd(client, message):
 	count = 0
 	for msg in DRIVER.db.messages.find(query).limit(limit):
 		await prog.tick()
-		h = (msg['date'].time().hour + hrs_off) % 24
+		h = int((msg['date'].time().hour + hrs_off) % 24)
 		vals[h] += 1
 		count += 1
 
