@@ -56,6 +56,9 @@ async def density_cmd(client, message):
 	if client.me.is_bot and message.chat.type == "private":
 		target_group = None
 		target_user = message.from_user
+	if "user" in message.command:
+		u_input = message.command["user"]
+		target_user = await client.get_users(int(u_input) if u_input.isnumeric() else u_input)
 	if check_superuser(message):
 		if "group" in message.command:
 			arg = message.command["group"]
@@ -69,9 +72,7 @@ async def density_cmd(client, message):
 	query = {"date":{"$gt": datetime.now() - timedelta(length) + time_offset}} # so it's at 00:00
 	if target_group:
 		query["chat"] = target_group.id
-	if "user" in message.command:
-		u_input = message.command["user"]
-		target_user = await client.get_users(int(u_input) if u_input.isnumeric() else u_input)
+	if target_user:
 		query["user"] = target_user.id
 	if "keyword" in message.command:
 		query["text"] = {"$regex":f"{message.command['keyword']}"}
@@ -171,6 +172,9 @@ async def heatmap_cmd(client, message):
 			target_group = await client.get_chat(int(arg) if arg.isnumeric() else arg)
 		elif message.command["-all"]:
 			target_group = None
+	if "user" in message.command:
+		u_input = message.command["user"]
+		target_user = await client.get_users(int(u_input) if u_input.isnumeric() else u_input)
 
 	# Find last Sunday (last full week basically, so we don't plot a half week data)
 	last_week_offset = (week_offset * 7) + (datetime.now().weekday() + (0 if message.command["--sunday"] else 1)) % 7
@@ -179,9 +183,7 @@ async def heatmap_cmd(client, message):
 	query = {"date":{"$gte": datetime(day=now.day, month=now.month, year=now.year) - timedelta(49 + last_week_offset) + time_offset}} # so it's at 00:00
 	if target_group:
 		query["chat"] = target_group.id
-	if "user" in message.command:
-		u_input = message.command["user"]
-		target_user = await client.get_users(int(u_input) if u_input.isnumeric() else u_input)
+	if target_user:
 		query["user"] = target_user.id
 	if "keyword" in message.command:
 		query["text"] = {"$regex":f"{message.command['keyword']}"}
@@ -287,6 +289,9 @@ async def timeshift_cmd(client, message):
 	if client.me.is_bot and message.chat.type == "private":
 		target_group = None
 		target_user = message.from_user
+	if "user" in message.command:
+		u_input = message.command["user"]
+		target_user = await client.get_users(int(u_input) if u_input.isnumeric() else u_input)
 	if check_superuser(message):
 		if "group" in message.command:
 			arg = message.command["group"]
@@ -300,9 +305,7 @@ async def timeshift_cmd(client, message):
 	query = {"date":{"$ne":None}}
 	if target_group:
 		query["chat"] = target_group.id
-	if "user" in message.command:
-		u_input = message.command["user"]
-		target_user = await client.get_users(int(u_input) if u_input.isnumeric() else u_input)
+	if target_user:
 		query["user"] = target_user.id
 	if "keyword" in message.command:
 		query["text"] = {"$regex":f"{message.command['keyword']}"}
