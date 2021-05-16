@@ -218,3 +218,76 @@ async def heatmap_cmd(client, message):
 	await client.send_photo(message.chat.id, buf, reply_to_message_id=message.message_id,
 									caption=f"`→ ` Messages per weekday {frm} {loc}", progress=prog.tick)
 
+
+@HELP.add(sudo=False)
+@alemiBot.on_message(is_allowed & filterCommand(["shift", "timeshift"], list(alemiBot.prefixes), options={
+	"group" : ["-g", "--group"],
+	"user" : ["-u", "--user"],
+	"dpi" : ["--dpi"],
+	"limit" : ["-l", "--limit"],
+	"timezone" : ["-tz", "--timezone"],
+}, flags=["-all", "--sunday"]))
+@report_error(logger)
+@set_offline
+@cancel_chat_action
+async def timeshift_cmd(client, message):
+	"""show at which time users are more active
+
+	Show messages sent per time of day in current group (superuser can specify group or search globally).
+	Get values of messages from a single user with `-u`.
+	Specify plot dpi with `--dpi` (default is 300).
+	Add flag `--sunday` to put markers on sundays.
+	Dates are UTC, so days may get split weirdly for you. You can compensate by specifying a timezone (`-tz +6`, `-tz -4`).
+	Set limit to amount of messages to query with (`-l`).
+	Precision is locked at 1hr.
+	"""
+	prog = ProgressChatAction(client, message.chat.id, action="playing")
+	dpi = int(message.command["dpi"] or 300)
+	limit = int(message.command["limit"] or 1000000)
+	time_offset = parse_timedelta(message.command["timezone"] or "X")
+	hrs_off = time_offset.total_seconds() // 3600
+	target_group = message.chat
+	target_user = None
+	if check_superuser(message):
+		if "group" in message.command:
+			arg = message.command["group"]
+			target_group = await client.get_chat(int(arg) if arg.isnumeric() else arg)
+		elif message.command["-all"]:
+			target_group = None
+	else:
+		limit = min(limit, 100000)
+
+	# Build query
+	query = {}
+	if target_group:
+		query["chat"] = target_group.id
+	if "user" in message.command:
+		u_input = message.command["user"]
+		target_user = await client.get_users(int(u_input) if u_input.isnumeric() else u_input)
+		query["user"] = target_user.id
+
+	# Create numpy holder
+	vals = np.zeros(24, dtype=np.int32)
+	for msg in DRIVER.db.messages.find(query).limit(limit):
+		await prog.tick()
+		h = (now.time().hour + hrs_off) % 24
+		vals[h] += 1
+
+	buf = io.BytesIO()
+	labels = [ f"{i:02d}:00-{i+1:02d}:00" for i in range(24) ]
+
+	fig = plt.figure()
+	ax = fig.add_axes([0,0,1,1])
+	ax.bar(labels, vals)
+
+	fig.savefig(buf, dpi=dpi)
+
+	buf.seek(0)
+	buf.name = "plot.png"
+
+	prog = ProgressChatAction(client, message.chat.id, action="upload_document")
+	loc = "sent --globally--" if not target_group else f"in --{get_username(target_group)}--" if target_group.id != message.chat.id else ""
+	frm = f"from **{get_username(target_user)}**" if target_user else ""
+	await client.send_photo(message.chat.id, buf, reply_to_message_id=message.message_id,
+									caption=f"`→ ` Messages per hour {frm} {loc}", progress=prog.tick)
+
