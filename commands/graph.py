@@ -9,6 +9,7 @@ from bot import alemiBot
 
 from util.permission import is_allowed, check_superuser
 from util.message import ProgressChatAction, edit_or_reply
+from util.text import sep
 from util.getters import get_username
 from util.time import parse_timedelta
 from util.command import filterCommand
@@ -293,5 +294,5 @@ async def timeshift_cmd(client, message):
 	loc = "sent --globally--" if not target_group else f"in --{get_username(target_group)}--" if target_group.id != message.chat.id else ""
 	frm = f"from **{get_username(target_user)}**" if target_user else ""
 	await client.send_photo(message.chat.id, buf, reply_to_message_id=message.message_id,
-									caption=f"`→ ` Messages per hour {frm} {loc} [`UTC{time_offset:+02d}`]\n` → ` last `{count}` messages", progress=prog.tick)
+									caption=f"`→ ` Messages per hour {frm} {loc} [`UTC{time_offset:+02d}`]\n` → ` last **{sep(count)}** messages", progress=prog.tick)
 
