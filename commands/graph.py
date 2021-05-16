@@ -53,16 +53,15 @@ async def density_cmd(client, message):
 	time_offset = parse_timedelta(message.command["timezone"] or "X")
 	target_group = message.chat
 	target_user = None
+	if client.me.is_bot and message.chat.type == "private":
+		target_group = None
+		target_user = message.from_user
 	if check_superuser(message):
 		if "group" in message.command:
 			arg = message.command["group"]
 			target_group = await client.get_chat(int(arg) if arg.isnumeric() else arg)
 		elif message.command["-all"]:
 			target_group = None
-	elif client.me.is_bot and message.chat.type == "private":
-		target_group = None
-		target_user = message.from_user
-		length = min(length, 90)
 	else: # cap length if cmd not run by superuser
 		length = min(length, 90)
 
@@ -163,15 +162,15 @@ async def heatmap_cmd(client, message):
 	time_offset = parse_timedelta(message.command["timezone"] or "X")
 	target_group = message.chat
 	target_user = None
+	if client.me.is_bot and message.chat.type == "private":
+		target_group = None
+		target_user = message.from_user
 	if check_superuser(message):
 		if "group" in message.command:
 			arg = message.command["group"]
 			target_group = await client.get_chat(int(arg) if arg.isnumeric() else arg)
 		elif message.command["-all"]:
 			target_group = None
-	elif client.me.is_bot and message.chat.type == "private":
-		target_group = None
-		target_user = message.from_user
 
 	# Find last Sunday (last full week basically, so we don't plot a half week data)
 	last_week_offset = (week_offset * 7) + (datetime.now().weekday() + (0 if message.command["--sunday"] else 1)) % 7
@@ -285,16 +284,15 @@ async def timeshift_cmd(client, message):
 			int(message.command["offset"]) # ye lmao
 	target_group = message.chat
 	target_user = None
+	if client.me.is_bot and message.chat.type == "private":
+		target_group = None
+		target_user = message.from_user
 	if check_superuser(message):
 		if "group" in message.command:
 			arg = message.command["group"]
 			target_group = await client.get_chat(int(arg) if arg.isnumeric() else arg)
 		elif message.command["-all"]:
 			target_group = None
-	elif client.me.is_bot and message.chat.type == "private":
-		target_group = None
-		target_user = message.from_user
-		limit = min(limit, 100000)
 	else:
 		limit = min(limit, 100000)
 
