@@ -70,9 +70,10 @@ async def density_cmd(client, message):
 		target_user = await client.get_users(int(u_input) if u_input.isnumeric() else u_input)
 		query["user"] = target_user.id
 	if "keyword" in message.command:
-		query["text"] = {"$regex":f"/{message.command['keyword']}/"}
+		query["text"] = {"$regex":f"{message.command['keyword']}"}
 
 	vals = np.zeros(length, dtype=np.int32)
+	await prog.tick()
 	for msg in DRIVER.db.messages.find(query):
 		await prog.tick()
 		delta = (now - (msg["date"] + time_offset).date())
@@ -175,10 +176,11 @@ async def heatmap_cmd(client, message):
 		target_user = await client.get_users(int(u_input) if u_input.isnumeric() else u_input)
 		query["user"] = target_user.id
 	if "keyword" in message.command:
-		query["text"] = {"$regex":f"/{message.command['keyword']}/"}
+		query["text"] = {"$regex":f"{message.command['keyword']}"}
 
 	# Create numpy holder
 	vals = np.zeros((7,7), dtype=np.int32)
+	await prog.tick()
 	for msg in DRIVER.db.messages.find(query):
 		await prog.tick()
 		date_corrected = (msg["date"] + time_offset).date()
@@ -291,11 +293,12 @@ async def timeshift_cmd(client, message):
 		target_user = await client.get_users(int(u_input) if u_input.isnumeric() else u_input)
 		query["user"] = target_user.id
 	if "keyword" in message.command:
-		query["text"] = {"$regex":f"/{message.command['keyword']}/"}
+		query["text"] = {"$regex":f"{message.command['keyword']}"}
 
 	# Create numpy holder
 	vals = np.zeros(24, dtype=np.int32)
 	count = 0
+	await prog.tick()
 	for msg in DRIVER.db.messages.find(query).limit(limit):
 		await prog.tick()
 		h = int((msg['date'].time().hour + time_offset) % 24)
