@@ -40,7 +40,7 @@ async def density_cmd(client, message):
 	Get graph of messages from a single user with `-u`.
 	Specify plot dpi with `--dpi` (default is 300).
 	Add flag `--sunday` to put markers on sundays.
-	Dates are UTC, so days may get split weirdly for you. You can compensate by specifying a timezone (`-tz +6`, `-tz -4`).
+	Dates are UTC, so days may get split weirdly for you. You can compensate by specifying a timezone (`-tz +6h`, `-tz -4h`).
 	Plot will show most recent values to the right. X axis labels format will depend on amount of values plotted.
 	"""
 	prog = ProgressChatAction(client, message.chat.id, action="playing")
@@ -131,7 +131,7 @@ async def heatmap_cmd(client, message):
 	Get values of messages from a single user with `-u`.
 	Specify plot dpi with `--dpi` (default is 300).
 	Add flag `--sunday` to put markers on sundays.
-	Dates are UTC, so days may get split weirdly for you. You can compensate by specifying a timezone (`-tz +6`, `-tz -4`).
+	Dates are UTC, so days may get split weirdly for you. You can compensate by specifying a timezone (`-tz +6h`, `-tz -4h`).
 	Get data of previous weeks by adding a week offset (`-o`).
 	Command will not show incomplete week data: first row is last complete week logged.
 	Number of weeks to display is locked for style reasons.
@@ -225,8 +225,8 @@ async def heatmap_cmd(client, message):
 	"user" : ["-u", "--user"],
 	"dpi" : ["--dpi"],
 	"limit" : ["-l", "--limit"],
-	"timezone" : ["-tz", "--timezone"],
-}, flags=["-all", "--sunday"]))
+	"offset" : ["-tz", "--timezone"],
+}, flags=["-all"]))
 @report_error(logger)
 @set_offline
 @cancel_chat_action
@@ -237,15 +237,17 @@ async def timeshift_cmd(client, message):
 	Get values of messages from a single user with `-u`.
 	Specify plot dpi with `--dpi` (default is 300).
 	Add flag `--sunday` to put markers on sundays.
-	Dates are UTC, so days may get split weirdly for you. You can compensate by specifying a timezone (`-tz +6`, `-tz -4`).
+	Dates are UTC, so days may get split weirdly for you. You can compensate by specifying an hour offset (`-tz +6`, `-tz -4`).
 	Set limit to amount of messages to query with (`-l`).
 	Precision is locked at 1hr.
 	"""
 	prog = ProgressChatAction(client, message.chat.id, action="playing")
 	dpi = int(message.command["dpi"] or 300)
-	limit = int(message.command["limit"] or 1000000)
-	time_offset = parse_timedelta(message.command["timezone"] or "X")
-	hrs_off = time_offset.total_seconds() // 3600
+	limit = int(message.command["limit"] or 10000)
+	time_offset = 0 if "offset" not in message.command else \
+			-int(message.command["offset"][1:]) if message.command["offset"].startswith("-") else \
+			int(message.command["offset"]) if message.command["offset"].startswith("+") else \
+			int(message.command["offset"]) # ye lmao
 	target_group = message.chat
 	target_user = None
 	if check_superuser(message):
@@ -271,17 +273,16 @@ async def timeshift_cmd(client, message):
 	count = 0
 	for msg in DRIVER.db.messages.find(query).limit(limit):
 		await prog.tick()
-		h = int((msg['date'].time().hour + hrs_off) % 24)
+		h = int((msg['date'].time().hour + time_offset) % 24)
 		vals[h] += 1
 		count += 1
 
 	buf = io.BytesIO()
-	labels = [ f"{i:02d}:00-{i+1:02d}:00" for i in range(24) ]
+	# labels = [ f"{i:02d}:00-{i+1:02d}:00" for i in range(24) ]
+	labels = [ f"{i:02d}" for i in range(24) ]
 
 	fig = plt.figure()
-	ax = fig.add_axes([0,0,1,1])
-	ax.bar(labels, vals)
-
+	plt.bar(labels, vals)
 	fig.savefig(buf, dpi=dpi)
 
 	buf.seek(0)
@@ -291,5 +292,5 @@ async def timeshift_cmd(client, message):
 	loc = "sent --globally--" if not target_group else f"in --{get_username(target_group)}--" if target_group.id != message.chat.id else ""
 	frm = f"from **{get_username(target_user)}**" if target_user else ""
 	await client.send_photo(message.chat.id, buf, reply_to_message_id=message.message_id,
-									caption=f"`→ ` Messages per hour {frm} {loc}\n` → ` last `{count}` messages", progress=prog.tick)
+									caption=f"`→ ` Messages per hour {frm} {loc} [`UTC{time_offset:+02d}`]\n` → ` last `{count}` messages", progress=prog.tick)
 
