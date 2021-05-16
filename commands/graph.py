@@ -95,7 +95,7 @@ async def density_cmd(client, message):
 		ax.xaxis.set_major_formatter(mdates.DateFormatter('%-d %h'))
 	else:
 		ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
-	ax.set_title(f"Messages per Day (last {length} days)")
+	ax.set_title(f"Messages per Day (last {length} days | {get_username(target_group) if target_user else 'global'})")
 	# Turn on grid
 	ax.grid(True)
 
@@ -204,7 +204,7 @@ async def heatmap_cmd(client, message):
 	        text = ax.text(j, i, vals[i, j],
 	                       ha="center", va="center", color="w")
 	
-	ax.set_title("Messages per Weekday (7 weeks)")
+	ax.set_title("Messages per Weekday (7 weeks | {get_username(target_group) if target_group else 'global'})")
 	fig.tight_layout()
 
 	fig.savefig(buf, dpi=dpi)
@@ -283,6 +283,7 @@ async def timeshift_cmd(client, message):
 
 	fig = plt.figure()
 	plt.bar(labels, vals)
+	plt.title(f"Messages per Hour of Day ({count} samples | {get_username(target_group) if target_group else 'global'})")
 	fig.savefig(buf, dpi=dpi)
 
 	buf.seek(0)
