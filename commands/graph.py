@@ -45,6 +45,7 @@ async def density_cmd(client, message):
 	Add flag `--sunday` to put markers on sundays.
 	Dates are UTC, so days may get split weirdly for you. You can compensate by specifying a timezone (`-tz +6h`, `-tz -4h`).
 	Plot will show most recent values to the right. X axis labels format will depend on amount of values plotted.
+	If called in a private chat with bot, will show messages from user from any chat.
 	"""
 	prog = ProgressChatAction(client, message.chat.id, action="playing")
 	length = int(message.command[0] or 15)
@@ -58,6 +59,10 @@ async def density_cmd(client, message):
 			target_group = await client.get_chat(int(arg) if arg.isnumeric() else arg)
 		elif message.command["-all"]:
 			target_group = None
+	elif client.me.is_bot and message.chat.type == "private":
+		target_group = None
+		target_user = message.from_user
+		length = min(length, 90)
 	else: # cap length if cmd not run by superuser
 		length = min(length, 90)
 
@@ -150,6 +155,7 @@ async def heatmap_cmd(client, message):
 	Get data of previous weeks by adding a week offset (`-o`).
 	Command will not show incomplete week data: first row is last complete week logged.
 	Number of weeks to display is locked for style reasons.
+	If called in a private chat with bot, will show messages from user from any chat.
 	"""
 	prog = ProgressChatAction(client, message.chat.id, action="playing")
 	dpi = int(message.command["dpi"] or 300)
@@ -163,6 +169,9 @@ async def heatmap_cmd(client, message):
 			target_group = await client.get_chat(int(arg) if arg.isnumeric() else arg)
 		elif message.command["-all"]:
 			target_group = None
+	elif client.me.is_bot and message.chat.type == "private":
+		target_group = None
+		target_user = message.from_user
 
 	# Find last Sunday (last full week basically, so we don't plot a half week data)
 	last_week_offset = (week_offset * 7) + (datetime.now().weekday() + (0 if message.command["--sunday"] else 1)) % 7
@@ -265,6 +274,7 @@ async def timeshift_cmd(client, message):
 	Dates are UTC, so days may get split weirdly for you. You can compensate by specifying an hour offset (`-tz +6`, `-tz -4`).
 	Set limit to amount of messages to query with (`-l`).
 	Precision is locked at 1hr.
+	If called in a private chat with bot, will show messages from user from any chat.
 	"""
 	prog = ProgressChatAction(client, message.chat.id, action="playing")
 	dpi = int(message.command["dpi"] or 300)
@@ -281,6 +291,10 @@ async def timeshift_cmd(client, message):
 			target_group = await client.get_chat(int(arg) if arg.isnumeric() else arg)
 		elif message.command["-all"]:
 			target_group = None
+	elif client.me.is_bot and message.chat.type == "private":
+		target_group = None
+		target_user = message.from_user
+		limit = min(limit, 100000)
 	else:
 		limit = min(limit, 100000)
 
