@@ -37,7 +37,7 @@ HELP = HelpCategory("GRAPHS")
 async def density_cmd(client, message):
 	"""show messages per day in last days
 
-	Show messages sent per day in last X days (default 15, cap 90) in current group \
+	Show messages sent per day in last X days (default 20, cap 90) in current group \
 	(superuser can specify group or search globally).
 	Get graph of messages from a single user with `-u`.
 	Get graph of messages containing a specific keyword with `-k`.
@@ -48,7 +48,7 @@ async def density_cmd(client, message):
 	If called in a private chat with bot, will show messages from user from any chat.
 	"""
 	prog = ProgressChatAction(client, message.chat.id, action="playing")
-	length = int(message.command[0] or 15)
+	length = int(message.command[0] or 20)
 	dpi = int(message.command["dpi"] or 300)
 	time_offset = parse_timedelta(message.command["timezone"] or "X")
 	target_group = message.chat
