@@ -10,7 +10,7 @@ from bot import alemiBot
 from util.permission import is_allowed, check_superuser
 from util.message import ProgressChatAction, edit_or_reply
 from util.text import sep
-from util.getters import get_username
+from util.getters import get_user, get_username
 from util.time import parse_timedelta
 from util.command import filterCommand
 from util.decorators import report_error, set_offline, cancel_chat_action
@@ -27,6 +27,7 @@ HELP = HelpCategory("GRAPHS")
 @alemiBot.on_message(is_allowed & filterCommand(["density", "activity"], list(alemiBot.prefixes), options={
 	"group" : ["-g", "--group"],
 	"user" : ["-u", "--user"],
+	"keyword" : ["-k", "--keyword"],
 	"dpi" : ["--dpi"],
 	"timezone" : ["-tz", "--timezone"],
 }, flags=["-all", "--sunday"]))
@@ -39,6 +40,7 @@ async def density_cmd(client, message):
 	Show messages sent per day in last X days (default 15, cap 90) in current group \
 	(superuser can specify group or search globally).
 	Get graph of messages from a single user with `-u`.
+	Get graph of messages containing a specific keyword with `-k`.
 	Specify plot dpi with `--dpi` (default is 300).
 	Add flag `--sunday` to put markers on sundays.
 	Dates are UTC, so days may get split weirdly for you. You can compensate by specifying a timezone (`-tz +6h`, `-tz -4h`).
@@ -67,6 +69,8 @@ async def density_cmd(client, message):
 		u_input = message.command["user"]
 		target_user = await client.get_users(int(u_input) if u_input.isnumeric() else u_input)
 		query["user"] = target_user.id
+	if "keyword" in message.command:
+		query["text"] = f"/{message.command['keyword']}/"
 
 	vals = np.zeros(length, dtype=np.int32)
 	for msg in DRIVER.db.messages.find(query):
@@ -96,7 +100,13 @@ async def density_cmd(client, message):
 		ax.xaxis.set_major_formatter(mdates.DateFormatter('%-d %h'))
 	else:
 		ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
-	ax.set_title(f"Msgs per day (last {length} days | {get_username(target_group) if target_user else 'global'})")
+
+	plot_title = "Msgs per day" + \
+		f" (--{get_username(target_group)}--)" if target_group else '' + \
+		f" [from **{get_username(target_user)}**]" if target_user else '' + \
+		f" containing `{message.command['keyword']}`" if message.command["keyword"] else '' + \
+		f" | last **{sep(length)}** days"
+	ax.set_title(plot_title)
 	# Turn on grid
 	ax.grid(True)
 
@@ -108,15 +118,17 @@ async def density_cmd(client, message):
 	buf.name = "plot.png"
 
 	prog = ProgressChatAction(client, message.chat.id, action="upload_document")
-	loc = "sent --globally--" if not target_group else f"in --{get_username(target_group)}--" if target_group.id != message.chat.id else ""
-	frm = f"from **{get_username(target_user)}**" if target_user else ""
-	await client.send_photo(message.chat.id, buf, reply_to_message_id=message.message_id,
-									caption=f"`→ ` Messages per day {frm} {loc}\n` → ` Last **{length}** days", progress=prog.tick)
+	caption = f"`→ ` Messages per day | last **{sep(length)}** days" + \
+		"\n` → ` sent --globally--" if not target_group else f"\n` → ` in --{get_username(target_group)}--" if target_group.id != message.chat.id else "" + \
+		f"\n` → ` from **{get_username(target_user)}**" if target_user else '' + \
+		f"\n` → ` containing `{message.command['keyword']}`" if message.command['keyword'] else ''
+	await client.send_photo(message.chat.id, buf, reply_to_message_id=message.message_id, caption=caption, progress=prog.tick)
 
 @HELP.add(sudo=False)
 @alemiBot.on_message(is_allowed & filterCommand(["heat", "heatmap"], list(alemiBot.prefixes), options={
 	"group" : ["-g", "--group"],
 	"user" : ["-u", "--user"],
+	"keyword" : ["-k", "--keyword"],
 	"dpi" : ["--dpi"],
 	"offset" : ["-o", "--offset"],
 	"timezone" : ["-tz", "--timezone"],
@@ -130,6 +142,7 @@ async def heatmap_cmd(client, message):
 	Show messages sent per day of the week (in last 7 weeks) in current group \
 	(superuser can specify group or search globally).
 	Get values of messages from a single user with `-u`.
+	Get values of messages containing a specific word with `-k`.
 	Specify plot dpi with `--dpi` (default is 300).
 	Add flag `--sunday` to put markers on sundays.
 	Dates are UTC, so days may get split weirdly for you. You can compensate by specifying a timezone (`-tz +6h`, `-tz -4h`).
@@ -161,6 +174,8 @@ async def heatmap_cmd(client, message):
 		u_input = message.command["user"]
 		target_user = await client.get_users(int(u_input) if u_input.isnumeric() else u_input)
 		query["user"] = target_user.id
+	if "keyword" in message.command:
+		query["text"] = f"/{message.command['keyword']}/"
 
 	# Create numpy holder
 	vals = np.zeros((7,7), dtype=np.int32)
@@ -205,7 +220,11 @@ async def heatmap_cmd(client, message):
 	        text = ax.text(j, i, vals[i, j],
 	                       ha="center", va="center", color="w")
 	
-	ax.set_title(f"Msgs per weekday ({get_username(target_group) if target_group else 'global'})")
+	plot_title = "Msgs per weekday" + \
+		f" (--{get_username(target_group)}--)" if target_group else '' + \
+		f" [from **{get_username(target_user)}**]" if target_user else '' + \
+		f" containing `{message.command['keyword']}`" if message.command["keyword"] else ''
+	ax.set_title(plot_title)
 	fig.tight_layout()
 
 	fig.savefig(buf, dpi=dpi)
@@ -214,16 +233,18 @@ async def heatmap_cmd(client, message):
 	buf.name = "plot.png"
 
 	prog = ProgressChatAction(client, message.chat.id, action="upload_document")
-	loc = "sent --globally--" if not target_group else f"in --{get_username(target_group)}--" if target_group.id != message.chat.id else ""
-	frm = f"from **{get_username(target_user)}**" if target_user else ""
-	await client.send_photo(message.chat.id, buf, reply_to_message_id=message.message_id,
-									caption=f"`→ ` Messages per weekday {frm} {loc}", progress=prog.tick)
+	caption = "`→ ` Messages per weekday" + \
+		"\n` → ` sent --globally--" if not target_group else f"\n` → ` in --{get_username(target_group)}--" if target_group.id != message.chat.id else "" + \
+		f"\n` → ` from **{get_username(target_user)}**" if target_user else '' + \
+		f"\n` → ` containing `{message.command['keyword']}`" if message.command['keyword'] else ''
+	await client.send_photo(message.chat.id, buf, reply_to_message_id=message.message_id, caption=caption, progress=prog.tick)
 
 
 @HELP.add(sudo=False)
 @alemiBot.on_message(is_allowed & filterCommand(["shift", "timeshift"], list(alemiBot.prefixes), options={
 	"group" : ["-g", "--group"],
 	"user" : ["-u", "--user"],
+	"keyword" : ["-k", "--keyword"],
 	"dpi" : ["--dpi"],
 	"limit" : ["-l", "--limit"],
 	"offset" : ["-tz", "--timezone"],
@@ -236,6 +257,7 @@ async def timeshift_cmd(client, message):
 
 	Show messages sent per time of day in current group (superuser can specify group or search globally).
 	Get values of messages from a single user with `-u`.
+	Get values of messages containing a certain word with `-k`.
 	Specify plot dpi with `--dpi` (default is 300).
 	Add flag `--sunday` to put markers on sundays.
 	Dates are UTC, so days may get split weirdly for you. You can compensate by specifying an hour offset (`-tz +6`, `-tz -4`).
@@ -268,6 +290,8 @@ async def timeshift_cmd(client, message):
 		u_input = message.command["user"]
 		target_user = await client.get_users(int(u_input) if u_input.isnumeric() else u_input)
 		query["user"] = target_user.id
+	if "keyword" in message.command:
+		query["text"] = f"/{message.command['keyword']}/"
 
 	# Create numpy holder
 	vals = np.zeros(24, dtype=np.int32)
@@ -284,15 +308,20 @@ async def timeshift_cmd(client, message):
 
 	fig = plt.figure()
 	plt.bar(labels, vals)
-	plt.title(f"Msgs at hour of day (last {count} | {get_username(target_group) if target_group else 'global'})")
+	plot_title = "Msgs at hour of day" + \
+		f" (--{get_username(target_group)}--)" if target_group else '' + \
+		f" [from **{get_username(target_user)}**]" if target_user else '' + \
+		f" containing `{message.command['keyword']}`" if message.command["keyword"] else '' + \
+		f" | last **{sep(count)}**"
+	plt.title(plot_title)
 	fig.savefig(buf, dpi=dpi)
 
 	buf.seek(0)
 	buf.name = "plot.png"
 
 	prog = ProgressChatAction(client, message.chat.id, action="upload_document")
-	loc = "sent --globally--" if not target_group else f"in --{get_username(target_group)}--" if target_group.id != message.chat.id else ""
-	frm = f"from **{get_username(target_user)}**" if target_user else ""
-	await client.send_photo(message.chat.id, buf, reply_to_message_id=message.message_id,
-									caption=f"`→ ` Messages per hour {frm} {loc} [`UTC{time_offset:+02d}`]\n` → ` last **{sep(count)}** messages", progress=prog.tick)
-
+	caption = f"`→ ` Messages per hour [`UTC{time_offset:+02d}`] last **{sep(count)}** messages" + \
+		"\n` → ` sent --globally--" if not target_group else f"\n` → ` in --{get_username(target_group)}--" if target_group.id != message.chat.id else "" + \
+		f"\n` → ` from **{get_username(target_user)}**" if target_user else '' + \
+		f"\n` → ` containing `{message.command['keyword']}`" if message.command['keyword'] else ''
+	await client.send_photo(message.chat.id, buf, reply_to_message_id=message.message_id, caption=caption, progress=prog.tick)
