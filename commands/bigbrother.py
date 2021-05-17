@@ -23,13 +23,19 @@ logger = logging.getLogger(__name__)
 
 HELP = HelpCategory("BIGBROTHER")
 
+BACKFILL_STOP = False
+
 @report_error(logger)
 @set_offline
 async def back_fill_messages(client, message, target_group, limit, interval, silent=False):
+	global BACKFILL_STOP
 	count = 0
 	if not silent:
 		await edit_or_reply(message, f"` → ` [ **0 / {sep(limit)}** ]")
 	async for msg in client.iter_history(target_group.id, limit=limit):
+		if BACKFILL_STOP:
+			BACKFILL_STOP = False
+			return await edit_or_reply(message, f"`[!] → ` Stopped at [ **{sep(count)} / {sep(limit)}** ]")
 		if msg.service:
 			DRIVER.parse_service_event(msg, ignore_duplicates=True)
 		else:
@@ -44,8 +50,9 @@ async def back_fill_messages(client, message, target_group, limit, interval, sil
 @alemiBot.on_message(is_superuser & filterCommand(["backfill"], list(alemiBot.prefixes), options={
 	"group" : ["-g", "--group"],
 	"interval" : ["-i", "--interval"],
-}, flags=["-silent"]))
+}, flags=["-silent", "-stop"]))
 @report_error(logger)
+@set_offline
 async def back_fill_cmd(client, message):
 	"""iter previous history to fill database
 
@@ -53,7 +60,12 @@ async def back_fill_cmd(client, message):
 	Specify a group to backfill with `-g`.
 	Specify an interval to update on with `-i`.
 	Add flag `-silent` to not show progress.
+	Use flag `-stop` to interrupt an ongoing backfill.
 	"""
+	global BACKFILL_STOP
+	if message.command["-stop"]:
+		BACKFILL_STOP = True
+		return await edit_or_reply(message, "` → ` Stopping")
 	if len(message.command) < 1:
 		return await edit_or_reply(message, "`[!] → ` No input")
 	limit = int(message.command[0])
