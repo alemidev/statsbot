@@ -23,6 +23,45 @@ logger = logging.getLogger(__name__)
 
 HELP = HelpCategory("BIGBROTHER")
 
+@report_error(logger)
+@set_offline
+async def back_fill_messages(client, message, target_group, limit, interval):
+	count = 0
+	async for msg in client.iter_history(target_group.id, limit=limit):
+		if msg.service:
+			DRIVER.parse_service_event(msg)
+		else:
+			DRIVER.parse_message_event(msg)
+		count += 1
+		if not message.command["-silent"] and count % interval == 0:
+			await edit_or_reply(message, f"` → ` [ **{sep(count)} / {sep(limit)}** ]")
+	await edit_or_reply(message, "` → ` Done")
+
+
+@HELP.add(cmd="<amount>")
+@alemiBot.on_message(is_superuser & filterCommand(["backfill"], list(alemiBot.prefixes), options={
+	"group" : ["-g", "--group"],
+	"interval" : ["-i", "--interval"],
+}, flags=["-silent"]))
+@report_error(logger)
+async def back_fill_cmd(client, message):
+	"""iter previous history to fill database
+
+	Call telegram iter_history to put in db messages sent before joining.
+	Specify a group to backfill with `-g`.
+	Specify an interval to update on with `-i`.
+	Add flag `-silent` to not show progress.
+	"""
+	if len(message.command) < 1:
+		return await edit_or_reply(message, "`[!] → ` No input")
+	limit = int(message.command[0])
+	target_group = message.chat
+	interval = int(message.command["interval"] or 500)
+	if "group" in message.command:
+		target_group = await client.get_chat(int(message.command["group"])
+			if message.command["group"].isnumeric() else message.command["group"])
+	asyncio.create_task(back_fill_messages(client, message, target_group, limit, interval))
+
 @HELP.add()
 @alemiBot.on_message(is_superuser & filterCommand(["dbstats", "dbstat"], list(alemiBot.prefixes)))
 @report_error(logger)
