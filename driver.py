@@ -92,7 +92,7 @@ class DatabaseDriver:
 				self.db.exceptions.insert_one(doc)
 		return wrapper
 
-	def insert_doc_duplicable(self, doc:dict, coll:str = "messages"):
+	def insert_doc_duplicable(self, doc:dict, coll:str = "messages", ignore:bool = False):
 		"""Will attempt to insert a document which may be duplicate
 
 		If there is already a document with same index, increase that document `dup` \
@@ -105,6 +105,8 @@ class DatabaseDriver:
 		try:
 			self.db[coll].insert_one(doc)
 		except DuplicateKeyError: # if there's already a message with this id and chat, add a dup field to previous one
+			if ignore:
+				return
 			duplicates_count = 1
 			for dup in self.db[coll].find({"id":doc["id"],"chat":doc["chat"]}):
 				if "dup" in dup:
@@ -116,11 +118,11 @@ class DatabaseDriver:
 	def log_raw_event(self, event:Any):
 		self.db.raw.insert_one(convert_to_dict(event))
 
-	def parse_message_event(self, message:Message, file_name=None):
+	def parse_message_event(self, message:Message, file_name=None, ignore_duplicates=False):
 		msg = extract_message(message)
 		if file_name:
 			msg["file"] = file_name
-		self.insert_doc_duplicable(msg)
+		self.insert_doc_duplicable(msg, ignore=ignore_duplicates)
 		self.counter.messages()
 
 		if message.from_user:
@@ -145,9 +147,9 @@ class DatabaseDriver:
 			if chat: # don't insert if no diff!
 				self.db.chats.update_one({"id": chat_id}, {"$set": chat}, upsert=True)
 
-	def parse_service_event(self, message:Message):
+	def parse_service_event(self, message:Message, ignore_duplicates=False):
 		msg = extract_service_message(message)
-		self.insert_doc_duplicable(msg, coll="service")
+		self.insert_doc_duplicable(msg, coll="service", ignore=ignore_duplicates)
 		if message.chat:
 			chat = extract_chat(message)
 			chat_id = chat["id"]

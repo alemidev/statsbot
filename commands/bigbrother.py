@@ -29,9 +29,9 @@ async def back_fill_messages(client, message, target_group, limit, interval):
 	count = 0
 	async for msg in client.iter_history(target_group.id, limit=limit):
 		if msg.service:
-			DRIVER.parse_service_event(msg)
+			DRIVER.parse_service_event(msg, ignore_duplicates=True)
 		else:
-			DRIVER.parse_message_event(msg)
+			DRIVER.parse_message_event(msg, ignore_duplicates=True)
 		count += 1
 		if not message.command["-silent"] and count % interval == 0:
 			await edit_or_reply(message, f"` → ` [ **{sep(count)} / {sep(limit)}** ]")
