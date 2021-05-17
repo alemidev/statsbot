@@ -172,7 +172,7 @@ class DatabaseDriver:
 	def parse_deletion_event(self, message:Message):
 		deletions = extract_delete(message)
 		for deletion in deletions:
-			self.db.deletions.insert_one(deletion)
+			self.insert_doc_duplicable(deletion, coll="deletions")
 			self.counter.deletions()
 
 			flt = {"id": deletion["id"], "dup": None}
