@@ -81,11 +81,12 @@ $	"id" : <int>,
 ```
 
 ## Messages
-Each message contains only the bare minimun information
+Each message contains only the bare minimun information. Since `message_id` and `chat_id` might not always be unique even in a single chat, it will keep a `dup` field. Most recent event lacks `dup` field (== `null`)
 ```
 {
 $	"id": <int>,
 $	"chat" : <int>,
+$	[opt] "dup" : <int>,
 	"user" : <int>,
 	"date" : <iso-date>,
 	[opt] "empty" : <bool>,
