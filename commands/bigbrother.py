@@ -25,15 +25,17 @@ HELP = HelpCategory("BIGBROTHER")
 
 @report_error(logger)
 @set_offline
-async def back_fill_messages(client, message, target_group, limit, interval):
+async def back_fill_messages(client, message, target_group, limit, interval, silent=False):
 	count = 0
+	if not silent:
+		await edit_or_reply(message, f"` → ` [ **0 / {sep(limit)}** ]")
 	async for msg in client.iter_history(target_group.id, limit=limit):
 		if msg.service:
 			DRIVER.parse_service_event(msg, ignore_duplicates=True)
 		else:
 			DRIVER.parse_message_event(msg, ignore_duplicates=True)
 		count += 1
-		if not message.command["-silent"] and count % interval == 0:
+		if not silent and count % interval == 0:
 			await edit_or_reply(message, f"` → ` [ **{sep(count)} / {sep(limit)}** ]")
 	await edit_or_reply(message, "` → ` Done")
 
@@ -60,7 +62,12 @@ async def back_fill_cmd(client, message):
 	if "group" in message.command:
 		target_group = await client.get_chat(int(message.command["group"])
 			if message.command["group"].isnumeric() else message.command["group"])
-	asyncio.create_task(back_fill_messages(client, message, target_group, limit, interval))
+	asyncio.create_task(
+		back_fill_messages(
+			client, message, target_group, limit,
+			interval, silent=bool(message.command["-silent"])
+		)
+	)
 
 @HELP.add()
 @alemiBot.on_message(is_superuser & filterCommand(["dbstats", "dbstat"], list(alemiBot.prefixes)))
