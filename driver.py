@@ -6,7 +6,7 @@ from typing import Any
 
 from pymongo import MongoClient
 from pyrogram.types import Message, User
-from pymongo.errors import ServerSelectionTimeoutError
+from pymongo.errors import ServerSelectionTimeoutError, DuplicateKeyError
 
 from bot import alemiBot
 from util.serialization import convert_to_dict
@@ -92,14 +92,26 @@ class DatabaseDriver:
 				self.db.exceptions.insert_one(doc)
 		return wrapper
 
-	def catch_timeout(self, func):
-		@functools.wraps(func)
-		def wrapper(*args, **kwargs):
-			try:
-				func(*args, **kwargs)
-			except ServerSelectionTimeoutError as exc:
-				logger.error("Could not connect to MongoDB")
+	def insert_doc_duplicable(self, doc:dict, coll:str = "messages"):
+		"""Will attempt to insert a document which may be duplicate
 
+		If there is already a document with same index, increase that document `dup` \
+		field and insert this with `dup` null.
+		This is kind of an expensive operation: it tries to just do 1 insertion, but if \
+		that is rejected because of a duplicate key, it will make a search, an update and \
+		another insertion after that.
+		This works only when duplicates are very few compared to insertions!
+		"""
+		try:
+			self.db[coll].insert_one(doc)
+		except DuplicateKeyError: # if there's already a message with this id and chat, add a dup field to previous one
+			duplicates_count = 1
+			for dup in self.db[coll].find({"id":doc["id"],"chat":doc["chat"]}):
+				if "dup" in dup:
+					duplicates_count = max(duplicates_count, dup["dup"])
+			self.db[coll].update_one({"id":doc["id"],"chat":doc["chat"],"dup":None},
+										{"$set": {"dup": duplicates_count+1}})
+			self.db[coll].insert_one(doc) # most recent msg will always have `dup` null
 
 	def log_raw_event(self, event:Any):
 		self.db.raw.insert_one(convert_to_dict(event))
@@ -108,7 +120,7 @@ class DatabaseDriver:
 		msg = extract_message(message)
 		if file_name:
 			msg["file"] = file_name
-		self.db.messages.insert_one(msg)
+		self.insert_doc_duplicable(msg)
 		self.counter.messages()
 
 		if message.from_user:
@@ -134,7 +146,8 @@ class DatabaseDriver:
 				self.db.chats.update_one({"id": chat_id}, {"$set": chat}, upsert=True)
 
 	def parse_service_event(self, message:Message):
-		self.db.service.insert_one(extract_service_message(message))
+		msg = extract_service_message(message)
+		self.insert_doc_duplicable(msg, coll="service")
 		if message.chat:
 			chat = extract_chat(message)
 			chat_id = chat["id"]
@@ -146,11 +159,11 @@ class DatabaseDriver:
 			if chat: # don't insert if no diff!
 				self.db.chats.update_one({"id": chat_id}, {"$set": chat}, upsert=True)
 
-	def parse_edit_event(self, message:Message):
+	def parse_edit_event(self, message:Message): # TODO replace `text` so that we always query most recent edit
 		self.counter.edits()
 		doc = extract_edit_message(message)
 		self.db.messages.update_one(
-			{"id": message.message_id, "chat": message.chat.id},
+			{"id": message.message_id, "chat": message.chat.id, "dup": None},
 			{"$push": {"edits":	doc} }
 		)
 
@@ -160,7 +173,7 @@ class DatabaseDriver:
 			self.db.deletions.insert_one(deletion)
 			self.counter.deletions()
 
-			flt = {"id": deletion["id"]}
+			flt = {"id": deletion["id"], "dup": None}
 			if "chat" in deletion:
 				flt["chat"] = deletion["chat"]
 			self.db.messages.update_one(flt, {"$set": {"deleted": deletion["date"]}})
