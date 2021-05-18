@@ -181,7 +181,7 @@ async def heatmap_cmd(client, message):
 	now = (datetime.now() - timedelta(last_week_offset) + time_offset).date() # awful var name! TODO rename
 	# Build query
 	query = {"date":{"$gte": datetime(day=now.day, month=now.month, year=now.year) - timedelta(49 + last_week_offset) + time_offset, 
-						"$lte": datetime(day=now.day, month=now.month, year=now.year, hour=23, minute=59, seconds=59) + time_offset}} # make new datetimes so it's at 00:00 or 23:59
+						"$lte": datetime(day=now.day, month=now.month, year=now.year, hour=23, minute=59, second=59) + time_offset}} # make new datetimes so it's at 00:00 or 23:59
 	if target_group:
 		query["chat"] = target_group.id
 	if target_user:
