@@ -178,15 +178,17 @@ async def heatmap_cmd(client, message):
 
 	# Find last Sunday (last full week basically, so we don't plot a half week data)
 	last_week_offset = (week_offset * 7) + (datetime.now().weekday() + (0 if message.command["--sunday"] else 1)) % 7
-	now = (datetime.now() - timedelta(last_week_offset) + time_offset).date()
+	last_sunday = datetime.now() - timedelta(last_week_offset) + time_offset
+	now = last_sunday.date() # awful var name! TODO rename
 	# Build query
-	query = {"date":{"$gte": datetime(day=now.day, month=now.month, year=now.year) - timedelta(49 + last_week_offset) + time_offset}} # so it's at 00:00
+	query = {"date":{"$gte": datetime(day=now.day, month=now.month, year=now.year) - timedelta(49 + last_week_offset) + time_offset, # so it's at 00:00
+					"$lte": last_sunday}} 
 	if target_group:
 		query["chat"] = target_group.id
 	if target_user:
 		query["user"] = target_user.id
 	if "keyword" in message.command:
-		query["text"] = {"$regex":f"{message.command['keyword']}"}
+		query["text"] = {"$regex":message.command['keyword']}
 
 	# Create numpy holder
 	vals = np.zeros((7,7), dtype=np.int32)
