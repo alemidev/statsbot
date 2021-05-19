@@ -11,7 +11,7 @@ from bot import alemiBot
 from util.command import filterCommand
 from util.permission import is_allowed, is_superuser, check_superuser
 from util.getters import get_username, get_channel
-from util.message import ProgressChatAction, edit_or_reply
+from util.message import ProgressChatAction, edit_or_reply, is_me
 from util.text import tokenize_json, order_suffix, sep
 from util.decorators import report_error, set_offline
 from util.help import HelpCategory
@@ -79,8 +79,8 @@ async def back_fill_cmd(client, message):
 	if "group" in message.command:
 		target_group = await client.get_chat(int(message.command["group"])
 			if message.command["group"].isnumeric() else message.command["group"])
-	if not silent:
-		msg = await edit_or_reply(message, f"` → ` [ **0 / {sep(limit)}** ]")
+	if not silent and not is_me(message):
+		msg = await edit_or_reply(message, f"` → ` starting")
 	asyncio.create_task(
 		back_fill_messages(
 			client, msg, target_group, limit, offset,
