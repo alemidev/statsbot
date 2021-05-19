@@ -84,7 +84,7 @@ async def back_fill_cmd(client, message):
 	asyncio.create_task(
 		back_fill_messages(
 			client, msg, target_group, limit, offset,
-			interval, silent=silent)
+			interval, silent=silent
 		)
 	)
 
