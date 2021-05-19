@@ -59,6 +59,7 @@ async def back_fill_cmd(client, message):
 
 	Call telegram iter_history to put in db messages sent before joining.
 	Specify a group to backfill with `-g`.
+	Specify an offset to start backfilling from on with `-o`.
 	Specify an interval to update on with `-i`.
 	Add flag `-silent` to not show progress.
 	Use flag `-stop` to interrupt an ongoing backfill.
@@ -73,6 +74,7 @@ async def back_fill_cmd(client, message):
 	offset = int(message.command["offset"] or 0)
 	target_group = message.chat
 	interval = int(message.command["interval"] or 500)
+	silent = bool(message.command["-silent"])
 	msg = message
 	if "group" in message.command:
 		target_group = await client.get_chat(int(message.command["group"])
@@ -82,7 +84,7 @@ async def back_fill_cmd(client, message):
 	asyncio.create_task(
 		back_fill_messages(
 			client, msg, target_group, limit, offset,
-			interval, silent=bool(message.command["-silent"])
+			interval, silent=silent)
 		)
 	)
 
