@@ -80,7 +80,7 @@ async def back_fill_cmd(client, message):
 		target_group = await client.get_chat(int(message.command["group"])
 			if message.command["group"].isnumeric() else message.command["group"])
 	if not silent and not is_me(message):
-		msg = await edit_or_reply(message, f"` → ` starting")
+		msg = await edit_or_reply(message, f"$ backfill {message.command.text}") # ugly but will do ehhh
 	asyncio.create_task(
 		back_fill_messages(
 			client, msg, target_group, limit, offset,
