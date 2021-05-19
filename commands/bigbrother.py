@@ -27,12 +27,12 @@ BACKFILL_STOP = False
 
 @report_error(logger)
 @set_offline
-async def back_fill_messages(client, message, target_group, limit, interval, silent=False):
+async def back_fill_messages(client, message, target_group, limit, offset, interval, silent=False):
 	global BACKFILL_STOP
 	count = 0
 	if not silent:
 		await edit_or_reply(message, f"` → ` [ **0 / {sep(limit)}** ]")
-	async for msg in client.iter_history(target_group.id, limit=limit):
+	async for msg in client.iter_history(target_group.id, limit=limit, offset=offset):
 		if BACKFILL_STOP:
 			BACKFILL_STOP = False
 			return await edit_or_reply(message, f"`[!] → ` Stopped at [ **{sep(count)} / {sep(limit)}** ]")
@@ -50,6 +50,7 @@ async def back_fill_messages(client, message, target_group, limit, interval, sil
 @alemiBot.on_message(is_superuser & filterCommand(["backfill"], list(alemiBot.prefixes), options={
 	"group" : ["-g", "--group"],
 	"interval" : ["-i", "--interval"],
+	"offset" : ["-o", "--offset"],
 }, flags=["-silent", "-stop"]))
 @report_error(logger)
 @set_offline
@@ -69,14 +70,18 @@ async def back_fill_cmd(client, message):
 	if len(message.command) < 1:
 		return await edit_or_reply(message, "`[!] → ` No input")
 	limit = int(message.command[0])
+	offset = int(message.command["offset"] or 0)
 	target_group = message.chat
 	interval = int(message.command["interval"] or 500)
+	msg = message
 	if "group" in message.command:
 		target_group = await client.get_chat(int(message.command["group"])
 			if message.command["group"].isnumeric() else message.command["group"])
+	if not silent:
+		msg = await edit_or_reply(message, f"` → ` [ **0 / {sep(limit)}** ]")
 	asyncio.create_task(
 		back_fill_messages(
-			client, message, target_group, limit,
+			client, msg, target_group, limit, offset,
 			interval, silent=bool(message.command["-silent"])
 		)
 	)
