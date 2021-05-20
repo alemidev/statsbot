@@ -43,7 +43,7 @@ async def back_fill_messages(client, message, target_group, limit, offset, inter
 		count += 1
 		if not silent and count % interval == 0:
 			await edit_or_reply(message, f"` → ` [ **{sep(count)} / {sep(limit)}** ]")
-	await edit_or_reply(message, "` → ` Done")
+	await edit_or_reply(message, "` → ` Done [ **{sep(count)} / {sep(limit)}** ]")
 
 
 @HELP.add(cmd="<amount>")
