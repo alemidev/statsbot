@@ -37,9 +37,9 @@ async def back_fill_messages(client, message, target_group, limit, offset, inter
 			BACKFILL_STOP = False
 			return await edit_or_reply(message, f"`[!] → ` Stopped at [ **{sep(count)} / {sep(limit)}** ]")
 		if msg.service:
-			DRIVER.parse_service_event(msg, ignore_duplicates=True)
+			await DRIVER.parse_service_event(msg, ignore_duplicates=True)
 		else:
-			DRIVER.parse_message_event(msg, ignore_duplicates=True)
+			await DRIVER.parse_message_event(msg, ignore_duplicates=True)
 		count += 1
 		if not silent and count % interval == 0:
 			await edit_or_reply(message, f"` → ` [ **{sep(count)} / {sep(limit)}** ]")
@@ -99,29 +99,29 @@ async def dbstats_cmd(client, message):
 	"""
 	prog = ProgressChatAction(client, message.chat.id)
 	await prog.tick()
-	oldest_msg = DRIVER.db.messages.find_one({"date":{"$ne":None}}, sort=[("date", ASCENDING)])
+	oldest_msg = await DRIVER.db.messages.find_one({"date":{"$ne":None}}, sort=[("date", ASCENDING)])
 	await prog.tick()
-	msg_count = sep(DRIVER.db.messages.count({}))
+	msg_count = sep(await DRIVER.db.messages.count({}))
 	await prog.tick()
-	user_count = sep(DRIVER.db.users.count({}))
+	user_count = sep(await DRIVER.db.users.count({}))
 	await prog.tick()
-	chat_count = sep(DRIVER.db.chats.count({}))
+	chat_count = sep(await DRIVER.db.chats.count({}))
 	await prog.tick()
-	deletions_count = sep(DRIVER.db.deletions.count({}))
+	deletions_count = sep(await DRIVER.db.deletions.count({}))
 	await prog.tick()
-	service_count = sep(DRIVER.db.service.count({}))
+	service_count = sep(await DRIVER.db.service.count({}))
 	await prog.tick()
-	msg_size = order_suffix(DRIVER.db.command("collstats", "messages")['totalSize'])
+	msg_size = order_suffix(await DRIVER.db.command("collstats", "messages")['totalSize'])
 	await prog.tick()
-	user_size = order_suffix(DRIVER.db.command("collstats", "users")['totalSize'])
+	user_size = order_suffix(await DRIVER.db.command("collstats", "users")['totalSize'])
 	await prog.tick()
-	chat_size = order_suffix(DRIVER.db.command("collstats", "chats")['totalSize'])
+	chat_size = order_suffix(await DRIVER.db.command("collstats", "chats")['totalSize'])
 	await prog.tick()
-	deletions_size = order_suffix(DRIVER.db.command("collstats", "deletions")['totalSize'])
+	deletions_size = order_suffix(await DRIVER.db.command("collstats", "deletions")['totalSize'])
 	await prog.tick()
-	service_size = order_suffix(DRIVER.db.command("collstats", "service")['totalSize'])
+	service_size = order_suffix(await DRIVER.db.command("collstats", "service")['totalSize'])
 	await prog.tick()
-	db_size = order_suffix(DRIVER.db.command("dbstats")["totalSize"])
+	db_size = order_suffix(await DRIVER.db.command("dbstats")["totalSize"])
 	await prog.tick()
 	medianumber = sep(len(os.listdir("data/scraped_media")))
 	proc = await asyncio.create_subprocess_exec( # This is not cross platform!
@@ -177,20 +177,17 @@ async def query_cmd(client, message):
 		collection = database[message.command["collection"]]
 
 	if message.command["-cmd"]:
-		cursor = [ database.command(*message.command.args) ] # ewww but small patch
+		buf = [ await database.command(*message.command.args) ] # ewww but small patch
+	elif message.command["-count"]:
+		buf = [ await cursor.count() ]
 	else:
 		q = json.loads(message.command[0])
 		flt = json.loads(message.command["filter"] or '{}')
 		if not message.command["-id"]:
 			flt["_id"] = False
-		cursor = collection.find(q, flt).sort("date", -1)
-
-
-	if message.command["-count"]:
-		buf = [ cursor.count() ]
-	else:
 		prog = ProgressChatAction(client, message.chat.id)
-		for doc in cursor.limit(lim):
+		cursor = collection.find(q, flt).sort("date", -1)
+		async for doc in cursor.limit(lim):
 			await prog.tick()
 			buf.append(doc)
 
@@ -232,7 +229,7 @@ async def hist_cmd(client, message):
 		else:
 			c_id = (await client.get_chat(message.command["group"])).id
 	LINE = "` → ` {date} {author} {text}\n"
-	doc = DRIVER.db.messages.find_one({"id": m_id, "chat": c_id}, sort=[("date", DESCENDING)])
+	doc = await DRIVER.db.messages.find_one({"id": m_id, "chat": c_id}, sort=[("date", DESCENDING)])
 	if doc:
 		out = LINE.format(
 			date=f"[--{doc['date']}--]" if show_time else "",
@@ -292,16 +289,17 @@ async def deleted_cmd(client, message): # This is a mess omg
 		if client.me.is_bot:
 			limit = min(limit, 5)
 	count = 0
+	flt = {}
 	if client.me.is_bot: # bots don't receive delete events so peek must work slightly differently
-		msg = DRIVER.db.messages.find_one({"id":message.reply_to_message.message_id, "chat":target_group.id})
+		msg = await DRIVER.db.messages.find_one({"id":message.reply_to_message.message_id, "chat":target_group.id})
 		if not msg:
 			return await edit_or_reply(message, "`[!] → ` No record of requested message")
 		if msg_after:
-			flt = {"date": {"$gt":msg["date"]}}
+			flt["date"] = {"$gt":msg["date"]}
 		else:
-			flt = {"date": {"$lt":msg["date"]}}
+			flt["date"] = {"$lt":msg["date"]}
 	else:
-		flt = {"deleted": True}
+		flt["deleted"] = True
 	if target_group:
 		flt["chat"] = target_group.id
 
@@ -312,7 +310,7 @@ async def deleted_cmd(client, message): # This is a mess omg
 			(f"from [here]({message.reply_to_message.link}) " if client.me.is_bot else "") + "\n"
 	LINE = "{time}[`{m_id}`] **{user}** {where} → {text} {media}\n"
 	cursor = DRIVER.db.messages.find(flt).sort("date", ASCENDING if msg_after else DESCENDING)
-	for doc in cursor:
+	async for doc in cursor:
 		await prog.tick()
 		if offset > 0:
 			offset -=1

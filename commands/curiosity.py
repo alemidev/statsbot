@@ -86,7 +86,7 @@ async def frequency_cmd(client, message):
 	cursor = DRIVER.db.messages.find(query).sort("date", DESCENDING)
 	if limit > 0:
 		cursor.limit(limit)
-	for doc in cursor:
+	async for doc in cursor:
 		await prog.tick()
 		if doc["text"]:
 			words += [ w for w in re.sub(r"[^0-9a-zA-Z\s\n\-\_\@]+", "", doc["text"].lower()).split() if len(w) > min_len ]
@@ -126,7 +126,7 @@ async def active_cmd(client, message):
 	query = {"chat":target_group.id}
 	prog = ProgressChatAction(client, message.chat.id)
 	users = [] # using a set() would save me a "in" check but sets don't have order. I want most recently active members on top
-	for doc in DRIVER.db.messages.find(query).sort("date", DESCENDING).limit(number):
+	async for doc in DRIVER.db.messages.find(query).sort("date", DESCENDING).limit(number):
 		await prog.tick()
 		if doc["user"] and doc["user"] not in users:
 			users.append(doc["user"])

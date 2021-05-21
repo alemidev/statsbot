@@ -46,24 +46,24 @@ async def stats_cmd(client, message):
 	prog = ProgressChatAction(client, message.chat.id)
 	await prog.tick()
 	uid = user.id
-	total_messages = sep(DRIVER.db.messages.count_documents({"user":uid}))
+	total_messages = sep(await DRIVER.db.messages.count_documents({"user":uid}))
 	await prog.tick()
-	total_media = sep(DRIVER.db.messages.count_documents({"user":uid,"media":{"$exists":1}}))
+	total_media = sep(await DRIVER.db.messages.count_documents({"user":uid,"media":{"$exists":1}}))
 	await prog.tick()
-	total_edits = sep(DRIVER.db.messages.count_documents({"user":uid,"edits":{"$exists":1}}))
+	total_edits = sep(await DRIVER.db.messages.count_documents({"user":uid,"edits":{"$exists":1}}))
 	await prog.tick()
-	total_replies = sep(DRIVER.db.messages.count_documents({"user":uid,"reply":{"$exists":1}}))
+	total_replies = sep(await DRIVER.db.messages.count_documents({"user":uid,"reply":{"$exists":1}}))
 	await prog.tick()
-	visited_chats = len(DRIVER.db.service.distinct("chat", {"user":uid}))
+	visited_chats = len(await DRIVER.db.service.distinct("chat", {"user":uid}))
 	await prog.tick()
-	partecipated_chats = len(DRIVER.db.messages.distinct("chat", {"user":uid}))
+	partecipated_chats = len(await DRIVER.db.messages.distinct("chat", {"user":uid}))
 	await prog.tick()
 	oldest = datetime.now()
-	oldest_message = DRIVER.db.messages.find_one({"user":uid}, sort=[("date",ASCENDING)])
+	oldest_message = await DRIVER.db.messages.find_one({"user":uid}, sort=[("date",ASCENDING)])
 	if oldest_message:
 		oldest = oldest_message["date"]
 	await prog.tick()
-	oldest_event = DRIVER.db.service.find_one({"user":uid}, sort=[("date",ASCENDING)])
+	oldest_event = await DRIVER.db.service.find_one({"user":uid}, sort=[("date",ASCENDING)])
 	if oldest_event:
 		oldest = min(oldest, oldest_event["date"])
 	await prog.tick()
@@ -111,20 +111,20 @@ async def top_messages_cmd(client, message):
 			flt = {"user": user.id}
 			if not global_search:
 				flt["chat"] = target_chat.id
-			res.append((get_username(user), DRIVER.db.messages.count_documents(flt)))
+			res.append((get_username(user), await DRIVER.db.messages.count_documents(flt)))
 	elif target_chat.type in ("bot", "private"):
 		user = get_user(message)
 		flt = {"user": user.id}
 		if not global_search:
 			flt["chat"] = target_chat.id
-		res.append((get_username(user), DRIVER.db.messages.count_documents(flt)))
+		res.append((get_username(user), await DRIVER.db.messages.count_documents(flt)))
 	else:
 		async for member in target_chat.iter_members():
 			await prog.tick()
 			flt = {"user": member.user.id}
 			if not global_search:
 				flt["chat"] = target_chat.id
-			res.append((get_username(member.user), DRIVER.db.messages.count_documents(flt)))
+			res.append((get_username(member.user), await DRIVER.db.messages.count_documents(flt)))
 	res.sort(key=lambda x: x[1], reverse=True)
 	stars = 3 if len(res) > 3 else 0
 	count = 0
@@ -149,7 +149,7 @@ async def joindate_cmd(client, message):
 	"""list date users joined group
 
 	Checks join date for users in current chat (will count previous joins if available).
-	A specific group can be specified with `-g` (only by superusers).
+	A specific group can be specified with `DRIVER.-g` (only by superusers).
 	By default, will only list oldest 25 members, but number of results can be specified with `-r`.
 	"""
 	results = min(int(message.command["results"] or 25), 100)
@@ -177,7 +177,7 @@ async def joindate_cmd(client, message):
 			if member.status == "creator":
 				creator = get_username(member.user)
 			else: # Still query db, maybe user left and then joined again! Telegram only tells most recent join
-				event = DRIVER.db.service.find_one({"new_chat_members":member.user.id,"chat":target_chat.id}, sort=[("date", ASCENDING)])
+				event = await DRIVER.db.service.find_one({"new_chat_members":member.user.id,"chat":target_chat.id}, sort=[("date", ASCENDING)])
 				if event:
 					res.append((get_username(member.user), event['date']))
 				else:

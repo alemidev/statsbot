@@ -5,6 +5,7 @@ Right now this tool can:
 """
 if __name__ == "__main__":
 	import sys
+	import asyncio
 	from time import time
 	from datetime import datetime
 
@@ -22,18 +23,21 @@ if __name__ == "__main__":
 
 	# if sys.argv[1] in ("date", "dates"):
 
-	total = 0
-	for coll in ["messages", "service", "deletions"]:
-		total += DRIVER.db[coll].count_documents({"date":{"$type":"int"}})
-		
-	curr = 0
-	for coll in ["messages", "service", "deletions"]:
-		for doc in DRIVER.db[coll].find({"date":{"$type":"int"}}):
-			curr += 1
-			progress(curr, total)
-			DRIVER.db[coll].update_one(
-				{"id":doc["id"],"chat":doc["chat"]},
-				[
-					{"date":{"$set":datetime.utcfromtimestamp(doc["date"])}},
-				]
-			)
+	async def main():
+		total = 0
+		for coll in ["messages", "service", "deletions"]:
+			total += await DRIVER.db[coll].count_documents({"date":{"$type":"int"}})
+
+		curr = 0
+		for coll in ["messages", "service", "deletions"]:
+			async for doc in DRIVER.db[coll].find({"date":{"$type":"int"}}):
+				curr += 1
+				progress(curr, total)
+				await DRIVER.db[coll].update_one(
+					{"id":doc["id"],"chat":doc["chat"]},
+					[
+						{"date":{"$set":datetime.utcfromtimestamp(doc["date"])}},
+					]
+				)
+
+	asyncio.run(main())
