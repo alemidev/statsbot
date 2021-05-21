@@ -101,15 +101,15 @@ async def dbstats_cmd(client, message):
 	await prog.tick()
 	oldest_msg = await DRIVER.db.messages.find_one({"date":{"$ne":None}}, sort=[("date", ASCENDING)])
 	await prog.tick()
-	msg_count = sep(await DRIVER.db.messages.count({}))
+	msg_count = sep(await DRIVER.db.messages.count_documents({}))
 	await prog.tick()
-	user_count = sep(await DRIVER.db.users.count({}))
+	user_count = sep(await DRIVER.db.users.count_documents({}))
 	await prog.tick()
-	chat_count = sep(await DRIVER.db.chats.count({}))
+	chat_count = sep(await DRIVER.db.chats.count_documents({}))
 	await prog.tick()
-	deletions_count = sep(await DRIVER.db.deletions.count({}))
+	deletions_count = sep(await DRIVER.db.deletions.count_documents({}))
 	await prog.tick()
-	service_count = sep(await DRIVER.db.service.count({}))
+	service_count = sep(await DRIVER.db.service.count_documents({}))
 	await prog.tick()
 	msg_size = order_suffix(await DRIVER.db.command("collstats", "messages")['totalSize'])
 	await prog.tick()
@@ -176,15 +176,16 @@ async def query_cmd(client, message):
 	if "collection" in message.command:
 		collection = database[message.command["collection"]]
 
+	q = json.loads(message.command[0])
+	flt = json.loads(message.command["filter"] or '{}')
+	if not message.command["-id"]:
+		flt["_id"] = False
+
 	if message.command["-cmd"]:
-		buf = [ await database.command(*message.command.args) ] # ewww but small patch
+		buf = [ await database.command(*message.command.args) ]
 	elif message.command["-count"]:
-		buf = [ await cursor.count() ]
+		buf = [ await collection.count_documents(q) ]
 	else:
-		q = json.loads(message.command[0])
-		flt = json.loads(message.command["filter"] or '{}')
-		if not message.command["-id"]:
-			flt["_id"] = False
 		prog = ProgressChatAction(client, message.chat.id)
 		cursor = collection.find(q, flt).sort("date", -1)
 		async for doc in cursor.limit(lim):
