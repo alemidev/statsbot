@@ -8,6 +8,7 @@ Switch to admin db and run this command
 """
 if __name__ == "__main__":
 	import traceback
+	import asyncio
 	from time import time
 
 	from pymongo import ASCENDING
@@ -37,37 +38,40 @@ if __name__ == "__main__":
 				return self.storage[name]
 			return None
 
-	def parse_dict(doc:dict):
+	async def parse_dict(doc:dict):
 		if isinstance(doc, list):
-			DRIVER.parse_deletion_event([ DictWrapper(m) for m in doc ])
+			await DRIVER.parse_deletion_event([ DictWrapper(m) for m in doc ])
 		elif doc["_"] == "Message":
 			if "service" in doc: 
-				DRIVER.parse_service_event(DictWrapper(doc))
+				await DRIVER.parse_service_event(DictWrapper(doc))
 			elif "edit_date" in doc: 
-				DRIVER.parse_edit_event(DictWrapper(doc))
+				await DRIVER.parse_edit_event(DictWrapper(doc))
 			else:
-				DRIVER.parse_message_event(DictWrapper(doc))
+				await DRIVER.parse_message_event(DictWrapper(doc))
 		elif doc["_"] == "Delete":
-			DRIVER.parse_deletion_event([DictWrapper(doc)])
-
-	total = DRIVER.client[OLD_DB][OLD_COLLECTION].count_documents({})
-	curr = 0
+			await DRIVER.parse_deletion_event([DictWrapper(doc)])
 
 	LAST = time()
-	def progress(warn=False, interval=1):
+	def progress(curr, total, warn=False, interval=1):
 		global LAST
 		if time() - LAST > interval:
 			print(f"{'[!]' if warn else ''}\t{curr}/{total}           ", end="\r")
 			LAST = time()
 
-	for doc in DRIVER.client[OLD_DB][OLD_COLLECTION].find({}):
-		curr += 1
-		try:
-			parse_dict(doc)
-			progress()
-		except DuplicateKeyError:
-			progress(warn=True)
-		except:
-			print()
-			traceback.print_exc()
-			break
+	async def main():
+		total = await DRIVER.client[OLD_DB][OLD_COLLECTION].count_documents({})
+		curr = 0
+
+		async for doc in DRIVER.client[OLD_DB][OLD_COLLECTION].find({}):
+			curr += 1
+			try:
+				parse_dict(doc)
+				progress(curr, total)
+			except DuplicateKeyError:
+				progress(curr, total, warn=True)
+			except:
+				print()
+				traceback.print_exc()
+				break
+
+	asyncio.run(main())

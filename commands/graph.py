@@ -79,7 +79,7 @@ async def density_cmd(client, message):
 
 	vals = np.zeros(length, dtype=np.int32)
 	await prog.tick()
-	for msg in DRIVER.db.messages.find(query):
+	async for msg in DRIVER.db.messages.find(query):
 		await prog.tick()
 		delta = (now - (msg["date"] + time_offset).date())
 		if delta.days >= length: # discard extra near limits
@@ -192,7 +192,7 @@ async def heatmap_cmd(client, message):
 	# Create numpy holder
 	vals = np.zeros((7,7), dtype=np.int32)
 	await prog.tick()
-	for msg in DRIVER.db.messages.find(query):
+	async for msg in DRIVER.db.messages.find(query):
 		await prog.tick()
 		date_corrected = (msg["date"] + time_offset).date()
 		delta = now - date_corrected # Find timedelta from msg to last_sunday
@@ -315,7 +315,7 @@ async def timeshift_cmd(client, message):
 	vals = np.zeros(24, dtype=np.int32)
 	count = 0
 	await prog.tick()
-	for msg in DRIVER.db.messages.find(query).limit(limit):
+	async for msg in DRIVER.db.messages.find(query).limit(limit):
 		await prog.tick()
 		h = int((msg['date'].time().hour + time_offset) % 24)
 		vals[h] += 1
