@@ -150,7 +150,7 @@ class DatabaseDriver:
 
 	async def parse_service_event(self, message:Message, ignore_duplicates=False):
 		msg = extract_service_message(message)
-		self.insert_doc_duplicable(msg, coll="service", ignore=ignore_duplicates)
+		await self.insert_doc_duplicable(msg, coll="service", ignore=ignore_duplicates)
 		if message.chat:
 			chat = extract_chat(message)
 			chat_id = chat["id"]
@@ -173,7 +173,7 @@ class DatabaseDriver:
 	async def parse_deletion_event(self, message:Message):
 		deletions = extract_delete(message)
 		for deletion in deletions:
-			self.insert_doc_duplicable(deletion, coll="deletions")
+			await self.insert_doc_duplicable(deletion, coll="deletions")
 			self.counter.deletions()
 
 			flt = {"id": deletion["id"], "dup": None}
