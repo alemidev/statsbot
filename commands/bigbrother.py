@@ -162,7 +162,7 @@ async def source_cmd(client, message):
 	await prog.tick()
 	for chat in await DRIVER.db.messages.distinct("chat", {"text": {"$regex": message.command[0]}}):
 		await prog.tick()
-		results.append((await client.get_chats(chat), await DRIVER.db.messages.count_documents({"chat":chat,"text":{"$regex":message.command[0]}})))
+		results.append((await client.get_chat(chat), await DRIVER.db.messages.count_documents({"chat":chat,"text":{"$regex":message.command[0]}})))
 	results.sort(key= lambda x: x[1], reverse=True)
 	out = f"`→ ` Chats mentioning `{message.command[0]}`"
 	for res in results:
