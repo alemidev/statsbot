@@ -155,7 +155,7 @@ async def safe_get_chat(client, chat):
 		if "title" in doc:
 			if "invite" in doc:
 				return f"[{doc['title']}]({doc['invite']})"
-			return f"--{doc['title']}--"
+			return f"{doc['title']}"
 		if "invite" in doc:
 			return doc["invite"]
 		if "first_name" in doc:
