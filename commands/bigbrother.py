@@ -1,5 +1,6 @@
 import io
 import os
+import re
 import json
 import asyncio
 
@@ -22,6 +23,61 @@ import logging
 logger = logging.getLogger(__name__)
 
 HELP = HelpCategory("BIGBROTHER")
+
+
+@HELP.add()
+@alemiBot.on_message(is_superuser & filterCommand(["dbstats", "dbstat"], list(alemiBot.prefixes)))
+@report_error(logger)
+@set_offline
+async def dbstats_cmd(client, message):
+	"""get database stats
+
+	List collections, entries, new entries in this session and disk usage.
+	"""
+	prog = ProgressChatAction(client, message.chat.id)
+	await prog.tick()
+	oldest_msg = await DRIVER.db.messages.find_one({"date":{"$ne":None}}, sort=[("date", ASCENDING)])
+	await prog.tick()
+	msg_count = sep(await DRIVER.db.messages.count_documents({}))
+	await prog.tick()
+	user_count = sep(await DRIVER.db.users.count_documents({}))
+	await prog.tick()
+	chat_count = sep(await DRIVER.db.chats.count_documents({}))
+	await prog.tick()
+	deletions_count = sep(await DRIVER.db.deletions.count_documents({}))
+	await prog.tick()
+	service_count = sep(await DRIVER.db.service.count_documents({}))
+	await prog.tick()
+	msg_size = order_suffix((await DRIVER.db.command("collstats", "messages"))['totalSize'])
+	await prog.tick()
+	user_size = order_suffix((await DRIVER.db.command("collstats", "users"))['totalSize'])
+	await prog.tick()
+	chat_size = order_suffix((await DRIVER.db.command("collstats", "chats"))['totalSize'])
+	await prog.tick()
+	deletions_size = order_suffix((await DRIVER.db.command("collstats", "deletions"))['totalSize'])
+	await prog.tick()
+	service_size = order_suffix((await DRIVER.db.command("collstats", "service"))['totalSize'])
+	await prog.tick()
+	db_size = order_suffix((await DRIVER.db.command("dbstats"))["totalSize"])
+	await prog.tick()
+	medianumber = sep(len(os.listdir("data/scraped_media")))
+	proc = await asyncio.create_subprocess_exec( # This is not cross platform!
+		"du", "-b", "data/scraped_media",
+		stdout=asyncio.subprocess.PIPE,
+		stderr=asyncio.subprocess.STDOUT)
+	stdout, _stderr = await proc.communicate()
+	mediasize = order_suffix(float(stdout.decode('utf-8').split("\t")[0]))
+
+	uptime = str(datetime.now() - client.start_time)
+	await edit_or_reply(message, f"`→ ` **online for** `{uptime}`" +
+					f"\n`→ ` **first event** `{oldest_msg['date']}`" +
+					f"\n` → ` **{msg_count}** msgs logged (+{sep(DRIVER.counter['messages'])} new | **{msg_size}**)" +
+					f"\n` → ` **{service_count}** events tracked (+{sep(DRIVER.counter['service'])} new | **{service_size}**)" +
+					f"\n` → ` **{deletions_count}** deletions saved (+{sep(DRIVER.counter['deletions'])} new | **{deletions_size}**)" +
+					f"\n` → ` **{user_count}** users met (+{sep(DRIVER.counter['users'])} new | **{user_size}**)" +
+					f"\n` → ` **{chat_count}** chats visited (+{sep(DRIVER.counter['chats'])} new | **{chat_size}**)" +
+					f"\n` → ` DB total size **{db_size}**" +
+					f"\n` → ` **{medianumber}** documents archived (size **{mediasize}**)")
 
 BACKFILL_STOP = False
 
@@ -88,59 +144,31 @@ async def back_fill_cmd(client, message):
 		)
 	)
 
-@HELP.add()
-@alemiBot.on_message(is_superuser & filterCommand(["dbstats", "dbstat"], list(alemiBot.prefixes)))
+@HELP.add(cmd="<regex>")
+@alemiBot.on_message(is_superuser & filterCommand(["source"], list(alemiBot.prefixes), options={
+}, flags=[]))
 @report_error(logger)
 @set_offline
-async def dbstats_cmd(client, message):
-	"""get database stats
+async def source_cmd(client, message):
+	"""find chats where certain regex is used
 
-	List collections, entries, new entries in this session and disk usage.
+	Will search all chats which contain at least one occurrence of given regex, and show \
+	message count matching given regex.
 	"""
-	prog = ProgressChatAction(client, message.chat.id)
+	if len(message.command) < 1:
+		return await edit_or_reply(message, "`[!] → ` No input")
+	prog = ProgressChatAction(client, message.chat.id, action="playing")
+	results = []
 	await prog.tick()
-	oldest_msg = await DRIVER.db.messages.find_one({"date":{"$ne":None}}, sort=[("date", ASCENDING)])
-	await prog.tick()
-	msg_count = sep(await DRIVER.db.messages.count_documents({}))
-	await prog.tick()
-	user_count = sep(await DRIVER.db.users.count_documents({}))
-	await prog.tick()
-	chat_count = sep(await DRIVER.db.chats.count_documents({}))
-	await prog.tick()
-	deletions_count = sep(await DRIVER.db.deletions.count_documents({}))
-	await prog.tick()
-	service_count = sep(await DRIVER.db.service.count_documents({}))
-	await prog.tick()
-	msg_size = order_suffix((await DRIVER.db.command("collstats", "messages"))['totalSize'])
-	await prog.tick()
-	user_size = order_suffix((await DRIVER.db.command("collstats", "users"))['totalSize'])
-	await prog.tick()
-	chat_size = order_suffix((await DRIVER.db.command("collstats", "chats"))['totalSize'])
-	await prog.tick()
-	deletions_size = order_suffix((await DRIVER.db.command("collstats", "deletions"))['totalSize'])
-	await prog.tick()
-	service_size = order_suffix((await DRIVER.db.command("collstats", "service"))['totalSize'])
-	await prog.tick()
-	db_size = order_suffix((await DRIVER.db.command("dbstats"))["totalSize"])
-	await prog.tick()
-	medianumber = sep(len(os.listdir("data/scraped_media")))
-	proc = await asyncio.create_subprocess_exec( # This is not cross platform!
-		"du", "-b", "data/scraped_media",
-		stdout=asyncio.subprocess.PIPE,
-		stderr=asyncio.subprocess.STDOUT)
-	stdout, _stderr = await proc.communicate()
-	mediasize = order_suffix(float(stdout.decode('utf-8').split("\t")[0]))
+	for chat in await DRIVER.db.messages.distinct("chat", {"text": {"$regex": message.command[0]}}):
+		await prog.tick()
+		results.append((await client.get_chats(chat), await DRIVER.db.messages.count_documents({"chat":chat,"text":{"$regex":message.command[0]}})))
+	results.sort(key= lambda x: x[1], reverse=True)
+	out = f"`→ ` Chats mentioning `{message.command[0]}`"
+	for res in results:
+		out += f"\n` → ` [**{sep(res[1])}**] {get_username(res[0])}"
+	await edit_or_reply(message, out)
 
-	uptime = str(datetime.now() - client.start_time)
-	await edit_or_reply(message, f"`→ ` **online for** `{uptime}`" +
-					f"\n`→ ` **first event** `{oldest_msg['date']}`" +
-					f"\n` → ` **{msg_count}** msgs logged (+{sep(DRIVER.counter['messages'])} new | **{msg_size}**)" +
-					f"\n` → ` **{service_count}** events tracked (+{sep(DRIVER.counter['service'])} new | **{service_size}**)" +
-					f"\n` → ` **{deletions_count}** deletions saved (+{sep(DRIVER.counter['deletions'])} new | **{deletions_size}**)" +
-					f"\n` → ` **{user_count}** users met (+{sep(DRIVER.counter['users'])} new | **{user_size}**)" +
-					f"\n` → ` **{chat_count}** chats visited (+{sep(DRIVER.counter['chats'])} new | **{chat_size}**)" +
-					f"\n` → ` DB total size **{db_size}**" +
-					f"\n` → ` **{medianumber}** documents archived (size **{mediasize}**)")
 
 @HELP.add(cmd="<{query}>")
 @alemiBot.on_message(is_superuser & filterCommand(["query", "q", "log"], list(alemiBot.prefixes), options={
