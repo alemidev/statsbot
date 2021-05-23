@@ -144,9 +144,25 @@ async def back_fill_cmd(client, message):
 		)
 	)
 
+# Handy ugly util to get chat off database
 async def safe_get_chat(client, chat):
 	try:
-		return get_username(await client.get_chat(chat))
+		doc = await DRIVER.db.chats.find_one({"id":chat})
+		if not doc:
+			return f"~~{chat}~~"
+		if "username" in doc:
+			return f"**{doc['username']}**"
+		if "title" in doc:
+			if "invite" in doc:
+				return f"[{doc['title']}]({doc['invite']})"
+			return f"--{doc['title']}--"
+		if "invite" in doc:
+			return doc["invite"]
+		if "first_name" in doc:
+			if "last_name" in doc:
+				return f"{doc['first_name']} {doc['last_name']}"
+			return doc['first_name']
+		return f"~~{chat}~~"
 	except Exception as e:
 		logger.exception("Failed to search channel '%s'", str(chat))
 		return f"~~{chat}~~"
