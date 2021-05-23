@@ -182,6 +182,12 @@ def extract_chat(msg:Message):
 			"created" : msg.chat.is_creator,
 		},
 	}
+	if msg.chat.username:
+		obj["username"] = msg.chat.username
+	if msg.chat.invite_link:
+		obj["invite"] = msg.chat.invite_link
+	if msg.chat.dc_id:
+		obj["dc_id"] = msg.chat.dc_id
 	if msg.chat.photo:
 		obj["photo"] = {
 			"small_file_id" : msg.chat.photo.small_file_id,
