@@ -144,6 +144,12 @@ async def back_fill_cmd(client, message):
 		)
 	)
 
+async def safe_get_chat(client, chat):
+	try:
+		return get_username(await client.get_chat(chat))
+	except:
+		return f"~~{chat}~~"
+
 @HELP.add(cmd="<regex>")
 @alemiBot.on_message(is_superuser & filterCommand(["source"], list(alemiBot.prefixes)))
 @report_error(logger)
@@ -163,11 +169,11 @@ async def source_cmd(client, message):
 	await prog.tick()
 	for chat in await DRIVER.db.messages.distinct("chat", {"text": {"$regex": message.command[0]}}):
 		await prog.tick()
-		results.append((await client.get_chat(chat), await DRIVER.db.messages.count_documents({"chat":chat,"text":{"$regex":message.command[0]}})))
+		results.append((await safe_get_chat(client, chat), await DRIVER.db.messages.count_documents({"chat":chat,"text":{"$regex":message.command[0]}})))
 	results.sort(key= lambda x: x[1], reverse=True)
 	out = ""
 	for res in results:
-		out += f"` → ` [**{sep(res[1])}**] {get_username(res[0])}\n"
+		out += f"` → ` [**{sep(res[1])}**] {res[0]}\n"
 	await edit_or_reply(msg, out)
 
 
