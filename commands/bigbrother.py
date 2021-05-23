@@ -157,6 +157,7 @@ async def source_cmd(client, message):
 	"""
 	if len(message.command) < 1:
 		return await edit_or_reply(message, "`[!] → ` No input")
+	msg = await edit_or_reply(message, f"`→ ` Chats mentioning `{message.command[0]}`")
 	prog = ProgressChatAction(client, message.chat.id, action="playing")
 	results = []
 	await prog.tick()
@@ -164,10 +165,10 @@ async def source_cmd(client, message):
 		await prog.tick()
 		results.append((await client.get_chat(chat), await DRIVER.db.messages.count_documents({"chat":chat,"text":{"$regex":message.command[0]}})))
 	results.sort(key= lambda x: x[1], reverse=True)
-	out = f"`→ ` Chats mentioning `{message.command[0]}`"
+	out = ""
 	for res in results:
-		out += f"\n` → ` [**{sep(res[1])}**] {get_username(res[0])}"
-	await edit_or_reply(message, out)
+		out += f"` → ` [**{sep(res[1])}**] {get_username(res[0])}\n"
+	await edit_or_reply(msg, out)
 
 
 @HELP.add(cmd="<{query}>")
