@@ -147,7 +147,8 @@ async def back_fill_cmd(client, message):
 async def safe_get_chat(client, chat):
 	try:
 		return get_username(await client.get_chat(chat))
-	except:
+	except Exception as e:
+		logger.exception("Failed to search channel '%s'", str(chat))
 		return f"~~{chat}~~"
 
 @HELP.add(cmd="<regex>")
