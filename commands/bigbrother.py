@@ -168,25 +168,31 @@ async def safe_get_chat(client, chat):
 		return f"~~{chat}~~"
 
 @HELP.add(cmd="<regex>")
-@alemiBot.on_message(is_superuser & filterCommand(["source"], list(alemiBot.prefixes)))
+@alemiBot.on_message(is_superuser & filterCommand(["source"], list(alemiBot.prefixes), options={
+	"min" : ["-m", "--min"],
+}))
 @report_error(logger)
 @set_offline
 @cancel_chat_action
 async def source_cmd(client, message):
 	"""find chats where certain regex is used
 
-	Will search all chats which contain at least one occurrence of given regex, and show \
+	Will search all chats which contain at least 10 occurrence of given regex, and show \
 	message count matching given regex.
+	The minimum occurrances can be changed with `-m` option.
 	"""
 	if len(message.command) < 1:
 		return await edit_or_reply(message, "`[!] → ` No input")
+	minmsgs = int(message.command["min"] or 10)
 	msg = await edit_or_reply(message, f"`→ ` Chats mentioning `{message.command[0]}`")
 	prog = ProgressChatAction(client, message.chat.id, action="playing")
 	results = []
 	await prog.tick()
 	for chat in await DRIVER.db.messages.distinct("chat", {"text": {"$regex": message.command[0]}}):
 		await prog.tick()
-		results.append((await safe_get_chat(client, chat), await DRIVER.db.messages.count_documents({"chat":chat,"text":{"$regex":message.command[0]}})))
+		count = await DRIVER.db.messages.count_documents({"chat":chat,"text":{"$regex":message.command[0]}})
+		if count >= minmsgs:
+			results.append((await safe_get_chat(client, chat), count))
 	results.sort(key= lambda x: x[1], reverse=True)
 	out = ""
 	for res in results:
