@@ -14,7 +14,7 @@ from util.permission import is_allowed, is_superuser, check_superuser
 from util.getters import get_username, get_channel
 from util.message import ProgressChatAction, edit_or_reply, is_me
 from util.text import tokenize_json, order_suffix, sep
-from util.decorators import report_error, set_offline
+from util.decorators import report_error, set_offline, cancel_chat_action
 from util.help import HelpCategory
 
 from plugins.statsbot.driver import DRIVER
@@ -145,10 +145,10 @@ async def back_fill_cmd(client, message):
 	)
 
 @HELP.add(cmd="<regex>")
-@alemiBot.on_message(is_superuser & filterCommand(["source"], list(alemiBot.prefixes), options={
-}, flags=[]))
+@alemiBot.on_message(is_superuser & filterCommand(["source"], list(alemiBot.prefixes)))
 @report_error(logger)
 @set_offline
+@cancel_chat_action
 async def source_cmd(client, message):
 	"""find chats where certain regex is used
 
