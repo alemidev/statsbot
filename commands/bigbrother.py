@@ -184,7 +184,7 @@ async def source_cmd(client, message):
 	if len(message.command) < 1:
 		return await edit_or_reply(message, "`[!] → ` No input")
 	minmsgs = int(message.command["min"] or 10)
-	msg = await edit_or_reply(message, f"`→ ` Chats mentioning `{message.command[0]}`")
+	msg = await edit_or_reply(message, f"`→ ` Chats mentioning `{message.command[0]}` __(>= {minmsgs} times)__")
 	prog = ProgressChatAction(client, message.chat.id, action="playing")
 	results = []
 	await prog.tick()
