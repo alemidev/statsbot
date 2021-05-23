@@ -126,6 +126,7 @@ class DatabaseDriver:
 		await self.insert_doc_duplicable(msg, ignore=ignore_duplicates)
 		self.counter.messages()
 
+		# Upsert Author
 		if message.from_user:
 			usr = extract_user(message)
 			usr_id = usr["id"]
@@ -138,6 +139,18 @@ class DatabaseDriver:
 				await self.db.users.update_one({"id": usr_id}, {"$set": usr}, upsert=True)
 
 		if message.sender_chat:
+			chat = extract_chat(message)
+			chat_id = chat["id"]
+			prev = await self.db.chats.find_one({"id": chat_id})
+			if prev:
+				chat = diff(prev, chat)
+			else:
+				self.counter.chats()
+			if chat: # don't insert if no diff!
+				await self.db.chats.update_one({"id": chat_id}, {"$set": chat}, upsert=True)
+
+		# Upsert Chat
+		if message.chat:
 			chat = extract_chat(message)
 			chat_id = chat["id"]
 			prev = await self.db.chats.find_one({"id": chat_id})
