@@ -63,7 +63,7 @@ async def dbstats_cmd(client, message):
 	await prog.tick()
 	medianumber = sep(len(os.listdir("plugins/statsbot/data")))
 	proc = await asyncio.create_subprocess_exec( # This is not cross platform!
-		"du", "-b", "plugins/statsbot/data",
+		"du", "-b", "plugins/statsbot/data/",
 		stdout=asyncio.subprocess.PIPE,
 		stderr=asyncio.subprocess.STDOUT)
 	stdout, _stderr = await proc.communicate()
