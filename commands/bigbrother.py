@@ -60,7 +60,7 @@ async def dbstats_cmd(client, message):
 	await prog.tick()
 	db_size = order_suffix((await DRIVER.db.command("dbstats"))["totalSize"])
 	await prog.tick()
-	medianumber = sep(len(os.listdir("data/scraped_media")))
+	medianumber = sep(len(os.listdir("plugins/statsbot/data")))
 	proc = await asyncio.create_subprocess_exec( # This is not cross platform!
 		"du", "-b", "data/scraped_media",
 		stdout=asyncio.subprocess.PIPE,
