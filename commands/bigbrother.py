@@ -290,9 +290,10 @@ async def hist_cmd(client, message):
 	LINE = "` → ` {date} {author} {text}\n"
 	doc = await DRIVER.db.messages.find_one({"id": m_id, "chat": c_id}, sort=[("date", DESCENDING)])
 	if doc:
+		author = get_username(await client.get_users(doc['user']))
 		out = LINE.format(
 			date=f"[--{doc['date']}--]" if show_time else "",
-			author=f"**{get_username(await client.get_users(doc['user']))}** >" if show_author else "",
+			author=f"**{author}** >" if show_author else "",
 			text=doc["text"],
 		) 
 		if "edits" in doc:
