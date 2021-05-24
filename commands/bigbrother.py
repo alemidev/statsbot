@@ -332,6 +332,7 @@ async def deleted_cmd(client, message): # This is a mess omg
 	all_groups = message.command["-all"]
 	target_group = message.chat
 	offset = int(message.command["offset"] or 0)
+	limit = int(message.command[0] or 1)
 	if client.me.is_bot and not message.reply_to_message:
 		return await edit_or_reply(message, "`[!] → ` You need to reply to a message")
 	if check_superuser(message):
@@ -342,11 +343,8 @@ async def deleted_cmd(client, message): # This is a mess omg
 				target_group = await client.get_chat(int(message.command["group"]))
 			else:
 				target_group = await client.get_chat(message.command["group"])
-	limit = 1
-	if len(message.command) > 1:
-		limit = int(message.command[0])
-		if client.me.is_bot:
-			limit = min(limit, 5)
+	if client.me.is_bot:
+		limit = min(limit, 5)
 	count = 0
 	flt = {}
 	if client.me.is_bot: # bots don't receive delete events so peek must work slightly differently
