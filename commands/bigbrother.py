@@ -29,6 +29,7 @@ HELP = HelpCategory("BIGBROTHER")
 @alemiBot.on_message(is_superuser & filterCommand(["dbstats", "dbstat"], list(alemiBot.prefixes)))
 @report_error(logger)
 @set_offline
+@cancel_chat_action
 async def dbstats_cmd(client, message):
 	"""get database stats
 
@@ -209,6 +210,7 @@ async def source_cmd(client, message):
 }, flags=["-cmd", "-count", "-id"]))
 @report_error(logger)
 @set_offline
+@cancel_chat_action
 async def query_cmd(client, message):
 	"""interact with db
 
@@ -236,6 +238,7 @@ async def query_cmd(client, message):
 
 	q = json.loads(message.command[0])
 	flt = json.loads(message.command["filter"] or '{}')
+	prog = ProgressChatAction(client, message.chat.id)
 	if not message.command["-id"]:
 		flt["_id"] = False
 
@@ -244,7 +247,6 @@ async def query_cmd(client, message):
 	elif message.command["-count"]:
 		buf = [ await collection.count_documents(q) ]
 	else:
-		prog = ProgressChatAction(client, message.chat.id)
 		cursor = collection.find(q, flt).sort("date", -1)
 		async for doc in cursor.limit(lim):
 			await prog.tick()
@@ -255,7 +257,7 @@ async def query_cmd(client, message):
 		f = io.BytesIO(raw.encode("utf-8"))
 		f.name = "query.json"
 		await client.send_document(message.chat.id, f, reply_to_message_id=message.message_id,
-								caption=f"` → Query result `")
+								caption=f"` → Query result `", progress=prog.tick)
 	else:
 		await edit_or_reply(message, "` → `" + tokenize_json(raw))
 
