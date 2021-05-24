@@ -15,7 +15,7 @@ async def log_message_hook(client, message):
 	"""Log all new non-service messages"""
 	fname = None
 	if DRIVER.log_media:
-		fname = await client.download_media(message, file_name="data/scraped_media/")
+		fname = await client.download_media(message, file_name="plugins/statsbot/data/")
 	if DRIVER.log_messages:
 		await DRIVER.parse_message_event(message, file_name=fname)
 
