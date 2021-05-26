@@ -72,13 +72,13 @@ async def frequency_cmd(client, message):
 		query["user"] = user.id
 
 	# Build output message
-	from_who = f"(from **{get_username(user)}**)" if user else ""
-	extra = f" | + `{query}`" if extra_query else ""
-	where = "--everywhere--"
+	from_who = f"(from <b>{get_username(user)}</b>)" if user else ""
+	extra = f" | + <code>{query}</code>" if extra_query else ""
+	where = "<b>everywhere</b>"
 	if group:
-		where = f"--[{get_channel(group)}]({group.invite_link})--" if group.invite_link else f"--{get_channel(group)}--"
-	output = f"`→ ` {where} {from_who} {extra}\n`→ ` **{results}** most frequent words __(len > {min_len})__:\n"
-	msg = await edit_or_reply(message, output) # placeholder msg so we don't ping if usernames show up
+		where = f"<b>[{get_channel(group)}]({group.invite_link})</b>" if group.invite_link else f"<b>{get_channel(group)}</b>"
+	output = f"<code>→ </code> {where} {from_who} {extra}\n<code>→ </code> <b>{results}</b> most frequent words (<i>len > {min_len}</i>):\n"
+	msg = await edit_or_reply(message, output, parse_mode="html") # placeholder msg so we don't ping if usernames show up
 	# Iterate db
 	prog = ProgressChatAction(client, message.chat.id)
 	words = []             		
@@ -93,13 +93,13 @@ async def frequency_cmd(client, message):
 			curr += 1
 	count = Counter(words).most_common()
 	stars = 5 if len(count) > 5 else 0
-	output = f"`→ ` last **{sep(curr)}** messages\n"
+	output = f"<code>→ </code> last <b>{sep(curr)}<b> messages\n"
 	for i, word in enumerate(count):
-		output += f"` → ` [**{sep(word[1])}**] `{word[0]}` {'☆'*stars}\n"
+		output += f"<code> → </code> [<b>{sep(word[1])}</b>] <code>{word[0]}</code> {'☆'*stars}\n"
 		stars -=1
 		if i >= results - 1:
 			break
-	await edit_or_reply(msg, output)
+	await edit_or_reply(msg, output, parse_mode="html")
 
 @HELP.add(cmd="[<number>]", sudo=False)
 @alemiBot.on_message(is_allowed & filterCommand(["active"], list(alemiBot.prefixes), options={
@@ -119,10 +119,10 @@ async def active_cmd(client, message):
 	if check_superuser(message) and "group" in message.command:
 		arg = message.command["group"]
 		target_group = await client.get_chat(int(arg) if arg.isnumeric() else arg)
-	output = f"`→ ` Active members in last {number} messages:\n"
+	output = f"<code>→ </code> Active members in last <b>{sep(number)}</b> messages:\n"
 	if target_group.id != message.chat.id:
-		output = f"`→ ` **{get_username(target_group)}**\n" + output
-	msg = await edit_or_reply(message, output) # Send a placeholder first to not mention everyone
+		output = f"<code>→ </code> <b>{get_username(target_group)}</b>\n" + output
+	msg = await edit_or_reply(message, output, parse_mode="html") # Send a placeholder first to not mention everyone
 	query = {"chat":target_group.id}
 	prog = ProgressChatAction(client, message.chat.id)
 	users = [] # using a set() would save me a "in" check but sets don't have order. I want most recently active members on top
@@ -134,5 +134,5 @@ async def active_cmd(client, message):
 	# Build output message
 	output = ""
 	for usr in users:
-		output += f"` → ` **{get_username(usr)}**\n"
-	await edit_or_reply(msg, output)
+		output += f"<code> → </code> <b>{get_username(usr)}</b>\n"
+	await edit_or_reply(msg, output, parse_mode="html")
