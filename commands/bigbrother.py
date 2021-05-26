@@ -70,15 +70,16 @@ async def dbstats_cmd(client, message):
 	mediasize = order_suffix(float(stdout.decode('utf-8').split("\t")[0]))
 
 	uptime = str(datetime.now() - client.start_time)
-	await edit_or_reply(message, f"`→ ` **online for** `{uptime}`" +
-					f"\n`→ ` **first event** `{oldest_msg['date']}`" +
-					f"\n` → ` **{msg_count}** msgs logged (+{sep(DRIVER.counter['messages'])} new | **{msg_size}**)" +
-					f"\n` → ` **{service_count}** events tracked (+{sep(DRIVER.counter['service'])} new | **{service_size}**)" +
-					f"\n` → ` **{deletions_count}** deletions saved (+{sep(DRIVER.counter['deletions'])} new | **{deletions_size}**)" +
-					f"\n` → ` **{user_count}** users met (+{sep(DRIVER.counter['users'])} new | **{user_size}**)" +
-					f"\n` → ` **{chat_count}** chats visited (+{sep(DRIVER.counter['chats'])} new | **{chat_size}**)" +
-					f"\n` → ` DB total size **{db_size}**" +
-					f"\n` → ` **{medianumber}** documents archived (size **{mediasize}**)")
+	await edit_or_reply(message, f"<code>→ </code> <b>online for</b> <code>{uptime}</code>" +
+					f"\n<code>→ </code> <b>first event</b> <code>{oldest_msg['date']}</code>" +
+					f"\n<code> → </code> <b>{msg_count}</b> msgs logged (+{sep(DRIVER.counter['messages'])} new | <b>{msg_size}</b>)" +
+					f"\n<code> → </code> <b>{service_count}</b> events tracked (+{sep(DRIVER.counter['service'])} new | <b>{service_size}</b>)" +
+					f"\n<code> → </code> <b>{deletions_count}</b> deletions saved (+{sep(DRIVER.counter['deletions'])} new | <b>{deletions_size}</b>)" +
+					f"\n<code> → </code> <b>{user_count}</b> users met (+{sep(DRIVER.counter['users'])} new | <b>{user_size}</b>)" +
+					f"\n<code> → </code> <b>{chat_count}</b> chats visited (+{sep(DRIVER.counter['chats'])} new | <b>{chat_size}</b>)" +
+					f"\n<code> → </code> DB total size <b>{db_size}</b>" +
+					f"\n<code> → </code> <b>{medianumber}</b> documents archived (size <b>{mediasize}</b>)", parse_mode="html"
+	)
 
 BACKFILL_STOP = False
 
@@ -88,19 +89,19 @@ async def back_fill_messages(client, message, target_group, limit, offset, inter
 	global BACKFILL_STOP
 	count = 0
 	if not silent:
-		await edit_or_reply(message, f"` → ` [ **0 / {sep(limit)}** ]")
+		await edit_or_reply(message, f"<code> → </code> [ <b>0 / {sep(limit)}</b> ]", parse_mode="html")
 	async for msg in client.iter_history(target_group.id, limit=limit, offset=offset):
 		if BACKFILL_STOP:
 			BACKFILL_STOP = False
-			return await edit_or_reply(message, f"`[!] → ` Stopped at [ **{sep(count)} / {sep(limit)}** ]")
+			return await edit_or_reply(message, f"<code>[!] → </code> Stopped at [ <b>{sep(count)} / {sep(limit)}</b> ]", parse_mode="html")
 		if msg.service:
 			await DRIVER.parse_service_event(msg, ignore_duplicates=True)
 		else:
 			await DRIVER.parse_message_event(msg, ignore_duplicates=True)
 		count += 1
 		if not silent and count % interval == 0:
-			await edit_or_reply(message, f"` → ` [ **{sep(count)} / {sep(limit)}** ]")
-	await edit_or_reply(message, f"` → ` Done [ **{sep(count)} / {sep(limit)}** ]")
+			await edit_or_reply(message, f"<code> → </code> [ <b>{sep(count)} / {sep(limit)}</b> ]", parse_mode="html")
+	await edit_or_reply(message, f"<code> → </code> Done [ <b>{sep(count)} / {sep(limit)}</b> ]", parse_mode="html")
 
 
 @HELP.add(cmd="<amount>")
@@ -137,7 +138,7 @@ async def back_fill_cmd(client, message):
 		target_group = await client.get_chat(int(message.command["group"])
 			if message.command["group"].isnumeric() else message.command["group"])
 	if not silent and not is_me(message):
-		msg = await edit_or_reply(message, f"$ backfill {message.command.text}") # ugly but will do ehhh
+		msg = await edit_or_reply(message, f"<code>$</code>backfill {message.command.text}", parse_mode="html") # ugly but will do ehhh
 	asyncio.create_task(
 		back_fill_messages(
 			client, msg, target_group, limit, offset,
@@ -150,23 +151,23 @@ async def safe_get_chat(client, chat):
 	try:
 		doc = await DRIVER.db.chats.find_one({"id":chat})
 		if not doc:
-			return f"~~{chat}~~"
+			return f"<s>{chat}</s>"
 		if "username" in doc:
-			return f"**@{doc['username']}**"
+			return f"<b>@{doc['username']}</b>"
 		if "title" in doc:
 			if "invite" in doc:
-				return f"[{doc['title']}]({doc['invite']})"
+				return f'<a href="{doc["invite"]}">{doc["title"]}</a>'
 			return f"{doc['title']}"
 		if "invite" in doc:
-			return doc["invite"]
+			return f'<u>{doc["invite"]}</u>'
 		if "first_name" in doc:
 			if "last_name" in doc:
 				return f"{doc['first_name']} {doc['last_name']}"
 			return doc['first_name']
-		return f"~~{chat}~~"
+		return f"<s>{chat}</s>"
 	except Exception as e:
 		logger.exception("Failed to search channel '%s'", str(chat))
-		return f"~~{chat}~~"
+		return f"<s>{chat}</s>"
 
 @HELP.add(cmd="<regex>")
 @alemiBot.on_message(is_superuser & filterCommand(["source"], list(alemiBot.prefixes), options={
@@ -183,9 +184,9 @@ async def source_cmd(client, message):
 	The minimum occurrances can be changed with `-m` option.
 	"""
 	if len(message.command) < 1:
-		return await edit_or_reply(message, "`[!] → ` No input")
+		return await edit_or_reply(message, "<code>[!] → </code> No input", parse_mode="html")
 	minmsgs = int(message.command["min"] or 10)
-	msg = await edit_or_reply(message, f"`→ ` Chats mentioning `{message.command[0]}` __(>= {minmsgs} times)__")
+	msg = await edit_or_reply(message, f"<code>→ </code> Chats mentioning <code>{message.command[0]}</code> (<i>>= {minmsgs} times</i>)", parse_mode="html")
 	prog = ProgressChatAction(client, message.chat.id, action="playing")
 	results = []
 	await prog.tick()
@@ -197,8 +198,8 @@ async def source_cmd(client, message):
 	results.sort(key= lambda x: x[1], reverse=True)
 	out = ""
 	for res in results:
-		out += f"` → ` [**{sep(res[1])}**] {res[0]}\n"
-	await edit_or_reply(msg, out)
+		out += f"<code> → </code> [<b>{sep(res[1])}</b>] {res[0]}\n"
+	await edit_or_reply(msg, out, parse_mode="html")
 
 
 @HELP.add(cmd="<{query}>")

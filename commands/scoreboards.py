@@ -68,14 +68,14 @@ async def stats_cmd(client, message):
 		oldest = min(oldest, oldest_event["date"])
 	await prog.tick()
 	welcome = random.choice(["Hi", "Hello", "Welcome", "Nice to see you", "What's up", "Good day"])
-	await edit_or_reply(message, f"`→ ` {welcome} {get_username(user)}\n" +
-								 f"` → ` You sent **{total_messages}** messages\n" +
-								 f"`  → ` **{total_media}** were media\n" +
-								 f"`  → ` **{total_replies}** were replies\n" +
-								 f"`  → ` **{total_edits}** were edited\n" +
-								 f"` → ` You visited **{sep(max(visited_chats, partecipated_chats))}** chats\n" +
-								 f"`  → ` and partecipated in **{sep(partecipated_chats)}**\n" +
-								 f"` → ` First saw you `{oldest}`"
+	await edit_or_reply(message, f"<code>→ </code> {welcome} <b>{get_username(user)}</b>\n" +
+								 f"<code> → </code> You sent <b>{total_messages}</b> messages\n" +
+								 f"<code>  → </code> <b>{total_media}</b> were media\n" +
+								 f"<code>  → </code> <b>{total_replies}</b> were replies\n" +
+								 f"<code>  → </code> <b>{total_edits}</b> were edited\n" +
+								 f"<code> → </code> You visited <b>{sep(max(visited_chats, partecipated_chats))}</b> chats\n" +
+								 f"<code>  → </code> and partecipated in <b>{sep(partecipated_chats)}</b>\n" +
+								 f"<code> → </code> First saw you <code>{oldest}</code>", parse_mode="html"
 	)
 
 @HELP.add(sudo=False)
@@ -102,8 +102,8 @@ async def top_messages_cmd(client, message):
 		target_chat = await client.get_chat(tgt)
 	res = []
 	prog = ProgressChatAction(client, message.chat.id)
-	out = "`→ ` Messages sent globally\n" if global_search else f"`→ ` Messages sent in {get_username(target_chat)}\n"
-	msg = await edit_or_reply(message, out)
+	out = "<code>→ </code> Messages sent <b>globally</b>\n" if global_search else f"<code>→ </code> Messages sent in <b>{get_username(target_chat)}</b>\n"
+	msg = await edit_or_reply(message, out, parse_mode="html")
 	if len(message.command) > 0:
 		for uname in message.command.arg:
 			await prog.tick()
@@ -130,12 +130,12 @@ async def top_messages_cmd(client, message):
 	count = 0
 	out = ""
 	for usr, msgs in res:
-		out += f"` → ` **{usr}** [**{sep(msgs)}**] {'☆'*stars}\n"
+		out += f"<code> → </code> <b>{usr}</b> [<b>{sep(msgs)}</b>] {'☆'*stars}\n"
 		stars -= 1
 		count += 1
 		if count >= results:
 			break
-	await edit_or_reply(msg, out)
+	await edit_or_reply(msg, out, parse_mode="html")
 
 @HELP.add(cmd="[<users>]", sudo=False)
 @alemiBot.on_message(is_allowed & filterCommand(["joindate", "joindates", "join_date"], list(alemiBot.prefixes), options={
@@ -159,11 +159,11 @@ async def joindate_cmd(client, message):
 			else message.command["chat"]
 		target_chat = await client.get_chat(tgt)
 	if target_chat.type in ("bot", "private"):
-		return await edit_or_reply(message, "`[!] → ` Can't query join dates in private chat")
+		return await edit_or_reply(message, "<code>[!] → </code> Can't query join dates in private chat")
 	res = []
 	prog = ProgressChatAction(client, message.chat.id)
-	out = f"`→ ` Join dates in {get_channel(target_chat)}\n"
-	msg = await edit_or_reply(message, out)
+	out = f"<code>→ </code> Join dates in <b>{get_channel(target_chat)}</b>\n"
+	msg = await edit_or_reply(message, out, parse_mode="html")
 	creator = None
 	if len(message.command) > 0:
 		for uname in message.command.arg:
@@ -171,7 +171,7 @@ async def joindate_cmd(client, message):
 			member = await client.get_chat_member(target_chat.id, uname)
 			res.append((get_username(member.user), datetime.utcfromtimestamp(member.joined_date)))
 	else:
-		creator = "~~UNKNOWN~~"
+		creator = "<s>UNKNOWN</s>"
 		async for member in target_chat.iter_members():
 			await prog.tick()
 			if member.status == "creator":
@@ -187,11 +187,11 @@ async def joindate_cmd(client, message):
 	count = 0
 	out = ""
 	if creator:
-		out += f"`→ ` **{creator}** [`CREATED`]\n"
+		out += f"<code>→ </code> <b>{creator}</b> [<code>CREATED</code>]\n"
 	for usr, date in res:
-		out += f"` → ` **{usr}** [`{str(date)}`] {'☆'*stars}\n"
+		out += f"<code> → </code> <b>{usr}</b> [<code>{str(date)}</code>] {'☆'*stars}\n"
 		stars -= 1
 		count += 1
 		if count >= results:
 			break
-	await edit_or_reply(msg, out)
+	await edit_or_reply(msg, out, parse_mode="html")
