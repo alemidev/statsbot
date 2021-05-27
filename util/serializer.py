@@ -41,7 +41,7 @@ def extract_message(msg:Message):
 	if get_text(msg, raw=True):
 		doc["text"] = get_text(msg, raw=True)
 		if msg.entities:
-			doc["formatted"] = get_text(msg) # Also get markdown formatted text
+			doc["formatted"] = get_text(msg, html=True) # Also get markdown formatted text
 	if msg.from_scheduled:
 		doc["scheduled"] = True
 	if msg.author_signature:
@@ -93,7 +93,7 @@ def extract_edit_message(msg:Message):
 	if get_text(msg, raw=True):
 		doc["text"] = get_text(msg, raw=True)
 		if msg.entities:
-			doc["formatted"] = get_text(msg)
+			doc["formatted"] = get_text(msg, html=True)
 	if msg.reply_markup:
 		if isinstance(msg.reply_markup, ReplyKeyboardMarkup):
 			doc["keyboard"] = msg.reply_markup.keyboard
