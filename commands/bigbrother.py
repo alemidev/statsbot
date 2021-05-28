@@ -248,7 +248,7 @@ async def query_cmd(client, message):
 	elif message.command["-count"]:
 		buf = [ await collection.count_documents(q) ]
 	else:
-		cursor = collection.find(q, flt).sort("date", -1)
+		cursor = collection.find(q, flt).sort("date", DESCENDING)
 		async for doc in cursor.limit(lim):
 			await prog.tick()
 			buf.append(doc)
@@ -352,7 +352,7 @@ async def deleted_cmd(client, message): # This is a mess omg
 	count = 0
 	flt = {}
 	if client.me.is_bot: # bots don't receive delete events so peek must work slightly differently
-		msg = await DRIVER.db.messages.find_one({"id":message.reply_to_message.message_id, "chat":target_group.id})
+		msg = await DRIVER.db.messages.find_one({"id":message.reply_to_message.message_id, "chat":target_group.id}, sort=[("date",DESCENDING)])
 		if not msg:
 			return await edit_or_reply(message, "`[!] → ` No record of requested message")
 		if msg_after:

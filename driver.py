@@ -5,7 +5,8 @@ from datetime import datetime
 from typing import Any
 
 from motor.motor_asyncio import AsyncIOMotorClient
-from pymongo.errors import ServerSelectionTimeoutError, DuplicateKeyError
+from pymongo.errors import ServerSelectionTimeoutError
+from pymongo import ASCENDING, DESCENDING, MongoClient
 
 from pyrogram.types import Message, User
 
@@ -52,6 +53,12 @@ class Counter:
 	def __setitem__(self, name:str, value:Any):
 		self.storage[name] = value
 
+def has_index(indexes, index):
+	for name in indexes:
+		if indexes[name]["key"] == index:
+			return True
+	return False
+
 class DatabaseDriver:
 	def __init__(self):
 		kwargs = {}
@@ -71,7 +78,35 @@ class DatabaseDriver:
 		self.counter = Counter(["service", "messages", "deletions", "edits", "users", "chats"])
 
 		self.client = AsyncIOMotorClient(host, port, **kwargs)
-		self.db = self.client[alemiBot.config.get("database", "dbname", fallback="alemibot")]
+		dbname = alemiBot.config.get("database", "dbname", fallback="alemibot")
+		self.db = self.client[dbname]
+
+		# Check (and create if missing) essential indexes
+		sync_client = MongoClient(host, port, **kwargs) # create a temporary MongoClient instance
+		sync_db = sync_client[dbname]					#		to have blocking (sync) operations
+
+		indexes = sync_db.messages.index_information()
+		if not has_index(indexes, [("date",-1)]):
+			sync_db.messages.create_index([("date",-1)], name="alemibot-chronological")
+		if not has_index(indexes, [("chat",1),("id",1),("date",-1)]):
+			sync_db.messages.create_index([("chat",1),("id",1),("date",-1)],
+											name="alemibot-unique-messages", unique=True)
+		indexes = sync_db.service.index_information()
+		if not has_index(indexes, [("date",-1)]):
+			sync_db.service.create_index([("date",-1)], name="alemibot-chronological")
+		if not has_index(indexes, [("chat",1),("id",1),("date",-1)]):
+			sync_db.service.create_index([("chat",1),("id",1),("date",-1)]
+											name="alemibot-unique-service", unique=True)
+		indexes = sync_db.deletions.index_information()
+		if not has_index(indexes, [("date",-1)]):
+			sync_db.deletions.create_index([("date",-1)], name="alemibot-chronological")
+		if not has_index(indexes, [("chat",1),("id",1),("date",-1)]):
+			sync_db.messages.create_index([("chat",1),("id",1),("date",-1)],
+											name="alemibot-unique-deletions", unique=True)
+		if not has_index(sync_db.users.index_information(), [("id",1)]):
+			sync_db.users.create_index([("id",1)], name="alemibot-unique-users", unique=True)
+		if not has_index(sync_db.chats.index_information(), [("id",1)]):
+			sync_db.chats.create_index([("id",1)], name="alemibot-unique-chats", unique=True)
 
 	def log_error_event(self, func):
 		@functools.wraps(func)
@@ -93,37 +128,14 @@ class DatabaseDriver:
 				await self.db.exceptions.insert_one(doc)
 		return wrapper
 
-	async def insert_doc_duplicable(self, doc:dict, coll:str = "messages", ignore:bool = False):
-		"""Will attempt to insert a document which may be duplicate
-
-		If there is already a document with same index, increase that document `dup` \
-		field and insert this with `dup` null.
-		This is kind of an expensive operation: it tries to just do 1 insertion, but if \
-		that is rejected because of a duplicate key, it will make a search, an update and \
-		another insertion after that.
-		This works only when duplicates are very few compared to insertions!
-		"""
-		try:
-			await self.db[coll].insert_one(doc)
-		except DuplicateKeyError: # if there's already a message with this id and chat, add a dup field to previous one
-			if ignore:
-				return
-			duplicates_count = 1
-			async for dup in self.db[coll].find({"id":doc["id"],"chat":doc["chat"]}):
-				if "dup" in dup:
-					duplicates_count = max(duplicates_count, dup["dup"])
-			await self.db[coll].update_one({"id":doc["id"],"chat":doc["chat"],"dup":None},
-										{"$set": {"dup": duplicates_count+1}})
-			await self.db[coll].insert_one(doc) # most recent msg will always have `dup` null
-
 	async def log_raw_event(self, event:Any):
 		await self.db.raw.insert_one(convert_to_dict(event))
 
-	async def parse_message_event(self, message:Message, file_name=None, ignore_duplicates=False):
+	async def parse_message_event(self, message:Message, file_name=None):
 		msg = extract_message(message)
 		if file_name:
 			msg["file"] = file_name
-		await self.insert_doc_duplicable(msg, ignore=ignore_duplicates)
+		await self.db.messages.insert_one(msg)
 		self.counter.messages()
 
 		# Upsert Author
@@ -163,7 +175,7 @@ class DatabaseDriver:
 
 	async def parse_service_event(self, message:Message, ignore_duplicates=False):
 		msg = extract_service_message(message)
-		await self.insert_doc_duplicable(msg, coll="service", ignore=ignore_duplicates)
+		await self.db.service.insert_one(msg)
 		if message.chat:
 			chat = extract_chat(message)
 			chat_id = chat["id"]
@@ -186,7 +198,7 @@ class DatabaseDriver:
 	async def parse_deletion_event(self, message:Message):
 		deletions = extract_delete(message)
 		for deletion in deletions:
-			await self.insert_doc_duplicable(deletion, coll="deletions")
+			await self.db.deletions.insert_one(deletion)
 			self.counter.deletions()
 
 			flt = {"id": deletion["id"], "dup": None}
