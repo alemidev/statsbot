@@ -21,23 +21,38 @@ if __name__ == "__main__":
 			print(f"{'[!]' if warn else ''}\t{curr}/{total}           ", end="\r")
 			LAST = time()
 
-	# if sys.argv[1] in ("date", "dates"):
 
 	async def main():
-		total = 0
-		for coll in ["messages", "service", "deletions"]:
-			total += await DRIVER.db[coll].count_documents({"date":{"$type":"int"}})
+		if sys.argv[1] in ("date", "dates"):
+			total = 0
+			for coll in ["messages", "service", "deletions"]:
+				total += await DRIVER.db[coll].count_documents({"date":{"$type":"int"}})
 
-		curr = 0
-		for coll in ["messages", "service", "deletions"]:
-			async for doc in DRIVER.db[coll].find({"date":{"$type":"int"}}):
-				curr += 1
-				progress(curr, total)
-				await DRIVER.db[coll].update_one(
-					{"id":doc["id"],"chat":doc["chat"]},
-					[
-						{"date":{"$set":datetime.utcfromtimestamp(doc["date"])}},
-					]
-				)
+			curr = 0
+			for coll in ["messages", "service", "deletions"]:
+				async for doc in DRIVER.db[coll].find({"date":{"$type":"int"}}):
+					curr += 1
+					progress(curr, total)
+					await DRIVER.db[coll].update_one(
+						{"id":doc["id"],"chat":doc["chat"]},
+						[
+							{"date":{"$set":datetime.utcfromtimestamp(doc["date"])}},
+						]
+					)
+
+		if sys.argv[1] in ("duplicates", "duplicate", "dupe", "dupes", "dup"):
+			total = 0
+			for coll in ["messages", "service", "deletions"]:
+				total += await DRIVER.db[coll].count_documents({})
+
+			curr = 0
+			for coll in ["messages", "service", "deletions"]:
+				async for doc in DRIVER.db[coll].find({}):
+					curr += 1
+					progress(curr, total)
+					dupes = await DRIVER.db[coll].count_documents({"chat":doc["chat"],"id":doc["id"],"date":doc["date"]})
+					while dupes > 1:
+						await DRIVER.db[coll].delete_one({"chat":doc["chat"],"id":doc["id"],"date":doc["date"]})
+						dupes = await DRIVER.db[coll].count_documents({"chat":doc["chat"],"id":doc["id"],"date":doc["date"]})
 
 	asyncio.run(main())
