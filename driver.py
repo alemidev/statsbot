@@ -95,7 +95,7 @@ class DatabaseDriver:
 		if not has_index(indexes, [("date",-1)]):
 			sync_db.service.create_index([("date",-1)], name="alemibot-chronological")
 		if not has_index(indexes, [("chat",1),("id",1),("date",-1)]):
-			sync_db.service.create_index([("chat",1),("id",1),("date",-1)]
+			sync_db.service.create_index([("chat",1),("id",1),("date",-1)],
 											name="alemibot-unique-service", unique=True)
 		indexes = sync_db.deletions.index_information()
 		if not has_index(indexes, [("date",-1)]):
