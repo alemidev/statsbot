@@ -85,6 +85,7 @@ class DatabaseDriver:
 		sync_client = MongoClient(host, port, **kwargs) # create a temporary MongoClient instance
 		sync_db = sync_client[dbname]					#		to have blocking (sync) operations
 
+		logger.info("Checking index (may take a while first time...)")
 		indexes = sync_db.messages.index_information()
 		if not has_index(indexes, [("date",-1)]):
 			sync_db.messages.create_index([("date",-1)], name="alemibot-chronological")
