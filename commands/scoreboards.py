@@ -125,6 +125,8 @@ async def top_messages_cmd(client, message):
 	else:
 		doc = await DRIVER.db.chats.find_one({"id":target_chat.id}, {"_id":0, "messages":1})
 		res = [ (int(k), doc["messages"][k]) for k in doc["messages"].keys() ]
+	if len(res) < 1:
+		return await edit_or_reply(msg, "<code>[!] → </code> No results")
 	res.sort(key=lambda x: -x[1])
 	if len(message.command) > 0 and len(res) > results:
 		target_user = await client.get_users(int(message.command[0]) if message.command[0].isnumeric() else message.command[0])
@@ -188,7 +190,7 @@ async def joindate_cmd(client, message):
 				{"chat":target_chat.id, "user":uid, "joined": {"$exists":1}},
 				sort=[("date", ASCENDING)])
 			if event:
-				res.append(get_doc_username(user_doc), event['date'])
+				res.append((get_doc_username(user_doc), event['date']))
 			elif also_query:
 				m = await client.get_chat_member(target_chat.id, uid)
 				await DRIVER.db.members.insert_one(
@@ -197,6 +199,8 @@ async def joindate_cmd(client, message):
 				res.append((get_username(m.user), datetime.utcfromtimestamp(m.joined_date)))
 		except:
 			logger.exception("Exception while fetching joindate of user")
+	if len(res) < 1:
+		return await edit_or_reply(msg, "<code>[!] → </code> No results")
 	res.sort(key=lambda x: x[1])
 	if len(message.command) > 0 and len(res) > results:
 		target_user = await client.get_users(int(message.command[0]) if message.command[0].isnumeric() else message.command[0])
