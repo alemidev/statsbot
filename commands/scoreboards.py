@@ -179,21 +179,24 @@ async def joindate_cmd(client, message):
 	out = f"<code>→ </code> Join dates in <b>{get_channel(target_chat)}</b>\n"
 	msg = await edit_or_reply(message, out, parse_mode="html")
 	members = await DRIVER.db.chats.find_one({"id":target_chat.id},{"_id":0,"messages":1})
-	members = list(members["messages"].keys())
+	members = [int(k) for k in members["messages"].keys()]
 	for uid in members:
 		await prog.tick()
-		event = await DRIVER.db.members.find_one(
-			{"chat":target_chat.id, "user":uid, "joined": {"$exists":1}},
-			sort=[("date", ASCENDING)])
-		user_doc = await DRIVER.fetch_user(uid, client)
-		if event:
-			res.append(get_doc_username(user_doc), event['date'])
-		elif also_query:
-			m = await client.get_chat_member(target_chat.id, uid)
-			await DRIVER.db.members.insert_one(
-				{"chat":target_chat.id, "user":uid, "joined":True,
-				"date":datetime.utcfromtimestamp(m.joined_date)})
-			res.append((get_username(m.user), datetime.utcfromtimestamp(m.joined_date)))
+		try:
+			user_doc = await DRIVER.fetch_user(uid, client)
+			event = await DRIVER.db.members.find_one(
+				{"chat":target_chat.id, "user":uid, "joined": {"$exists":1}},
+				sort=[("date", ASCENDING)])
+			if event:
+				res.append(get_doc_username(user_doc), event['date'])
+			elif also_query:
+				m = await client.get_chat_member(target_chat.id, uid)
+				await DRIVER.db.members.insert_one(
+					{"chat":target_chat.id, "user":uid, "joined":True,
+					"date":datetime.utcfromtimestamp(m.joined_date)})
+				res.append((get_username(m.user), datetime.utcfromtimestamp(m.joined_date)))
+		except:
+			logger.exception("Exception while fetching joindate of user")
 	res.sort(key=lambda x: x[1])
 	if len(message.command) > 0 and len(res) > results:
 		target_user = await client.get_users(int(message.command[0]) if message.command[0].isnumeric() else message.command[0])
