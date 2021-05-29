@@ -102,7 +102,7 @@ class DatabaseDriver:
 		if not has_index(indexes, [("date",-1)]):
 			self.sync_db.deletions.create_index([("date",-1)], name="alemibot-chronological")
 		if not has_index(indexes, [("chat",1),("id",1),("date",-1)]):
-			self.sync_db.messages.create_index([("chat",1),("id",1),("date",-1)],
+			self.sync_db.deletions.create_index([("chat",1),("id",1),("date",-1)],
 											name="alemibot-unique-deletions", unique=True)
 		if not has_index(self.sync_db.users.index_information(), [("id",1)]):
 			self.sync_db.users.create_index([("id",1)], name="alemibot-unique-users", unique=True)
