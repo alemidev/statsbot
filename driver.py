@@ -8,13 +8,13 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo.errors import ServerSelectionTimeoutError, DuplicateKeyError
 from pymongo import ASCENDING, DESCENDING, MongoClient
 
-from pyrogram.types import Message, User
+from pyrogram.types import Message, User, ChatMemberUpdated
 
 from bot import alemiBot
 from util.serialization import convert_to_dict
 
 from plugins.statsbot.util.serializer import (
-	diff, extract_chat, extract_message, extract_user, extract_delete, 
+	diff, extract_chat, extract_member_update, extract_message, extract_user, extract_delete, 
 	extract_service_message, extract_edit_message
 )
 
@@ -94,6 +94,11 @@ class DatabaseDriver:
 			self.sync_db.service.create_index([("date",-1)], name="alemibot-chronological")
 		if not has_index(self.sync_db.deletions.index_information(), [("date",-1)]):
 			self.sync_db.deletions.create_index([("date",-1)], name="alemibot-chronological")
+		if not has_index(self.sync_db.members.index_information(), [("date",-1)]):
+			self.sync_db.members.create_index([("date",-1)], name="alemibot-chronological")
+		# This is not unique but still speeds up a ton
+		if not has_index(self.sync_db.members.index_information(), [("chat",1),("user",1)]):
+			self.sync_db.members.create_index([("chat",1),("user",1)], name="alemibot-group-chats")
 		# Building these may fail, run datafix script with duplicates option
 		try:
 			if not has_index(self.sync_db.messages.index_information(), [("chat",1),("id",1),("date",-1)]):
@@ -107,7 +112,7 @@ class DatabaseDriver:
 												name="alemibot-unique-deletions", unique=True)
 		except:
 			logger.exception("Error while building unique indexes. Check util/datafix.py if there are duplicates")
-		# Last make user and chat indexes
+		# Then make user and chat indexes
 		try:
 			if not has_index(self.sync_db.users.index_information(), [("id",1)]):
 				self.sync_db.users.create_index([("id",1)], name="alemibot-unique-users", unique=True)
@@ -149,9 +154,9 @@ class DatabaseDriver:
 		await self.db.messages.insert_one(msg)
 		self.counter.messages()
 
-		# Upsert Author
-		if message.from_user:
-			usr = extract_user(message)
+		# Log users writing in dms so we have stats!
+		if message.chat.type == "private":
+			usr = extract_user(message.from_user)
 			usr_id = usr["id"]
 			prev = await self.db.users.find_one({"id": usr_id})
 			if prev:
@@ -161,34 +166,11 @@ class DatabaseDriver:
 			if usr: # don't insert if no diff!
 				await self.db.users.update_one({"id": usr_id}, {"$set": usr}, upsert=True)
 
-		if message.sender_chat:
-			chat = extract_chat(message)
-			chat_id = chat["id"]
-			prev = await self.db.chats.find_one({"id": chat_id})
-			if prev:
-				chat = diff(prev, chat)
-			else:
-				self.counter.chats()
-			if chat: # don't insert if no diff!
-				await self.db.chats.update_one({"id": chat_id}, {"$set": chat}, upsert=True)
-
-		# Upsert Chat
-		if message.chat:
-			chat = extract_chat(message)
-			chat_id = chat["id"]
-			prev = await self.db.chats.find_one({"id": chat_id})
-			if prev:
-				chat = diff(prev, chat)
-			else:
-				self.counter.chats()
-			if chat: # don't insert if no diff!
-				await self.db.chats.update_one({"id": chat_id}, {"$set": chat}, upsert=True)
-
 	async def parse_service_event(self, message:Message, ignore_duplicates=False):
 		msg = extract_service_message(message)
 		await self.db.service.insert_one(msg)
 		if message.chat:
-			chat = extract_chat(message)
+			chat = extract_chat(message.chat)
 			chat_id = chat["id"]
 			prev = await self.db.chats.find_one({"id": chat_id})
 			if prev:
@@ -198,12 +180,26 @@ class DatabaseDriver:
 			if chat: # don't insert if no diff!
 				await self.db.chats.update_one({"id": chat_id}, {"$set": chat}, upsert=True)
 
+	async def parse_member_event(self, update:ChatMemberUpdated):
+		doc = extract_member_update(update)
+		await self.db.members.insert_one(doc)
+
+		usr = extract_user((update.new_chat_member or update.old_chat_member).user)
+		usr_id = usr["id"]
+		prev = await self.db.users.find_one({"id": usr_id})
+		if prev:
+			usr = diff(prev, usr)
+		else:
+			self.counter.users()
+		if usr: # don't insert if no diff!
+			await self.db.users.update_one({"id": usr_id}, {"$set": usr}, upsert=True)
+
 	async def parse_edit_event(self, message:Message): # TODO replace `text` so that we always query most recent edit
 		self.counter.edits()
 		doc = extract_edit_message(message)
-		await self.db.messages.update_one(
-			{"id": message.message_id, "chat": message.chat.id, "dup": None},
-			{"$push": {"edits":	doc} }
+		await self.db.messages.find_one_and_update(
+			{"id": message.message_id, "chat": message.chat.id},
+			{"$push": {"edits":	doc} }, sort=[("date",-1)]
 		)
 
 	async def parse_deletion_event(self, message:Message):

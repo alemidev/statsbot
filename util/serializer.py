@@ -1,8 +1,12 @@
 from datetime import datetime
 
 from typing import Union, List
+from pyrogram.methods.chats import join_chat
 
-from pyrogram.types import Message, ReplyKeyboardMarkup, ReplyKeyboardRemove, InlineKeyboardMarkup
+from pyrogram.types import (
+	Message, Chat, User, ChatMember, ChatMemberUpdated, ReplyKeyboardMarkup,
+	ReplyKeyboardRemove, InlineKeyboardMarkup
+)
 
 from util.message import parse_media_type
 from util.getters import get_text
@@ -139,61 +143,61 @@ def extract_service_message(msg:Message):
 		doc["voice_chat_members_invited"] = [ u.id for u in msg.voice_chat_members_invited.users ]
 	return doc
 
-def extract_user(msg:Message):
+def extract_user(user:User):
 	obj = {
-		"id" : msg.from_user.id,
-		"first_name" : msg.from_user.first_name,
-		"last_name" : msg.from_user.last_name,
-		"username" : msg.from_user.username,
-		"dc_id" : msg.from_user.dc_id,
+		"id" : user.id,
+		"first_name" : user.first_name,
+		"last_name" : user.last_name,
+		"username" : user.username,
+		"dc_id" : user.dc_id,
 		"flags" : {
-			"self" : msg.from_user.is_self,
-			"contact" : msg.from_user.is_contact,
-			"mutual_contact" : msg.from_user.is_mutual_contact,
-			"deleted" : msg.from_user.is_deleted,
-			"bot" : msg.from_user.is_bot,
-			"verified" : msg.from_user.is_verified,
-			"restricted" : msg.from_user.is_restricted,
-			"scam" : msg.from_user.is_scam,
-			"fake" : msg.from_user.is_fake,
-			"support" : msg.from_user.is_support,
+			"self" : user.is_self,
+			"contact" : user.is_contact,
+			"mutual_contact" : user.is_mutual_contact,
+			"deleted" : user.is_deleted,
+			"bot" : user.is_bot,
+			"verified" : user.is_verified,
+			"restricted" : user.is_restricted,
+			"scam" : user.is_scam,
+			"fake" : user.is_fake,
+			"support" : user.is_support,
 		},
 	}
-	if msg.from_user.photo:
+	if user.photo:
 		obj["photo"] = {
-			"small_file_id" : msg.from_user.photo.small_file_id,
-			"small_photo_unique_id" : msg.from_user.photo.small_photo_unique_id,
-			"big_file_id" : msg.from_user.photo.big_file_id,
-			"big_photo_unique_id" : msg.from_user.photo.big_photo_unique_id,
+			"small_file_id" : user.photo.small_file_id,
+			"small_photo_unique_id" : user.photo.small_photo_unique_id,
+			"big_file_id" : user.photo.big_file_id,
+			"big_photo_unique_id" : user.photo.big_photo_unique_id,
 		}
 	return obj
 
-def extract_chat(msg:Message):
+def extract_chat(chat:Chat):
 	obj = {
-		"id" : msg.chat.id,
-		"title" : msg.chat.title,
-		"type" : msg.chat.type,
+		"id" : chat.id,
+		"title" : chat.title,
+		"type" : chat.type,
 		"flags" : {
-			"verified" : msg.chat.is_verified,
-			"restricted" : msg.chat.is_restricted,
-			"scam" : msg.chat.is_scam,
-			"fake" : msg.chat.is_fake,
-			"support" : msg.chat.is_support,
-			"created" : msg.chat.is_creator,
+			"verified" : chat.is_verified,
+			"restricted" : chat.is_restricted,
+			"scam" : chat.is_scam,
+			"fake" : chat.is_fake,
+			"support" : chat.is_support,
+			"created" : chat.is_creator,
 		},
 	}
-	if msg.chat.username:
-		obj["username"] = msg.chat.username
-	if msg.chat.invite_link:
-		obj["invite"] = msg.chat.invite_link
-	if msg.chat.dc_id:
-		obj["dc_id"] = msg.chat.dc_id
-	if msg.chat.photo:
+	if chat.username:
+		obj["username"] = chat.username
+	if chat.invite_link:
+		obj["invite"] = chat.invite_link
+	if chat.dc_id:
+		obj["dc_id"] = chat.dc_id
+	if chat.photo:
 		obj["photo"] = {
-			"small_file_id" : msg.chat.photo.small_file_id,
-			"small_photo_unique_id" : msg.chat.photo.small_photo_unique_id,
-			"big_file_id" : msg.chat.photo.big_file_id,
-			"big_photo_unique_id" : msg.chat.photo.big_photo_unique_id,
+			"small_file_id" : chat.photo.small_file_id,
+			"small_photo_unique_id" : chat.photo.small_photo_unique_id,
+			"big_file_id" : chat.photo.big_file_id,
+			"big_photo_unique_id" : chat.photo.big_photo_unique_id,
 		}
 	return obj
 
@@ -206,3 +210,60 @@ def extract_delete(deletions:List[Message]):
 			"date": datetime.now(), # It isn't included! Assume it happened when it was received
 		})
 	return out
+
+def extract_chat_member(member:ChatMember):
+	obj = {
+		"user": member.user.id,
+		"status": member.status,
+		"title": member.title,
+	}
+	if member.until_date:
+		obj["until"] = datetime.utcfromtimestamp(member.until_date)
+	if member.joined_date:
+		obj["joined"] = datetime.utcfromtimestamp(member.joined_date)
+	if member.invited_by and member.invited_by.id != member.user.id:
+		obj["invited_by"] = member.invited_by.id
+	if member.promoted_by:
+		obj["promoted_by"] = member.promoted_by.id
+	if member.restricted_by:
+		obj["restricted_by"] = member.restricted_by.id
+	if member.is_member is not None:
+		obj["is_member"] = member.is_member
+	if member.is_anonymous:
+		obj["anonymous"] = member.is_anonymous
+	perms = [
+		"can_manage_chat", "can_post_messages", "can_edit_messages", "can_delete_messages",
+  		"can_restrict_members", "can_promote_members", "can_change_info", "can_invite_users",
+		"can_pin_messages", "can_manage_voice_chats",
+	
+		"can_send_messages", "can_send_media_messages", "can_send_stickers",
+		"can_send_animations", "can_send_games", "can_use_inline_bots",
+		"can_add_web_page_previews", "can_send_polls"
+	]
+	for perm in perms:
+		if hasattr(member, perm) and getattr(member, perm) is not None:
+			if "perms" not in obj:
+				obj["perms"] = {}
+			obj["perms"][perm] = getattr(member, perm)
+	return obj
+
+def extract_member_update(update:ChatMemberUpdated):
+	obj = {
+		"chat": update.chat.id,
+		"date": datetime.utcfromtimestamp(update.date),
+		"user": (update.new_chat_member or update.old_chat_member).user.id,
+		"performer": update.from_user.id,
+	}
+	if update.invite_link:
+		obj["link"] = update.invite_link
+	if update.old_chat_member and not update.new_chat_member:
+		obj["left"] = extract_chat_member(update.old_chat_member)
+	elif update.new_chat_member and not update.old_chat_member:
+		obj["joined"] = extract_chat_member(update.new_chat_member)
+	elif update.new_chat_member and update.old_chat_member:
+		if update.old_chat_member.user.id != update.new_chat_member.user.id:
+			raise ValueError("Cannot serialize: new_chat_member.id different from old_chat_member.id")
+		obj["updated"] = extract_chat_member(update.new_chat_member)
+	else:
+		raise ValueError("Empty ChatMemberUpdated")
+	return obj
