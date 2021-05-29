@@ -14,6 +14,7 @@ if __name__ == "__main__":
 
 	from plugins.statsbot.driver import DRIVER
 
+	COLLECTIONS = ["messages", "service", "deletions"]
 	LAST = time()
 	def progress(curr, total, warn=False, interval=1):
 		global LAST
@@ -24,11 +25,11 @@ if __name__ == "__main__":
 
 	if sys.argv[1] in ("date", "dates"):
 		total = 0
-		for coll in ["messages", "service", "deletions"]:
+		for coll in :
 			total += DRIVER.sync_db[coll].count_documents({"date":{"$type":"int"}})
 
 		curr = 0
-		for coll in ["messages", "service", "deletions"]:
+		for coll in COLLECTIONS:
 			for doc in DRIVER.sync_db[coll].find({"date":{"$type":"int"}}):
 				curr += 1
 				progress(curr, total)
@@ -41,11 +42,11 @@ if __name__ == "__main__":
 
 	if sys.argv[1] in ("duplicates", "duplicate", "dupe", "dupes", "dup"):
 		total = 0
-		for coll in ["messages", "service", "deletions"]:
+		for coll in COLLECTIONS:
 			total += DRIVER.sync_db[coll].count_documents({})
 
 		curr = 0
-		for coll in ["messages", "service", "deletions"]:
+		for coll in COLLECTIONS:
 			for doc in DRIVER.sync_db[coll].find({}):
 				curr += 1
 				progress(curr, total)
