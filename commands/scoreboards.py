@@ -7,6 +7,7 @@ from uuid import uuid4
 from pymongo import ASCENDING
 
 from pyrogram.types import InputTextMessageContent, InlineQueryResultArticle, InlineKeyboardMarkup, InlineKeyboardButton
+from pyrogram.errors import UserNotParticipant
 
 from bot import alemiBot
 
@@ -141,11 +142,8 @@ async def top_messages_cmd(client, message):
 			continue
 		if count >= offset + results:
 			break
-		try:
-			user_doc = await DRIVER.fetch_user(usr, client)
-			out += f"<code> → </code> <b>{count}. {get_doc_username(user_doc)}</b> [<b>{sep(msgs)}</b>] {'☆'*(stars+1-count)}\n"
-		except:
-			logger.exception("Error resolving user %d", usr)
+		user_doc = await DRIVER.fetch_user(usr, client)
+		out += f"<code> → </code> <b>{count}. {get_doc_username(user_doc)}</b> [<b>{sep(msgs)}</b>] {'☆'*(stars+1-count)}\n"
 	await edit_or_reply(msg, out, parse_mode="html")
 
 @HELP.add(cmd="[<user>]", sudo=False)
@@ -187,20 +185,20 @@ async def joindate_cmd(client, message):
 	members = [int(k) for k in members["messages"].keys()]
 	for uid in members:
 		await prog.tick()
-		try:
-			event = await DRIVER.db.members.find_one(
-				{"chat":target_chat.id, "user":uid, "joined": {"$exists":1}},
-				sort=[("date", ASCENDING)])
-			if event:
-				res.append((uid, event['date']))
-			elif also_query:
+		event = await DRIVER.db.members.find_one(
+			{"chat":target_chat.id, "user":uid, "joined": {"$exists":1}},
+			sort=[("date", ASCENDING)])
+		if event:
+			res.append((uid, event['date']))
+		elif also_query:
+			try:
 				m = await client.get_chat_member(target_chat.id, uid)
-				await DRIVER.db.members.insert_one(
-					{"chat":target_chat.id, "user":uid, "joined":True,
-					"date":datetime.utcfromtimestamp(m.joined_date)})
-				res.append((uid, datetime.utcfromtimestamp(m.joined_date)))
-		except:
-			logger.exception("Exception while fetching joindate of user")
+			except UserNotParticipant: # user left, can't query for a date anymore
+				continue
+			await DRIVER.db.members.insert_one(
+				{"chat":target_chat.id, "user":uid, "joined":True,
+				"date":datetime.utcfromtimestamp(m.joined_date)})
+			res.append((uid, datetime.utcfromtimestamp(m.joined_date)))
 	if len(res) < 1:
 		return await edit_or_reply(msg, "<code>[!] → </code> No results")
 	res.sort(key=lambda x: x[1])
@@ -219,9 +217,6 @@ async def joindate_cmd(client, message):
 			continue
 		if count >= offset + results:
 			break
-		try:
-			user_doc = await DRIVER.fetch_user(usr, client)
-			out += f"<code> → </code> <b>{count}. {get_doc_username(user_doc)}</b> [<code>{str(date)}</code>] {'☆'*(stars+1-count)}\n"
-		except:
-			logger.exception("Error resolving user %d", usr)
+		user_doc = await DRIVER.fetch_user(usr, client)
+		out += f"<code> → </code> <b>{count}. {get_doc_username(user_doc)}</b> [<code>{str(date)}</code>] {'☆'*(stars+1-count)}\n"
 	await edit_or_reply(msg, out, parse_mode="html")

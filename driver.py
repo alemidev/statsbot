@@ -9,6 +9,7 @@ from pymongo.errors import ServerSelectionTimeoutError, DuplicateKeyError
 from pymongo import ASCENDING, DESCENDING, MongoClient
 
 from pyrogram.types import Message, User, ChatMemberUpdated
+from pyrogram.errors import PeerIdInvalid
 
 from bot import alemiBot
 from util.serialization import convert_to_dict
@@ -157,7 +158,10 @@ class DatabaseDriver:
 		"""
 		usr = await self.db.users.find_one({"id":uid})
 		if not usr:
-			usr = extract_user(await client.get_users(uid))
+			try:
+				usr = extract_user(await client.get_users(uid))
+			except PeerIdInvalid:
+				return {"id":uid}
 			await self.db.users.insert_one(usr)
 		return usr
 
