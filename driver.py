@@ -154,6 +154,10 @@ class DatabaseDriver:
 		await self.db.messages.insert_one(msg)
 		self.counter.messages()
 
+		if message.from_user:
+			await self.db.chats.update_one({"id":message.chat.id}, {"$inc": {f"messages.{message.from_user.id}":1}})
+			await self.db.users.update_one({"id":message.from_user.id}, {"$inc": {"messages":1}})
+
 		# Log users writing in dms so we have stats!
 		if message.chat.type == "private":
 			usr = extract_user(message.from_user)
