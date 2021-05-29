@@ -155,7 +155,7 @@ class DatabaseDriver:
 		Try to fetch an user from database and, if missing, fetch it from telegram and insert it.
 		Needs a client instance to fetch from telegram if missing.
 		"""
-		usr = self.db.users.find({"id":uid})
+		usr = await self.db.users.find_one({"id":uid})
 		if not usr:
 			usr = extract_user(await client.get_users(uid))
 			await self.db.users.insert_one(usr)
