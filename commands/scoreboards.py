@@ -139,10 +139,13 @@ async def top_messages_cmd(client, message):
 		count += 1
 		if count <= offset:
 			continue
-		user_doc = await DRIVER.fetch_user(usr, client)
-		out += f"<code> → </code> <b>{count}. {get_doc_username(user_doc)}</b> [<b>{sep(msgs)}</b>] {'☆'*(stars+1-count)}\n"
 		if count >= offset + results:
 			break
+		try:
+			user_doc = await DRIVER.fetch_user(usr, client)
+			out += f"<code> → </code> <b>{count}. {get_doc_username(user_doc)}</b> [<b>{sep(msgs)}</b>] {'☆'*(stars+1-count)}\n"
+		except:
+			logger.exception("Error resolving user %d", usr)
 	await edit_or_reply(msg, out, parse_mode="html")
 
 @HELP.add(cmd="[<user>]", sudo=False)
@@ -185,18 +188,17 @@ async def joindate_cmd(client, message):
 	for uid in members:
 		await prog.tick()
 		try:
-			user_doc = await DRIVER.fetch_user(uid, client)
 			event = await DRIVER.db.members.find_one(
 				{"chat":target_chat.id, "user":uid, "joined": {"$exists":1}},
 				sort=[("date", ASCENDING)])
 			if event:
-				res.append((get_doc_username(user_doc), event['date']))
+				res.append((uid, event['date']))
 			elif also_query:
 				m = await client.get_chat_member(target_chat.id, uid)
 				await DRIVER.db.members.insert_one(
 					{"chat":target_chat.id, "user":uid, "joined":True,
 					"date":datetime.utcfromtimestamp(m.joined_date)})
-				res.append((get_username(m.user), datetime.utcfromtimestamp(m.joined_date)))
+				res.append((uid, datetime.utcfromtimestamp(m.joined_date)))
 		except:
 			logger.exception("Exception while fetching joindate of user")
 	if len(res) < 1:
@@ -215,7 +217,11 @@ async def joindate_cmd(client, message):
 		count += 1
 		if count <= offset:
 			continue
-		out += f"<code> → </code> <b>{count}. {usr}</b> [<code>{str(date)}</code>] {'☆'*(stars+1-count)}\n"
 		if count >= offset + results:
 			break
+		try:
+			user_doc = await DRIVER.fetch_user(usr)
+			out += f"<code> → </code> <b>{count}. {get_doc_username(user_doc)}</b> [<code>{str(date)}</code>] {'☆'*(stars+1-count)}\n"
+		except:
+			logger.exception("Error resolving user %d", usr)
 	await edit_or_reply(msg, out, parse_mode="html")
