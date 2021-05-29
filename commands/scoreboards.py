@@ -220,7 +220,7 @@ async def joindate_cmd(client, message):
 		if count >= offset + results:
 			break
 		try:
-			user_doc = await DRIVER.fetch_user(usr)
+			user_doc = await DRIVER.fetch_user(usr, client)
 			out += f"<code> → </code> <b>{count}. {get_doc_username(user_doc)}</b> [<code>{str(date)}</code>] {'☆'*(stars+1-count)}\n"
 		except:
 			logger.exception("Error resolving user %d", usr)
