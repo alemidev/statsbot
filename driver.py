@@ -95,20 +95,26 @@ class DatabaseDriver:
 		if not has_index(self.sync_db.deletions.index_information(), [("date",-1)]):
 			self.sync_db.deletions.create_index([("date",-1)], name="alemibot-chronological")
 		# Building these may fail, run datafix script with duplicates option
-		if not has_index(self.sync_db.messages.index_information(), [("chat",1),("id",1),("date",-1)]):
-			self.sync_db.messages.create_index([("chat",1),("id",1),("date",-1)],
-											name="alemibot-unique-messages", unique=True)
-		if not has_index(self.sync_db.service.index_information(), [("chat",1),("id",1),("date",-1)]):
-			self.sync_db.service.create_index([("chat",1),("id",1),("date",-1)],
-											name="alemibot-unique-service", unique=True)
-		if not has_index(self.sync_db.deletions.index_information(), [("chat",1),("id",1),("date",-1)]):
-			self.sync_db.deletions.create_index([("chat",1),("id",1),("date",-1)],
-											name="alemibot-unique-deletions", unique=True)
+		try:
+			if not has_index(self.sync_db.messages.index_information(), [("chat",1),("id",1),("date",-1)]):
+				self.sync_db.messages.create_index([("chat",1),("id",1),("date",-1)],
+												name="alemibot-unique-messages", unique=True)
+			if not has_index(self.sync_db.service.index_information(), [("chat",1),("id",1),("date",-1)]):
+				self.sync_db.service.create_index([("chat",1),("id",1),("date",-1)],
+												name="alemibot-unique-service", unique=True)
+			if not has_index(self.sync_db.deletions.index_information(), [("chat",1),("id",1),("date",-1)]):
+				self.sync_db.deletions.create_index([("chat",1),("id",1),("date",-1)],
+												name="alemibot-unique-deletions", unique=True)
+		except:
+			logger.exception("Error while building unique indexes. Check util/datafix.py if there are duplicates")
 		# Last make user and chat indexes
-		if not has_index(self.sync_db.users.index_information(), [("id",1)]):
-			self.sync_db.users.create_index([("id",1)], name="alemibot-unique-users", unique=True)
-		if not has_index(self.sync_db.chats.index_information(), [("id",1)]):
-			self.sync_db.chats.create_index([("id",1)], name="alemibot-unique-chats", unique=True)
+		try:
+			if not has_index(self.sync_db.users.index_information(), [("id",1)]):
+				self.sync_db.users.create_index([("id",1)], name="alemibot-unique-users", unique=True)
+			if not has_index(self.sync_db.chats.index_information(), [("id",1)]):
+				self.sync_db.chats.create_index([("id",1)], name="alemibot-unique-chats", unique=True)
+		except:
+			logger.exception("Error while building users/chats indexes. Not having these indexes will affect performance!")
 
 	def log_error_event(self, func):
 		@functools.wraps(func)
