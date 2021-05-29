@@ -82,7 +82,7 @@ class DatabaseDriver:
 		self.db = self.client[dbname]
 		# create a (sync) MongoClient too for blocking operations
 		self.sync_client = MongoClient(host, port, **kwargs)
-		self.sync_db = sync_client[dbname]
+		self.sync_db = self.sync_client[dbname]
 
 		# Check (and create if missing) essential indexes
 		logger.info("Checking index (may take a while first time...)")
