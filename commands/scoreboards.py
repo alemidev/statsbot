@@ -120,7 +120,7 @@ async def top_messages_cmd(client, message):
 	msg = await edit_or_reply(message, out, parse_mode="html")
 	await prog.tick()
 	if global_search:
-		async for u in DRIVER.db.users.find({}, {"_id":0,"id":1,"messages":1}):
+		async for u in DRIVER.db.users.find({"messages":{"$exists":1}}, {"_id":0,"id":1,"messages":1}):
 			await prog.tick()
 			res.append((u['id'], u['messages']))
 	else:
@@ -140,7 +140,7 @@ async def top_messages_cmd(client, message):
 		count += 1
 		if count <= offset:
 			continue
-		if count >= offset + results:
+		if count > offset + results:
 			break
 		user_doc = await DRIVER.fetch_user(usr, client)
 		out += f"<code> → </code> <b>{count}. {get_doc_username(user_doc)}</b> [<b>{sep(msgs)}</b>] {'☆'*(stars+1-count)}\n"
@@ -215,7 +215,7 @@ async def joindate_cmd(client, message):
 		count += 1
 		if count <= offset:
 			continue
-		if count >= offset + results:
+		if count > offset + results:
 			break
 		user_doc = await DRIVER.fetch_user(usr, client)
 		out += f"<code> → </code> <b>{count}. {get_doc_username(user_doc)}</b> [<code>{str(date)}</code>] {'☆'*(stars+1-count)}\n"
