@@ -255,7 +255,19 @@ def extract_member_update(update:ChatMemberUpdated):
 		"performer": update.from_user.id,
 	}
 	if update.invite_link:
-		obj["link"] = update.invite_link
+		obj["invite"] = {
+			"url": update.invite_link.invite_link,
+			"created": datetime.utcfromtimestamp(update.invite_link.date),
+			"primary": update.invite_link.is_primary,
+		}
+		if update.invite_link.creator:
+			obj["invite"]["creator"] = update.invite_link.creator.id
+		if update.invite_link.expire_date:
+			obj["invite"]["expires"] = datetime.utcfromtimestamp(update.invite_link.expire_date)
+		if update.invite_link.member_limit:
+			obj["invite"]["use_limit"] = update.invite_link.member_limit
+		if update.invite_link.member_count:
+			obj["invite"]["use_count"] = update.invite_link.member_count
 	if update.old_chat_member and not update.new_chat_member:
 		obj["left"] = extract_chat_member(update.old_chat_member)
 	elif update.new_chat_member and not update.old_chat_member:
