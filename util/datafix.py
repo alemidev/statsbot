@@ -25,7 +25,7 @@ if __name__ == "__main__":
 
 	if sys.argv[1] in ("date", "dates"):
 		total = 0
-		for coll in :
+		for coll in COLLECTIONS:
 			total += DRIVER.sync_db[coll].count_documents({"date":{"$type":"int"}})
 
 		curr = 0
