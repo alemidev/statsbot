@@ -122,6 +122,11 @@ class DatabaseDriver:
 			logger.exception("Error while building users/chats indexes. Not having these indexes will affect performance!")
 
 	def log_error_event(self, func):
+		"""will log exceptions to db
+
+		If an error happens while parsing and serializing an event, this decorator
+		will catch it and log to a separate db the whole event with a stacktrace.
+		"""
 		@functools.wraps(func)
 		async def wrapper(client, message):
 			try:
@@ -143,6 +148,18 @@ class DatabaseDriver:
 				doc["exception"] = exc_data
 				await self.db.exceptions.insert_one(doc)
 		return wrapper
+
+	async def fetch_user(self, uid:int, client:'pyrogram.Client') -> dict:
+		"""get a user from db or telegram
+
+		Try to fetch an user from database and, if missing, fetch it from telegram and insert it.
+		Needs a client instance to fetch from telegram if missing.
+		"""
+		usr = self.db.users.find({"id":uid})
+		if not usr:
+			usr = extract_user(await client.get_users(uid))
+			await self.db.users.insert_one(usr)
+		return usr
 
 	async def log_raw_event(self, event:Any):
 		await self.db.raw.insert_one(convert_to_dict(event))
