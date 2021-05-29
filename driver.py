@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Any
 
 from motor.motor_asyncio import AsyncIOMotorClient
-from pymongo.errors import ServerSelectionTimeoutError
+from pymongo.errors import ServerSelectionTimeoutError, DuplicateKeyError
 from pymongo import ASCENDING, DESCENDING, MongoClient
 
 from pyrogram.types import Message, User
@@ -124,6 +124,9 @@ class DatabaseDriver:
 			except ServerSelectionTimeoutError as ex:
 				logger.error("Could not connect to MongoDB")
 				logger.info(str(message))
+			except DuplicateKeyError:
+				error_key = getattr(e, '_OperationFailure__details')["keyValue"]
+				logger.error(f"Rejecting duplicate document | {error_key}")
 			except Exception as ex:
 				logger.exception("Serialization error")
 				exc_data = {
