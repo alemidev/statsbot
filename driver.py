@@ -80,34 +80,34 @@ class DatabaseDriver:
 		self.client = AsyncIOMotorClient(host, port, **kwargs)
 		dbname = alemiBot.config.get("database", "dbname", fallback="alemibot")
 		self.db = self.client[dbname]
+		# create a (sync) MongoClient too for blocking operations
+		self.sync_client = MongoClient(host, port, **kwargs)
+		self.sync_db = sync_client[dbname]
 
 		# Check (and create if missing) essential indexes
-		sync_client = MongoClient(host, port, **kwargs) # create a temporary MongoClient instance
-		sync_db = sync_client[dbname]					#		to have blocking (sync) operations
-
 		logger.info("Checking index (may take a while first time...)")
-		indexes = sync_db.messages.index_information()
+		indexes = self.sync_db.messages.index_information()
 		if not has_index(indexes, [("date",-1)]):
-			sync_db.messages.create_index([("date",-1)], name="alemibot-chronological")
+			self.sync_db.messages.create_index([("date",-1)], name="alemibot-chronological")
 		if not has_index(indexes, [("chat",1),("id",1),("date",-1)]):
-			sync_db.messages.create_index([("chat",1),("id",1),("date",-1)],
+			self.sync_db.messages.create_index([("chat",1),("id",1),("date",-1)],
 											name="alemibot-unique-messages", unique=True)
-		indexes = sync_db.service.index_information()
+		indexes = self.sync_db.service.index_information()
 		if not has_index(indexes, [("date",-1)]):
-			sync_db.service.create_index([("date",-1)], name="alemibot-chronological")
+			self.sync_db.service.create_index([("date",-1)], name="alemibot-chronological")
 		if not has_index(indexes, [("chat",1),("id",1),("date",-1)]):
-			sync_db.service.create_index([("chat",1),("id",1),("date",-1)],
+			self.sync_db.service.create_index([("chat",1),("id",1),("date",-1)],
 											name="alemibot-unique-service", unique=True)
-		indexes = sync_db.deletions.index_information()
+		indexes = self.sync_db.deletions.index_information()
 		if not has_index(indexes, [("date",-1)]):
-			sync_db.deletions.create_index([("date",-1)], name="alemibot-chronological")
+			self.sync_db.deletions.create_index([("date",-1)], name="alemibot-chronological")
 		if not has_index(indexes, [("chat",1),("id",1),("date",-1)]):
-			sync_db.messages.create_index([("chat",1),("id",1),("date",-1)],
+			self.sync_db.messages.create_index([("chat",1),("id",1),("date",-1)],
 											name="alemibot-unique-deletions", unique=True)
-		if not has_index(sync_db.users.index_information(), [("id",1)]):
-			sync_db.users.create_index([("id",1)], name="alemibot-unique-users", unique=True)
-		if not has_index(sync_db.chats.index_information(), [("id",1)]):
-			sync_db.chats.create_index([("id",1)], name="alemibot-unique-chats", unique=True)
+		if not has_index(self.sync_db.users.index_information(), [("id",1)]):
+			self.sync_db.users.create_index([("id",1)], name="alemibot-unique-users", unique=True)
+		if not has_index(self.sync_db.chats.index_information(), [("id",1)]):
+			self.sync_db.chats.create_index([("id",1)], name="alemibot-unique-chats", unique=True)
 
 	def log_error_event(self, func):
 		@functools.wraps(func)
