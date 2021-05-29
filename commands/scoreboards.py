@@ -138,7 +138,7 @@ async def top_messages_cmd(client, message):
 		if count <= offset:
 			continue
 		user_doc = await DRIVER.fetch_user(usr, client)
-		out += f"<code> → </code> <b>{count}. {get_doc_username(user_doc)}</b> [<b>{sep(msgs)}</b>] {'☆'*stars-count}\n"
+		out += f"<code> → </code> <b>{count}. {get_doc_username(user_doc)}</b> [<b>{sep(msgs)}</b>] {'☆'*(stars-count)}\n"
 		if count >= results:
 			break
 	await edit_or_reply(msg, out, parse_mode="html")
@@ -210,7 +210,7 @@ async def joindate_cmd(client, message):
 		count += 1
 		if count <= offset:
 			continue
-		out += f"<code> → </code> <b>{count}. {usr}</b> [<code>{str(date)}</code>] {'☆'*stars-count}\n"
+		out += f"<code> → </code> <b>{count}. {usr}</b> [<code>{str(date)}</code>] {'☆'*(stars-count)}\n"
 		if count >= results:
 			break
 	await edit_or_reply(msg, out, parse_mode="html")
