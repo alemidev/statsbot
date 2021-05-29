@@ -195,6 +195,8 @@ async def source_cmd(client, message):
 		count = await DRIVER.db.messages.count_documents({"chat":chat,"text":{"$regex":message.command[0]}})
 		if count >= minmsgs:
 			results.append((await safe_get_chat(client, chat), count))
+	if len(results) < 1:
+		return await edit_or_reply(msg, "<code>[!] → </code> No results", parse_mode="html")
 	results.sort(key= lambda x: x[1], reverse=True)
 	out = ""
 	for res in results:
