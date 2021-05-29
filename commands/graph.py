@@ -255,13 +255,12 @@ async def heatmap_cmd(client, message):
 	await client.send_photo(message.chat.id, buf, reply_to_message_id=message.message_id, caption=caption, progress=prog.tick)
 
 
-@HELP.add(sudo=False)
+@HELP.add(cmd="[<lim>]", sudo=False)
 @alemiBot.on_message(is_allowed & filterCommand(["shift", "timeshift"], list(alemiBot.prefixes), options={
 	"group" : ["-g", "--group"],
 	"user" : ["-u", "--user"],
 	"keyword" : ["-k", "--keyword"],
 	"dpi" : ["--dpi"],
-	"limit" : ["-l", "--limit"],
 	"offset" : ["-tz", "--timezone"],
 }, flags=["-all"]))
 @report_error(logger)
@@ -271,18 +270,18 @@ async def timeshift_cmd(client, message):
 	"""show at which time users are more active
 
 	Show messages sent per time of day in current group (superuser can specify group or search globally).
+	Specify number of messages to search as argument (default 10 000).
 	Get values of messages from a single user with `-u`.
 	Get values of messages containing a certain word with `-k`.
 	Specify plot dpi with `--dpi` (default is 300).
 	Add flag `--sunday` to put markers on sundays.
 	Dates are UTC, so days may get split weirdly for you. You can compensate by specifying an hour offset (`-tz +6`, `-tz -4`).
-	Set limit to amount of messages to query with (`-l`).
 	Precision is locked at 1hr.
 	If called in a private chat with bot, will show messages from user from any chat.
 	"""
 	prog = ProgressChatAction(client, message.chat.id, action="playing")
+	limit = int(message.command[0] or 10000)
 	dpi = int(message.command["dpi"] or 300)
-	limit = int(message.command["limit"] or 10000)
 	time_offset = 0 if "offset" not in message.command else \
 			-int(message.command["offset"][1:]) if message.command["offset"].startswith("-") else \
 			int(message.command["offset"]) if message.command["offset"].startswith("+") else \
