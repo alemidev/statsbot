@@ -97,8 +97,8 @@ class DatabaseDriver:
 		if not has_index(self.sync_db.members.index_information(), [("date",-1)]):
 			self.sync_db.members.create_index([("date",-1)], name="alemibot-chronological")
 		# This is not unique but still speeds up a ton
-		if not has_index(self.sync_db.members.index_information(), [("chat",1),("user",1)]):
-			self.sync_db.members.create_index([("chat",1),("user",1)], name="alemibot-group-chats")
+		if not has_index(self.sync_db.members.index_information(), [("chat",1),("user",1),("date",1)]):
+			self.sync_db.members.create_index([("chat",1),("user",1),("date",1)], name="alemibot-member-history")
 		# Building these may fail, run datafix script with duplicates option
 		try:
 			if not has_index(self.sync_db.messages.index_information(), [("chat",1),("id",1),("date",-1)]):

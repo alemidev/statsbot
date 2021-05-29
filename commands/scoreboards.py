@@ -101,11 +101,11 @@ async def top_messages_cmd(client, message):
 
 	Checks (tracked) number of messages sent by group members in this chat.
 	Add flag `-all` to list all messages tracked of users in this chat, or `-g` and specify a group to count in (only for superusers).
-	By default, will only list top 25 members, but number of results can be specified with `-r`.
+	By default, will only list top 10 members, but number of results can be specified with `-r`.
 	An username can be given to center scoreboard on that user.
 	An offset can be manually specified too with `-o`.
 	"""
-	results = min(int(message.command["results"] or 25), 100)
+	results = min(int(message.command["results"] or 10), 100)
 	offset = int(message.command["offset"] or 0)
 	global_search = check_superuser(message) and message.command["-all"]
 	target_chat = message.chat
@@ -148,21 +148,25 @@ async def top_messages_cmd(client, message):
 	"chat" : ["-g", "--group"],
 	"results" : ["-r", "--results"],
 	"offset" : ["-o", "--offset"],
-}))
+}, flags=["-query"]))
 @report_error(logger)
 @set_offline
 @cancel_chat_action
 async def joindate_cmd(client, message):
 	"""list date users joined group
 
-	Checks join date for users in current chat (will count previous joins if available).
+	Checks join date for users in current chat against database.
+	Querying a very big group for users may take a very long time, so only join dates logged \
+	to database are queried by default. Add flag `-query` to also search with \
+	telegram queries (results will be stored so they can be reused).
 	A specific group can be specified with `DRIVER.-g` (only by superusers).
-	By default, will only list oldest 25 members, but number of results can be specified with `-r`.
+	By default, will only list oldest 10 members, but number of results can be specified with `-r`.
 	Specify an username to center leaderboard on that user.
 	An offset can also be specified manually with `-o`.
 	"""
-	results = min(int(message.command["results"] or 25), 100)
+	results = min(int(message.command["results"] or 10), 100)
 	offset = int(message.command["offset"] or 0)
+	also_query = bool(message.command["-query"])
 	target_chat = message.chat
 	if check_superuser(message) and "chat" in message.command:
 		tgt = int(message.command["chat"]) if message.command["chat"].isnumeric() \
@@ -174,34 +178,28 @@ async def joindate_cmd(client, message):
 	prog = ProgressChatAction(client, message.chat.id)
 	out = f"<code>→ </code> Join dates in <b>{get_channel(target_chat)}</b>\n"
 	msg = await edit_or_reply(message, out, parse_mode="html")
-	if len(message.command) > 0:
-		for uname in message.command.arg:
-			await prog.tick()
-			member = await client.get_chat_member(target_chat.id, uname)
-			doc = await DRIVER.db.members.find_one(
-				{"chat":target_chat.id, "user":member.user.id, "joined": {"$exists":1}},
-				sort=[("date", ASCENDING)]
-			)
-			if doc:
-				res.append((get_username(member.user), doc["date"]))	
-			else:
-				res.append((get_username(member.user), datetime.utcfromtimestamp(member.joined_date)))
-	else:
-		members = await DRIVER.db.chats.find_one({"id":target_chat.id},{"_id":0,"messages":1})
-		members = list(members["messages"].keys())
-		for uid in members:
-			await prog.tick()
-			event = await DRIVER.db.members.find_one({"chat":target_chat.id, "user":uid}, sort=[("date", ASCENDING)])
-			user_doc = await DRIVER.fetch_user(uid, client)
-			if event:
-				res.append(get_doc_username(user_doc), event['date'])
-			else:
-				m = await client.get_chat_member(target_chat.id, uid)
-				res.append((get_username(m.user), datetime.utcfromtimestamp(m.joined_date)))
+	members = await DRIVER.db.chats.find_one({"id":target_chat.id},{"_id":0,"messages":1})
+	members = list(members["messages"].keys())
+	for uid in members:
+		await prog.tick()
+		event = await DRIVER.db.members.find_one(
+			{"chat":target_chat.id, "user":uid, "joined": {"$exists":1}},
+			sort=[("date", ASCENDING)])
+		user_doc = await DRIVER.fetch_user(uid, client)
+		if event:
+			res.append(get_doc_username(user_doc), event['date'])
+		elif also_query:
+			m = await client.get_chat_member(target_chat.id, uid)
+			await DRIVER.db.members.insert_one(
+				{"chat":target_chat.id, "user":uid, "joined":True,
+				"date":datetime.utcfromtimestamp(m.joined_date)})
+			res.append((get_username(m.user), datetime.utcfromtimestamp(m.joined_date)))
 	res.sort(key=lambda x: x[1])
 	if len(message.command) > 0 and len(res) > results:
 		target_user = await client.get_users(int(message.command[0]) if message.command[0].isnumeric() else message.command[0])
-		offset = user_index(res, target_user.id) - (results // 2)
+		offset = (user_index(res, target_user.id) or 0)
+		if offset > 0:
+			offset -= (results // 2)
 	stars = 3 if len(res) > 3 else 0
 	count = 0
 	out = ""
