@@ -54,3 +54,13 @@ if __name__ == "__main__":
 				while dupes > 1:
 					DRIVER.sync_db[coll].delete_one({"chat":doc["chat"],"id":doc["id"],"date":doc["date"]})
 					dupes = DRIVER.sync_db[coll].count_documents({"chat":doc["chat"],"id":doc["id"],"date":doc["date"]})
+
+	if sys.argv[1] in ("count", "count_messages"):
+		total = DRIVER.sync_db['messages'].count_documents({})
+
+		curr = 0
+		for doc in DRIVER.sync_db['messages'].find({}):
+			curr += 1
+			progress(curr, total)
+			DRIVER.sync_db.chats.update_one({"id":doc["chat"]}, {"$inc": {f"messages.{doc['user']}":1}})
+			DRIVER.sync_db.users.update_one({"id":doc["user"]}, {"$inc": {"messages":1}})
