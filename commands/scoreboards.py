@@ -131,7 +131,7 @@ async def top_messages_cmd(client, message):
 	res.sort(key=lambda x: -x[1])
 	if len(message.command) > 0 and len(res) > results:
 		target_user = await client.get_users(int(message.command[0]) if message.command[0].isnumeric() else message.command[0])
-		offset = user_index(res, target_user.id) - (results // 2)
+		offset += user_index(res, target_user.id) - (results // 2)
 	stars = 3 if len(res) > 3 else 0
 	count = 0
 	out = ""
@@ -204,9 +204,9 @@ async def joindate_cmd(client, message):
 	res.sort(key=lambda x: x[1])
 	if len(message.command) > 0 and len(res) > results:
 		target_user = await client.get_users(int(message.command[0]) if message.command[0].isnumeric() else message.command[0])
-		offset = (user_index(res, target_user.id) or 0)
-		if offset > 0:
-			offset -= (results // 2)
+		i = user_index(res, target_user.id)
+		if i > 0:
+			offset += i - (results // 2)
 	stars = 3 if len(res) > 3 else 0
 	count = 0
 	out = ""
