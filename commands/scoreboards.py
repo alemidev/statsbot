@@ -124,7 +124,7 @@ async def top_messages_cmd(client, message):
 			res.append((u['id'], u['messages']))
 	else:
 		doc = await DRIVER.db.chats.find_one({"id":target_chat.id}, {"_id":0, "messages":1})
-		res = [ (int(k), doc[k]) for k in doc["messages"].keys() ]
+		res = [ (int(k), doc["messages"][k]) for k in doc["messages"].keys() ]
 	res.sort(key=lambda x: -x[1])
 	if len(message.command) > 0 and len(res) > results:
 		target_user = await client.get_users(int(message.command[0]) if message.command[0].isnumeric() else message.command[0])
