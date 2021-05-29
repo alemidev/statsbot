@@ -124,7 +124,7 @@ class DatabaseDriver:
 			except ServerSelectionTimeoutError as ex:
 				logger.error("Could not connect to MongoDB")
 				logger.info(str(message))
-			except DuplicateKeyError:
+			except DuplicateKeyError as e:
 				error_key = getattr(e, '_OperationFailure__details')["keyValue"]
 				logger.error(f"Rejecting duplicate document | {error_key}")
 			except Exception as ex:
