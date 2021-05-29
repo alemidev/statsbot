@@ -45,7 +45,7 @@ async def log_service_message_hook(_, message):
 async def log_chat_member_updates(_, update):
 	"""Log chat member updates"""
 	if DRIVER.log_service:
-		await DRIVER.log_raw_event(update) # TODO parse these
+		await DRIVER.parse_member_event(update)
 
 @alemiBot.on_user_status(group=999999)
 @DRIVER.log_error_event
