@@ -49,6 +49,8 @@ async def dbstats_cmd(client, message):
 	await prog.tick()
 	service_count = sep(await DRIVER.db.service.count_documents({}))
 	await prog.tick()
+	members_count = sep(await DRIVER.db.members.count_documents({}))
+	await prog.tick()
 	msg_size = order_suffix((await DRIVER.db.command("collstats", "messages"))['totalSize'])
 	await prog.tick()
 	user_size = order_suffix((await DRIVER.db.command("collstats", "users"))['totalSize'])
@@ -58,6 +60,8 @@ async def dbstats_cmd(client, message):
 	deletions_size = order_suffix((await DRIVER.db.command("collstats", "deletions"))['totalSize'])
 	await prog.tick()
 	service_size = order_suffix((await DRIVER.db.command("collstats", "service"))['totalSize'])
+	await prog.tick()
+	members_size = order_suffix((await DRIVER.db.command("collstats", "members"))['totalSize'])
 	await prog.tick()
 	db_size = order_suffix((await DRIVER.db.command("dbstats"))["totalSize"])
 	await prog.tick()
@@ -75,6 +79,7 @@ async def dbstats_cmd(client, message):
 					f"\n<code> → </code> <b>{msg_count}</b> msgs logged (+{sep(DRIVER.counter['messages'])} new | <b>{msg_size}</b>)" +
 					f"\n<code> → </code> <b>{service_count}</b> events tracked (+{sep(DRIVER.counter['service'])} new | <b>{service_size}</b>)" +
 					f"\n<code> → </code> <b>{deletions_count}</b> deletions saved (+{sep(DRIVER.counter['deletions'])} new | <b>{deletions_size}</b>)" +
+					f"\n<code> → </code> <b>{members_count}</b> members updated (+{sep(DRIVER.counter['members'])} new | <b>{members_size}</b>)" +
 					f"\n<code> → </code> <b>{user_count}</b> users met (+{sep(DRIVER.counter['users'])} new | <b>{user_size}</b>)" +
 					f"\n<code> → </code> <b>{chat_count}</b> chats visited (+{sep(DRIVER.counter['chats'])} new | <b>{chat_size}</b>)" +
 					f"\n<code> → </code> DB total size <b>{db_size}</b>" +
