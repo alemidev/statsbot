@@ -40,7 +40,7 @@ if __name__ == "__main__":
 					]
 				)
 
-	if sys.argv[1] in ("duplicates", "duplicate", "dupe", "dupes", "dup"):
+	elif sys.argv[1] in ("duplicates", "duplicate", "dupe", "dupes", "dup"):
 		total = 0
 		for coll in COLLECTIONS:
 			total += DRIVER.sync_db[coll].count_documents({})
@@ -55,7 +55,7 @@ if __name__ == "__main__":
 					DRIVER.sync_db[coll].delete_one({"chat":doc["chat"],"id":doc["id"],"date":doc["date"]})
 					dupes = DRIVER.sync_db[coll].count_documents({"chat":doc["chat"],"id":doc["id"],"date":doc["date"]})
 
-	if sys.argv[1] in ("count", "count_messages"):
+	elif sys.argv[1] in ("count", "count_messages"):
 		total = DRIVER.sync_db['messages'].count_documents({})
 
 		curr = 0
@@ -64,3 +64,19 @@ if __name__ == "__main__":
 			progress(curr, total)
 			DRIVER.sync_db.chats.update_one({"id":doc["chat"]}, {"$inc": {f"messages.{doc['user']}":1}})
 			DRIVER.sync_db.users.update_one({"id":doc["user"]}, {"$inc": {"messages":1}})
+	elif sys.argv[1] in ("joindates", "migrate_joins"):
+		total  = DRIVER.sync_db.service.count_documents({"new_chat_members":{"$exists":1}})
+		total += DRIVER.sync_db.service.count_documents({"left_chat_member":{"$exists":1}})
+
+		curr = 0
+		for doc in DRIVER.sync_db.service.find({"new_chat_members":{"$exists":1}}):
+			curr += 1
+			progress(curr, total)
+			for m in doc["new_chat_members"]:
+				DRIVER.sync_db.members.insert_one({"chat":doc["chat"], "date":doc["date"], "user":m, "performer":doc["user"], "joined":True})
+		for doc in DRIVER.sync_db.service.find({"left_chat_member":{"$exists":1}}):
+			curr += 1
+			progress(curr, total)
+			DRIVER.sync_db.members.insert_one({"chat":doc["chat"], "date":doc["date"], "user":doc["left_chat_member"], "performer":doc["user"], "left":True})
+	else:
+		raise ValueError("No command given")
