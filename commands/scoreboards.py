@@ -47,7 +47,7 @@ async def stats_cmd(client, message):
 				if message.command[0].isnumeric() else message.command[0])
 		user = await DRIVER.fetch_user(target_user.id, client)
 	else:
-		user = await DRIVER.fetch_user(get_user(message).id)
+		user = await DRIVER.fetch_user(get_user(message).id, client)
 	prog = ProgressChatAction(client, message.chat.id)
 	uid = user["id"]
 	total_messages = sep(user["messages"])
