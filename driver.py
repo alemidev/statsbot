@@ -208,6 +208,7 @@ class DatabaseDriver:
 	async def parse_member_event(self, update:ChatMemberUpdated):
 		doc = extract_member_update(update)
 		await self.db.members.insert_one(doc)
+		self.counter.members()
 
 		usr = extract_user((update.new_chat_member or update.old_chat_member).user)
 		usr_id = usr["id"]
