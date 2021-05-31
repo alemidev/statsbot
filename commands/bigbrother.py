@@ -379,6 +379,7 @@ async def deleted_cmd(client, message): # This is a mess omg
 			(f"from [here]({message.reply_to_message.link}) " if client.me.is_bot else "") + "\n"
 	LINE = "{time}[`{m_id}`] **{user}** {where} → {text} {media}\n"
 	cursor = DRIVER.db.messages.find(flt).sort("date", ASCENDING if msg_after else DESCENDING)
+	chat_cache = {}
 	async for doc in cursor:
 		await prog.tick()
 		if offset > 0:
@@ -390,12 +391,13 @@ async def deleted_cmd(client, message): # This is a mess omg
 			author = get_username(usr)
 		except PeerIdInvalid:
 			pass # ignore, sometimes we can't lookup users
-		group = await client.get_chat(doc["chat"])
+		if doc["chat"] not in chat_cache: # cache since this causes floodwaits!
+			chat_cache[doc["chat"]] = await client.get_chat(doc["chat"])
 		out += LINE.format(
 			time=f"`{doc['date']}` " if show_time else "",
 			m_id=doc["id"],
 			user=author,
-			where=f"(__{get_channel(group)}__)" if all_groups else "",
+			where=f"(__{get_channel(chat_cache[doc['chat']])}__)" if all_groups else "",
 			text=doc["text"] if "text" in doc else "",
 			media=f"<~~{doc['media']}~~>" if "media" in doc else "",
 		)
