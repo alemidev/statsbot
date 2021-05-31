@@ -380,7 +380,7 @@ async def deleted_cmd(client, message): # This is a mess omg
 			(f"in <b>{get_channel(target_group)}</b> " if "group" in message.command else '') + \
 			(f"from <a href=\"{message.reply_to_message.link}\">here</a> " if client.me.is_bot else "") + "\n"
 	msg = await edit_or_reply(message, pre_text, parse_mode="html")
-	LINE = "<code> → </code> {time}{m_id}<b>{user}</b> {where} : {text} {media}\n"
+	LINE = "<code> → </code> {time}{m_id}<b>{user}</b> {where} {media} : {text}\n"
 	cursor = DRIVER.db.messages.find(flt).sort("date", ASCENDING if msg_after else DESCENDING)
 	chat_cache = {}
 	out = ""
@@ -402,8 +402,8 @@ async def deleted_cmd(client, message): # This is a mess omg
 			m_id=f"[<code>{doc['id']}</code>] " if show_id else "",
 			user=author,
 			where=f"(<i>{get_channel(chat_cache[doc['chat']])}</i>)" if all_groups else "",
+			media=f"[<code>{doc['media']}</code>]" if "media" in doc else "",
 			text=doc["text"] if "text" in doc else "",
-			media=f"[<u>{doc['media']}</u>]" if "media" in doc else "",
 		)
 		count += 1
 		if count >= limit:
