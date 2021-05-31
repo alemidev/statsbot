@@ -403,7 +403,7 @@ async def deleted_cmd(client, message): # This is a mess omg
 			user=author,
 			where=f"(<i>{get_channel(chat_cache[doc['chat']])}</i>)" if all_groups else "",
 			text=doc["text"] if "text" in doc else "",
-			media=f"&lt;<u>{doc['media']}</u>&gt;" if "media" in doc else "",
+			media=f"[<u>{doc['media']}</u>]" if "media" in doc else "",
 		)
 		count += 1
 		if count >= limit:
