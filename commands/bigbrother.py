@@ -6,6 +6,7 @@ import asyncio
 
 from datetime import datetime
 from pymongo import ASCENDING, DESCENDING
+from pyrogram.errors import PeerIdInvalid
 
 from bot import alemiBot
 
@@ -384,14 +385,11 @@ async def deleted_cmd(client, message): # This is a mess omg
 			offset -=1
 			continue
 		author = f"~~{doc['user']}~~"
-		if str(doc["user"]).startswith("-100"):
-			usr = await client.get_chat(doc["user"])
-			if usr and usr.username:
-				author = usr.username
-		else:
-			usr = await client.get_users(doc["user"])
-			if usr:
-				author = get_username(usr) # if mention=True sometimes it fails?
+		try:
+			usr = await (client.get_chat(doc["user"]) if doc["user"] < 0 else client.get_users(doc["user"]))
+			author = get_username(usr)
+		except PeerIdInvalid:
+			pass # ignore, sometimes we can't lookup users
 		group = await client.get_chat(doc["chat"])
 		out += LINE.format(
 			time=str(doc["date"]) + " " if show_time else "",
