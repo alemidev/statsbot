@@ -322,14 +322,15 @@ async def hist_cmd(client, message):
 @alemiBot.on_message(is_allowed & filterCommand(["peek", "deld", "deleted", "removed"], list(alemiBot.prefixes), options={
 	"group" : ["-g", "-group"],
 	"offset" : ["-o", "-offset"],
-}, flags=["-t", "-all", "-down"]))
+}, flags=["-time", "-id", "-all", "-down"]))
 @report_error(logger)
 @set_offline
 async def deleted_cmd(client, message): # This is a mess omg
 	"""get deleted messages
 
 	Request last deleted messages in this chat.
-	Use `-t` to add timestamps.
+	Add `-time` to show timestamps.
+	Add `-id` to show message ids.
 	A number of messages to peek can be specified.
 	Bots don't receive deletion events, so you must reply to a message to peek messages sent just before (or after with `-down`).
 	If any media was attached to the message and downloaded, a local path will be provided.
@@ -339,7 +340,8 @@ async def deleted_cmd(client, message): # This is a mess omg
 	Telegram doesn't even always include the chat id, so false positives may happen.
 	For specific searches, use the query (`.q`) command.
 	"""
-	show_time = message.command["-t"]
+	show_time = message.command["-time"]
+	show_id = message.command["-id"]
 	msg_after = message.command["-down"]
 	all_groups = message.command["-all"]
 	target_group = message.chat
@@ -373,19 +375,21 @@ async def deleted_cmd(client, message): # This is a mess omg
 		flt["chat"] = target_group.id
 
 	prog = ProgressChatAction(client, message.chat.id)
-	out = f"`→ ` Peeking `{limit}` message{'s' if limit > 1 else ''} " + \
+	pre_text = f"<code>→ </code> Peeking <b>{limit}</b> message{'s' if limit > 1 else ''} " + \
 			("down " if msg_after else "") + \
-			(f"in **{get_channel(target_group)}** " if "group" in message.command else '') + \
-			(f"from [here]({message.reply_to_message.link}) " if client.me.is_bot else "") + "\n"
-	LINE = "{time}[`{m_id}`] **{user}** {where} → {text} {media}\n"
+			(f"in <b>{get_channel(target_group)}</b> " if "group" in message.command else '') + \
+			(f"from <a href=\"{message.reply_to_message.link}\">here</a> " if client.me.is_bot else "") + "\n"
+	msg = await edit_or_reply(message, pre_text, parse_mode="html")
+	LINE = "<code> → </code> {time}{m_id}<b>{user}</b> {where} : {text} {media}\n"
 	cursor = DRIVER.db.messages.find(flt).sort("date", ASCENDING if msg_after else DESCENDING)
 	chat_cache = {}
+	out = ""
 	async for doc in cursor:
 		await prog.tick()
 		if offset > 0:
 			offset -=1
 			continue
-		author = f"~~{doc['user']}~~"
+		author = f"<s>{doc['user']}</s>"
 		try:
 			usr = await (client.get_chat(doc["user"]) if doc["user"] < 0 else client.get_users(doc["user"]))
 			author = get_username(usr)
@@ -394,16 +398,16 @@ async def deleted_cmd(client, message): # This is a mess omg
 		if doc["chat"] not in chat_cache: # cache since this causes floodwaits!
 			chat_cache[doc["chat"]] = await client.get_chat(doc["chat"])
 		out += LINE.format(
-			time=f"`{doc['date']}` " if show_time else "",
-			m_id=doc["id"],
+			time=f"[<code>{doc['date']}</code>] " if show_time else "",
+			m_id=f"[<code>{doc['id']}</code>] " if show_id else "",
 			user=author,
-			where=f"(__{get_channel(chat_cache[doc['chat']])}__)" if all_groups else "",
+			where=f"(<i>{get_channel(chat_cache[doc['chat']])}</i>)" if all_groups else "",
 			text=doc["text"] if "text" in doc else "",
-			media=f"<~~{doc['media']}~~>" if "media" in doc else "",
+			media=f"&lt;<u>{doc['media']}</u>&gt;" if "media" in doc else "",
 		)
 		count += 1
 		if count >= limit:
 			break
-	if count == 0:
-		out += "`[!] → ` Nothing to display"
-	await edit_or_reply(message, out)
+	if not out:
+		out += "<code>[!] → </code> Nothing to display"
+	await edit_or_reply(msg, out, parse_mode="html")
