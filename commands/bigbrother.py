@@ -392,7 +392,7 @@ async def deleted_cmd(client, message): # This is a mess omg
 			pass # ignore, sometimes we can't lookup users
 		group = await client.get_chat(doc["chat"])
 		out += LINE.format(
-			time=str(doc["date"]) + " " if show_time else "",
+			time=f"`{doc['date']}` " if show_time else "",
 			m_id=doc["id"],
 			user=author,
 			where=f"(__{get_channel(group)}__)" if all_groups else "",
