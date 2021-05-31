@@ -380,7 +380,7 @@ async def deleted_cmd(client, message): # This is a mess omg
 			(f"in <b>{get_channel(target_group)}</b> " if "group" in message.command else '') + \
 			(f"from <a href=\"{message.reply_to_message.link}\">here</a> " if client.me.is_bot else "") + "\n"
 	msg = await edit_or_reply(message, pre_text, parse_mode="html")
-	LINE = "<code> → </code> {time}{m_id}<b>{user}</b> {where} {media} : {text}\n"
+	LINE = "<code> → </code> {time}{m_id}<b>{user}</b> {where} {media} <code>&gt;</code> {text}\n"
 	cursor = DRIVER.db.messages.find(flt).sort("date", ASCENDING if msg_after else DESCENDING)
 	chat_cache = {}
 	out = ""
