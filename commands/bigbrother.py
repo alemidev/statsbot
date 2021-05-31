@@ -368,7 +368,7 @@ async def deleted_cmd(client, message): # This is a mess omg
 		else:
 			flt["date"] = {"$lt":msg["date"]}
 	else:
-		flt["deleted"] = True
+		flt["deleted"] = {"$exists":1}
 	if target_group:
 		flt["chat"] = target_group.id
 
