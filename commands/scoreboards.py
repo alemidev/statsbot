@@ -50,7 +50,7 @@ async def stats_cmd(client, message):
 		user = await DRIVER.fetch_user(get_user(message).id, client)
 	prog = ProgressChatAction(client, message.chat.id)
 	uid = user["id"]
-	total_messages = sep(user["messages"])
+	total_messages = sep(user["messages"] if "messages" in user else 0)
 	await prog.tick()
 	total_media = sep(await DRIVER.db.messages.count_documents({"user":uid,"media":{"$exists":1}}))
 	await prog.tick()
