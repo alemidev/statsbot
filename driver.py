@@ -122,19 +122,19 @@ class DatabaseDriver:
 		except:
 			logger.exception("Error while building users/chats indexes. Not having these indexes will affect performance!")
 
-	def log_error_event(self, func):
+	def _log_error_event(func):
 		"""will log exceptions to db
 
 		If an error happens while parsing and serializing an event, this decorator
 		will catch it and log to a separate db the whole event with a stacktrace.
 		"""
 		@functools.wraps(func)
-		async def wrapper(client, message):
+		async def wrapper(self, event:Any, *args, **kwargs):
 			try:
-				await func(client, message)
+				await func(self, event, *args, **kwargs)
 			except ServerSelectionTimeoutError as ex:
 				logger.error("Could not connect to MongoDB")
-				logger.info(str(message))
+				logger.info(str(event))
 			except DuplicateKeyError as e:
 				error_key = getattr(e, '_OperationFailure__details')["keyValue"]
 				logger.error(f"Rejecting duplicate document | {error_key}")
@@ -145,7 +145,7 @@ class DatabaseDriver:
 					"text" : str(ex),
 					"traceback" : traceback.format_exc(),
 				}
-				doc = convert_to_dict(message)
+				doc = convert_to_dict(event)
 				doc["exception"] = exc_data
 				await self.db.exceptions.insert_one(doc)
 		return wrapper
@@ -165,9 +165,11 @@ class DatabaseDriver:
 			await self.db.users.insert_one(usr)
 		return usr
 
+	@_log_error_event
 	async def log_raw_event(self, event:Any):
 		await self.db.raw.insert_one(convert_to_dict(event))
 
+	@_log_error_event
 	async def parse_message_event(self, message:Message, file_name=None):
 		msg = extract_message(message)
 		if file_name:
@@ -191,6 +193,7 @@ class DatabaseDriver:
 			if usr: # don't insert if no diff!
 				await self.db.users.update_one({"id": usr_id}, {"$set": usr}, upsert=True)
 
+	@_log_error_event
 	async def parse_service_event(self, message:Message, ignore_duplicates=False):
 		msg = extract_service_message(message)
 		await self.db.service.insert_one(msg)
@@ -205,6 +208,7 @@ class DatabaseDriver:
 			if chat: # don't insert if no diff!
 				await self.db.chats.update_one({"id": chat_id}, {"$set": chat}, upsert=True)
 
+	@_log_error_event
 	async def parse_member_event(self, update:ChatMemberUpdated):
 		doc = extract_member_update(update)
 		await self.db.members.insert_one(doc)
@@ -220,6 +224,7 @@ class DatabaseDriver:
 		if usr: # don't insert if no diff!
 			await self.db.users.update_one({"id": usr_id}, {"$set": usr}, upsert=True)
 
+	@_log_error_event
 	async def parse_edit_event(self, message:Message): # TODO replace `text` so that we always query most recent edit
 		self.counter.edits()
 		doc = extract_edit_message(message)
@@ -228,6 +233,7 @@ class DatabaseDriver:
 			{"$push": {"edits":	doc} }, sort=[("date",-1)]
 		)
 
+	@_log_error_event
 	async def parse_deletion_event(self, message:Message):
 		deletions = extract_delete(message)
 		for deletion in deletions:
@@ -239,6 +245,7 @@ class DatabaseDriver:
 				flt["chat"] = deletion["chat"]
 			await self.db.messages.update_one(flt, {"$set": {"deleted": deletion["date"]}})
 
+	@_log_error_event
 	async def parse_status_update_event(self, user:User):
 		if user.status == "offline": # just update last online date
 			await self.db.users.update_one({"id": user.id}, # there are a ton of these, can't diff user every time I get one
