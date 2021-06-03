@@ -194,7 +194,7 @@ class DatabaseDriver:
 				await self.db.users.update_one({"id": usr_id}, {"$set": usr}, upsert=True)
 
 	@_log_error_event
-	async def parse_service_event(self, message:Message, ignore_duplicates=False):
+	async def parse_service_event(self, message:Message):
 		msg = extract_service_message(message)
 		await self.db.service.insert_one(msg)
 		if message.chat:
