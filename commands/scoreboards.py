@@ -187,7 +187,13 @@ async def joindate_cmd(client, message):
 		await prog.tick()
 		event = await DRIVER.db.members.find_one(
 			{"chat":target_chat.id, "user":uid, "joined": {"$exists":1}},
-			sort=[("date", ASCENDING)])
+			sort=[("date", ASCENDING)]
+		)
+		if not event: # search in service messages too
+			event = await DRIVER.db.service.find_one(
+				{"chat":target_chat.id, "user":uid, "new_chat_members":uid},
+				sort=[("date", ASCENDING)]
+			)
 		if event:
 			res.append((uid, event['date']))
 		elif also_query:
