@@ -169,6 +169,8 @@ async def top_groups_cmd(client, message):
 	res = []
 	await prog.tick()
 	async for doc in DRIVER.db.chats.find({}):
+		if doc["type"] not in ("group", "supergroup"):
+			continue
 		res.append((doc, sum(doc["messages"][val] for val in doc["messages"]) if "messages" in doc else 0))
 	res.sort(key=lambda x: -x[1])
 	if len(message.command) > 0 and len(res) > results:
