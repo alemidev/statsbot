@@ -133,7 +133,7 @@ async def group_stats_cmd(client, message):
 		oldest = min(oldest, oldest_event["date"])
 	await prog.tick()
 	welcome = random.choice(["Greetings", "Hello", "Good day"])
-	await edit_or_reply(message, f"<code>→ </code> {welcome} members of <b>{get_doc_username(group)}</b>\n" +
+	await edit_or_reply(message, f"<code>→ </code> {welcome} members of <b>{get_username(group)}</b>\n" +
 								 f"<code> → </code> Your group counts <b>{sep(total_messages)}</b> messages\n" +
 								 f"<code>  → </code> Position <b>{sep(position+1)}</b> on global scoreboard\n" +
 								 f"<code>  → </code> <b>{sep(total_media)}</b> media | <b>{sep(total_replies)}</b> replies | <b>{sep(total_edits)}</b> edits\n" +
