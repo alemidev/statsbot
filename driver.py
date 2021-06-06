@@ -191,6 +191,7 @@ class DatabaseDriver:
 			else:
 				self.counter.users()
 			if usr: # don't insert if no diff!
+				usr["messages"] = 0
 				await self.db.users.update_one({"id": usr_id}, {"$set": usr}, upsert=True)
 
 	@_log_error_event
@@ -222,6 +223,7 @@ class DatabaseDriver:
 		else:
 			self.counter.users()
 		if usr: # don't insert if no diff!
+			usr["messages"] = 0
 			await self.db.users.update_one({"id": usr_id}, {"$set": usr}, upsert=True)
 
 	@_log_error_event
