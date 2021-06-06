@@ -108,7 +108,7 @@ async def group_stats_cmd(client, message):
 	prog = ProgressChatAction(client, message.chat.id)
 	await prog.tick()
 	group_doc = await DRIVER.db.chats.find_one({"id":group.id}, {"_id":0, "id":1, "messages":1})
-	total_messages = sum(group_doc["messages"][val] for val in group_doc["messages"])
+	total_messages = sum(group_doc["messages"][val] for val in group_doc["messages"]) if "messages" in group_doc else 0
 	active_users = len(group_doc["messages"])
 	await prog.tick()
 	total_users = await client.get_chat_members_count(group.id)
@@ -121,7 +121,7 @@ async def group_stats_cmd(client, message):
 	await prog.tick()
 	scoreboard_all_chats = await DRIVER.db.chats.find({}, {"_id":0,"id":1,"messages":1}).to_list(None)
 	await prog.tick()
-	scoreboard_all_chats = sorted([ (doc["id"], sum(doc["messages"][val] for val in doc["messages"])) for doc in scoreboard_all_chats ], key=lambda x: -x[1])
+	scoreboard_all_chats = sorted([ (doc["id"], sum(doc["messages"][val] for val in doc["messages"]) if "messages" in doc else 0) for doc in scoreboard_all_chats ], key=lambda x: -x[1])
 	position = [x[0] for x in scoreboard_all_chats].index(group.id)
 	oldest = datetime.now()
 	oldest_message = await DRIVER.db.messages.find_one({"chat":group.id}, sort=[("date",ASCENDING)])
