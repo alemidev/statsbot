@@ -78,5 +78,14 @@ if __name__ == "__main__":
 			curr += 1
 			progress(curr, total)
 			DRIVER.sync_db.members.insert_one({"chat":doc["chat"], "date":doc["date"], "user":doc["left_chat_member"], "performer":doc["user"], "left":True})
+	elif sys.argv[1] in ("user_messages_count", "user_messages"):
+		total  = DRIVER.sync_db.users.count_documents({})
+
+		curr = 0
+		for doc in DRIVER.sync_db.users.find({}):
+			curr += 1
+			progress(curr, total)
+			if "messages" not in doc:
+				DRIVER.sync_db.update_one({"id":doc["id"]}, {"$set":{"messages":0}})
 	else:
 		raise ValueError("No command given")
