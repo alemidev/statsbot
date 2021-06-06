@@ -11,6 +11,8 @@ def get_doc_username(doc:dict, mention=True) -> str:
 		if mention:
 			return f'<a href="tg://user?id={doc["id"]}">{doc["first_name"]}</a>'
 		return doc["first_name"]
+	if "title" in doc and doc["title"]:
+		return doc["title"]
 	if "id" in doc:
 		return str(doc["id"])
 	return None
