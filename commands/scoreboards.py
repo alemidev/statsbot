@@ -65,7 +65,8 @@ async def stats_cmd(client, message):
 	scoreboard_all_users = await DRIVER.db.users.find({}, {"_id":0,"id":1,"messages":1}).to_list(None)
 	await prog.tick()
 	scoreboard_all_users = sorted([ (doc["id"], doc["messages"]) for doc in scoreboard_all_users ], key=lambda x: -x[1])
-	position = [x[0] for x in scoreboard_all_users].index(message.from_user.id)
+	position = [x[0] for x in scoreboard_all_users].index(message.from_user.id) + 1
+	position = sep(position) + (f" {'☆'*4-position}" if position < 4 else "")
 	oldest = datetime.now()
 	oldest_message = await DRIVER.db.messages.find_one({"user":uid}, sort=[("date",ASCENDING)])
 	if oldest_message:
@@ -78,7 +79,7 @@ async def stats_cmd(client, message):
 	welcome = random.choice(["Hi", "Hello", "Welcome", "Nice to see you", "What's up", "Good day"])
 	await edit_or_reply(message, f"<code>→ </code> {welcome} <b>{get_doc_username(user)}</b>\n" +
 								 f"<code> → </code> You sent <b>{sep(total_messages)}</b> messages\n" +
-								 f"<code>  → </code> Position <b>{sep(position+1)}</b> on global scoreboard\n" +
+								 f"<code>  → </code> Position <b>{position}</b> on global scoreboard\n" +
 								 f"<code>  → </code> <b>{sep(total_media)}</b> media | <b>{sep(total_replies)}</b> replies | <b>{sep(total_edits)}</b> edits\n" +
 								 f"<code> → </code> You visited <b>{sep(max(visited_chats, partecipated_chats))}</b> chats\n" +
 								 f"<code>  → </code> and partecipated in <b>{sep(partecipated_chats)}</b>\n" +
@@ -122,7 +123,8 @@ async def group_stats_cmd(client, message):
 	scoreboard_all_chats = await DRIVER.db.chats.find({}, {"_id":0,"id":1,"messages":1}).to_list(None)
 	await prog.tick()
 	scoreboard_all_chats = sorted([ (doc["id"], sum(doc["messages"][val] for val in doc["messages"]) if "messages" in doc else 0) for doc in scoreboard_all_chats ], key=lambda x: -x[1])
-	position = [x[0] for x in scoreboard_all_chats].index(group.id)
+	position = [x[0] for x in scoreboard_all_chats].index(group.id) + 1
+	position = sep(position) + (f" {'☆'*4-position}" if position < 4 else "")
 	oldest = datetime.now()
 	oldest_message = await DRIVER.db.messages.find_one({"chat":group.id}, sort=[("date",ASCENDING)])
 	if oldest_message:
@@ -135,9 +137,9 @@ async def group_stats_cmd(client, message):
 	welcome = random.choice(["Greetings", "Hello", "Good day"])
 	await edit_or_reply(message, f"<code>→ </code> {welcome} members of <b>{get_username(group)}</b>\n" +
 								 f"<code> → </code> Your group counts <b>{sep(total_messages)}</b> messages\n" +
-								 f"<code>  → </code> Position <b>{sep(position+1)}</b> on global scoreboard\n" +
+								 f"<code>  → </code> Position <b>{position}</b> on global scoreboard\n" +
 								 f"<code>  → </code> <b>{sep(total_media)}</b> media | <b>{sep(total_replies)}</b> replies | <b>{sep(total_edits)}</b> edits\n" +
-								 f"<code> → </code> Your chat has <b>{sep(total_users)}</b> users\n" +
+								 f"<code> → </code> Your group has <b>{sep(total_users)}</b> users\n" +
 								 f"<code>  → </code> of these, <b>{sep(active_users)}</b> sent at least 1 message\n" +
 								 f"<code> → </code> Started tracking this chat on <code>{oldest}</code>", parse_mode="html"
 	)
