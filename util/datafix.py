@@ -86,6 +86,6 @@ if __name__ == "__main__":
 			curr += 1
 			progress(curr, total)
 			if "messages" not in doc:
-				DRIVER.sync_db.update_one({"id":doc["id"]}, {"$set":{"messages":0}})
+				DRIVER.sync_db.users.update_one({"id":doc["id"]}, {"$set":{"messages":0}})
 	else:
 		raise ValueError("No command given")
