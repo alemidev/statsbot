@@ -62,6 +62,10 @@ async def stats_cmd(client, message):
 	await prog.tick()
 	partecipated_chats = len(await DRIVER.db.messages.distinct("chat", {"user":uid}))
 	await prog.tick()
+	scoreboard_all_users = await DRIVER.db.users.find({}, {"_id":0,"id":1,"messages":1})
+	await prog.tick()
+	scoreboard_all_users = sorted([ (doc["id"], doc["messages"]) for doc in scoreboard_all_users ], key=lambda x: -x[1])
+	position = [x[0] for x in scoreboard_all_users].index(message.from_user.id)
 	oldest = datetime.now()
 	oldest_message = await DRIVER.db.messages.find_one({"user":uid}, sort=[("date",ASCENDING)])
 	if oldest_message:
@@ -74,9 +78,8 @@ async def stats_cmd(client, message):
 	welcome = random.choice(["Hi", "Hello", "Welcome", "Nice to see you", "What's up", "Good day"])
 	await edit_or_reply(message, f"<code>→ </code> {welcome} <b>{get_doc_username(user)}</b>\n" +
 								 f"<code> → </code> You sent <b>{total_messages}</b> messages\n" +
-								 f"<code>  → </code> <b>{total_media}</b> were media\n" +
-								 f"<code>  → </code> <b>{total_replies}</b> were replies\n" +
-								 f"<code>  → </code> <b>{total_edits}</b> were edited\n" +
+								 f"<code>  → </code> You are in position <b>{position+1}</b> for number of messages\n" +
+								 f"<code>  → </code> <b>{total_media}</b> media | <b>{total_replies}</b> replies | <b>{total_edits}</b> edits\n" +
 								 f"<code> → </code> You visited <b>{sep(max(visited_chats, partecipated_chats))}</b> chats\n" +
 								 f"<code>  → </code> and partecipated in <b>{sep(partecipated_chats)}</b>\n" +
 								 f"<code> → </code> First saw you <code>{oldest}</code>", parse_mode="html"
