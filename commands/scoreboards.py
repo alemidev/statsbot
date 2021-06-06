@@ -101,7 +101,7 @@ async def group_stats_cmd(client, message):
 		return await edit_or_reply(message, "`[!] → ` No chat")
 	group = message.chat
 	if len(message.command) > 0 and check_superuser(message):
-		chat = await client.get_chat(int(message.command[0])
+		group = await client.get_chat(int(message.command[0])
 				if message.command[0].isnumeric() else message.command[0])
 	if group.type not in ("group", "supergroup"):
 		return await edit_or_reply(message, "`[!] → ` Group stats available only in groups and supergroups")
