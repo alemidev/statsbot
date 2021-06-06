@@ -146,15 +146,23 @@ async def group_stats_cmd(client, message):
 
 
 @HELP.add(cmd="[<chat>]")
-@alemiBot.on_message(is_allowed & filterCommand(["topgroups", "topgroup", "top_groups", "top_group"], list(alemiBot.prefixes)))
+@alemiBot.on_message(is_allowed & filterCommand(["topgroups", "topgroup", "top_groups", "top_group"], list(alemiBot.prefixes), options={
+	"results" : ["-r", "--results"],
+	"offset" : ["-o", "--offset"],
+}))
 @report_error(logger)
 @set_offline
 @cancel_chat_action
 async def top_groups_cmd(client, message):
-	"""make a group scoreboard by messages
+	"""list tracked messages for groups
 
-	Still a work in progress
+	Checks (tracked) number of messages sent in each group.
+	By default, will only list top 10 groups, but number of results can be specified with `-r`.
+	An username/group id can be given to center scoreboard on that group.
+	An offset can be manually specified too with `-o`.
 	"""
+	results = min(int(message.command["results"] or 10), 100)
+	offset = int(message.command["offset"] or 0)
 	prog = ProgressChatAction(client, message.chat.id)
 	out = "<code>→ </code> Most active groups\n"
 	msg = await edit_or_reply(message, out, parse_mode="html")
@@ -163,6 +171,9 @@ async def top_groups_cmd(client, message):
 	async for doc in DRIVER.db.chats.find({}):
 		res.append((doc, sum(doc["messages"][val] for val in doc["messages"]) if "messages" in doc else 0))
 	res.sort(key=lambda x: -x[1])
+	if len(message.command) > 0 and len(res) > results:
+		target_group = await client.get_chat(int(message.command[0]) if message.command[0].isnumeric() else message.command[0])
+		offset += [ doc[0]["id"] for doc in res ].index(target_group.id) - (results // 2)
 	stars = 3 if len(res) > 3 else 0
 	count = 0
 	out = ""
