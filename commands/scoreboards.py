@@ -66,7 +66,7 @@ async def stats_cmd(client, message):
 	await prog.tick()
 	scoreboard_all_users = sorted([ (doc["id"], doc["messages"]) for doc in scoreboard_all_users ], key=lambda x: -x[1])
 	position = [x[0] for x in scoreboard_all_users].index(message.from_user.id) + 1
-	position = sep(position) + (f" {'☆'*4-position}" if position < 4 else "")
+	position = sep(position) + (f" {'☆'*(4-position)}" if position < 4 else "")
 	oldest = datetime.now()
 	oldest_message = await DRIVER.db.messages.find_one({"user":uid}, sort=[("date",ASCENDING)])
 	if oldest_message:
@@ -124,7 +124,7 @@ async def group_stats_cmd(client, message):
 	await prog.tick()
 	scoreboard_all_chats = sorted([ (doc["id"], sum(doc["messages"][val] for val in doc["messages"]) if "messages" in doc else 0) for doc in scoreboard_all_chats ], key=lambda x: -x[1])
 	position = [x[0] for x in scoreboard_all_chats].index(group.id) + 1
-	position = sep(position) + (f" {'☆'*4-position}" if position < 4 else "")
+	position = sep(position) + (f" {'☆'*(4-position)}" if position < 4 else "")
 	oldest = datetime.now()
 	oldest_message = await DRIVER.db.messages.find_one({"chat":group.id}, sort=[("date",ASCENDING)])
 	if oldest_message:
