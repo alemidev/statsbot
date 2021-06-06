@@ -165,6 +165,7 @@ def extract_user(user:User):
 			"fake" : user.is_fake,
 			"support" : user.is_support,
 		},
+		"messages" : 0,
 	}
 	if user.photo:
 		obj["photo"] = {
