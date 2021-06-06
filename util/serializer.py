@@ -134,7 +134,10 @@ def extract_service_message(msg:Message):
 	if hasattr(msg, "pinned_message") and msg.pinned_message:
 		doc["pinned_message"] = msg.pinned_message.message_id
 	if hasattr(msg, "game_high_score") and msg.game_high_score:
-		doc["game_high_score"] = msg.game_high_score.score
+		doc["game_high_score"] = {
+			"game": msg.reply_to_message.game.id,
+			"score": msg.game_high_score.score,
+		}
 	if hasattr(msg, "voice_chat_started") and msg.voice_chat_started:
 		doc["voice_chat_started"] = True
 	if hasattr(msg, "voice_chat_ended") and msg.voice_chat_ended:
