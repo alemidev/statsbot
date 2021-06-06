@@ -158,10 +158,10 @@ async def top_groups_cmd(client, message):
 	prog = ProgressChatAction(client, message.chat.id)
 	out = "<code>→ </code> Most active groups\n"
 	msg = await edit_or_reply(message, out, parse_mode="html")
-	results = []
+	res = []
 	await prog.tick()
 	async for doc in DRIVER.db.chats.find({}):
-		results.append((doc, sum(doc["messages"][val] for val in doc["messages"]) if "messages" in doc else 0))
+		res.append((doc, sum(doc["messages"][val] for val in doc["messages"]) if "messages" in doc else 0))
 	res.sort(key=lambda x: -x[1])
 	stars = 3 if len(res) > 3 else 0
 	count = 0
