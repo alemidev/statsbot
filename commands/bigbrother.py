@@ -101,9 +101,9 @@ async def back_fill_messages(client, message, target_group, limit, offset, inter
 			BACKFILL_STOP = False
 			return await edit_or_reply(message, f"<code>[!] → </code> Stopped at [ <b>{sep(count)} / {sep(limit)}</b> ]", parse_mode="html")
 		if msg.service:
-			await DRIVER.parse_service_event(msg, ignore_duplicates=True)
+			await DRIVER.parse_service_event(msg)
 		else:
-			await DRIVER.parse_message_event(msg, ignore_duplicates=True)
+			await DRIVER.parse_message_event(msg)
 		count += 1
 		if not silent and count % interval == 0:
 			await edit_or_reply(message, f"<code> → </code> [ <b>{sep(count)} / {sep(limit)}</b> ]", parse_mode="html")
@@ -390,7 +390,7 @@ async def deleted_cmd(client, message): # This is a mess omg
 			offset -=1
 			continue
 		author = f"<s>{doc['user']}</s>"
-		try:
+		try: # TODO completely rely on database!
 			usr = await (client.get_chat(doc["user"]) if doc["user"] < 0 else client.get_users(doc["user"]))
 			author = get_username(usr)
 		except PeerIdInvalid:
