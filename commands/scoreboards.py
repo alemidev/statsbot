@@ -78,7 +78,7 @@ async def stats_cmd(client, message):
 	welcome = random.choice(["Hi", "Hello", "Welcome", "Nice to see you", "What's up", "Good day"])
 	await edit_or_reply(message, f"<code>→ </code> {welcome} <b>{get_doc_username(user)}</b>\n" +
 								 f"<code> → </code> You sent <b>{total_messages}</b> messages\n" +
-								 f"<code>  → </code> You are in position <b>{position+1}</b> for number of messages\n" +
+								 f"<code>  → </code> Position <b>{position+1}</b> on global scoreboard\n" +
 								 f"<code>  → </code> <b>{total_media}</b> media | <b>{total_replies}</b> replies | <b>{total_edits}</b> edits\n" +
 								 f"<code> → </code> You visited <b>{sep(max(visited_chats, partecipated_chats))}</b> chats\n" +
 								 f"<code>  → </code> and partecipated in <b>{sep(partecipated_chats)}</b>\n" +
