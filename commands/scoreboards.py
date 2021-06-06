@@ -50,7 +50,7 @@ async def stats_cmd(client, message):
 		user = await DRIVER.fetch_user(get_user(message).id, client)
 	prog = ProgressChatAction(client, message.chat.id)
 	uid = user["id"]
-	total_messages = sep(user["messages"] if "messages" in user else 0)
+	total_messages = sep(int(user["messages"]))
 	await prog.tick()
 	total_media = sep(await DRIVER.db.messages.count_documents({"user":uid,"media":{"$exists":1}}))
 	await prog.tick()
@@ -77,12 +77,69 @@ async def stats_cmd(client, message):
 	await prog.tick()
 	welcome = random.choice(["Hi", "Hello", "Welcome", "Nice to see you", "What's up", "Good day"])
 	await edit_or_reply(message, f"<code>→ </code> {welcome} <b>{get_doc_username(user)}</b>\n" +
-								 f"<code> → </code> You sent <b>{total_messages}</b> messages\n" +
-								 f"<code>  → </code> Position <b>{position+1}</b> on global scoreboard\n" +
-								 f"<code>  → </code> <b>{total_media}</b> media | <b>{total_replies}</b> replies | <b>{total_edits}</b> edits\n" +
+								 f"<code> → </code> You sent <b>{sep(total_messages)}</b> messages\n" +
+								 f"<code>  → </code> Position <b>{sep(position+1)}</b> on global scoreboard\n" +
+								 f"<code>  → </code> <b>{sep(total_media)}</b> media | <b>{sep(total_replies)}</b> replies | <b>{sep(total_edits)}</b> edits\n" +
 								 f"<code> → </code> You visited <b>{sep(max(visited_chats, partecipated_chats))}</b> chats\n" +
 								 f"<code>  → </code> and partecipated in <b>{sep(partecipated_chats)}</b>\n" +
 								 f"<code> → </code> First saw you <code>{oldest}</code>", parse_mode="html"
+	)
+
+@HELP.add(sudo=False)
+@alemiBot.on_message(is_allowed & filterCommand(["groupstats", "groupstat"], list(alemiBot.prefixes)))
+@report_error(logger)
+@set_offline
+@cancel_chat_action
+async def group_stats_cmd(client, message):
+	"""get current group stats
+
+	Will show group message count and global scoreboard position.
+	Will show users and active users.
+	Will count media messages, replies and edits.
+	"""
+	if not message.chat:
+		return await edit_or_reply(message, "`[!] → ` No chat")
+	group = message.chat
+	if len(message.command) > 0 and check_superuser(message):
+		chat = await client.get_chat(int(message.command[0])
+				if message.command[0].isnumeric() else message.command[0])
+	if group.type not in ("group", "supergroup"):
+		return await edit_or_reply(message, "`[!] → ` Group stats available only in groups and supergroups")
+	prog = ProgressChatAction(client, message.chat.id)
+	await prog.tick()
+	group_doc = await DRIVER.db.chats.find_one({"id":group.id}, {"_id":0, "id":1, "messages":1})
+	total_messages = sum(group_doc["messages"][val] for val in group_doc["messages"])
+	active_users = len(group_doc["messages"])
+	await prog.tick()
+	total_users = await client.get_chat_members_count(group.id)
+	await prog.tick()
+	total_media = sep(await DRIVER.db.messages.count_documents({"chat":group.id,"media":{"$exists":1}}))
+	await prog.tick()
+	total_edits = sep(await DRIVER.db.messages.count_documents({"chat":group.id,"edits":{"$exists":1}}))
+	await prog.tick()
+	total_replies = sep(await DRIVER.db.messages.count_documents({"chat":group.id,"reply":{"$exists":1}}))
+	await prog.tick()
+	scoreboard_all_chats = await DRIVER.db.chats.find({}, {"_id":0,"id":1,"messages":1}).to_list(None)
+	await prog.tick()
+	scoreboard_all_chats = sorted([ (doc["id"], sum(doc["messages"][val] for val in doc["messages"])) for doc in scoreboard_all_chats ], key=lambda x: -x[1])
+	position = [x[0] for x in scoreboard_all_chats].index(group.id)
+	oldest = datetime.now()
+	oldest_message = await DRIVER.db.messages.find_one({"chat":group.id}, sort=[("date",ASCENDING)])
+	if oldest_message:
+		oldest = oldest_message["date"]
+	await prog.tick()
+	oldest_event = await DRIVER.db.service.find_one({"chat":group.id}, sort=[("date",ASCENDING)])
+	if oldest_event:
+		oldest = min(oldest, oldest_event["date"])
+	await prog.tick()
+	welcome = random.choice(["Greetings", "Hello", "Good day"])
+	await edit_or_reply(message, f"<code>→ </code> {welcome} members of <b>{get_doc_username(group)}</b>\n" +
+								 f"<code> → </code> Your group counts <b>{sep(total_messages)}</b> messages\n" +
+								 f"<code>  → </code> Position <b>{sep(position+1)}</b> on global scoreboard\n" +
+								 f"<code>  → </code> <b>{sep(total_media)}</b> media | <b>{sep(total_replies)}</b> replies | <b>{sep(total_edits)}</b> edits\n" +
+								 f"<code> → </code> Your chat has <b>{sep(total_users)}</b> users\n" +
+								 f"<code>  → </code> of these, <b>{sep(active_users)}</b> sent at least 1 message\n" +
+								 f"<code> → </code> Started tracking this chat on <code>{oldest}</code>", parse_mode="html"
 	)
 
 def user_index(scoreboard, uid):
