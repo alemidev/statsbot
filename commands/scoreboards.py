@@ -144,6 +144,39 @@ async def group_stats_cmd(client, message):
 								 f"<code> → </code> Started tracking this chat on <code>{oldest}</code>", parse_mode="html"
 	)
 
+
+@HELP.add(cmd="[<chat>]")
+@alemiBot.on_message(is_allowed & filterCommand(["topgroups", "topgroup", "top_groups", "top_group"], list(alemiBot.prefixes)))
+@report_error(logger)
+@set_offline
+@cancel_chat_action
+async def top_groups_cmd(client, message):
+	"""make a group scoreboard by messages
+
+	Still a work in progress
+	"""
+	prog = ProgressChatAction(client, message.chat.id)
+	out = "<code>→ </code> Most active groups\n"
+	msg = await edit_or_reply(message, out, parse_mode="html")
+	results = []
+	await prog.tick()
+	async for doc in DRIVER.db.chats.find({}):
+		results.append((doc, sum(doc["messages"][val] for val in doc["messages"]) if "messages" in doc else 0))
+	res.sort(key=lambda x: -x[1])
+	stars = 3 if len(res) > 3 else 0
+	count = 0
+	out = ""
+	for doc, msgs in res:
+		await prog.tick()
+		count += 1
+		if count <= offset:
+			continue
+		if count > offset + results:
+			break
+		out += f"<code> → </code> <b>{count}. {get_doc_username(doc)}</b> [<b>{sep(msgs)}</b>] {'☆'*(stars+1-count)}\n"
+	await edit_or_reply(msg, out, parse_mode="html")
+
+
 def user_index(scoreboard, uid):
 	for index, tup in enumerate(scoreboard):
 		if tup[0] == uid:
