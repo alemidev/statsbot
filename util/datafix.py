@@ -55,7 +55,7 @@ if __name__ == "__main__":
 					DRIVER.sync_db[coll].delete_one({"chat":doc["chat"],"id":doc["id"],"date":doc["date"]})
 					dupes = DRIVER.sync_db[coll].count_documents({"chat":doc["chat"],"id":doc["id"],"date":doc["date"]})
 
-	elif sys.argv[1] in ("count", "count_messages"):
+	elif sys.argv[1] in ("count_all", "count_all_messages"):
 		total = DRIVER.sync_db['messages'].count_documents({})
 
 		curr = 0
@@ -78,14 +78,14 @@ if __name__ == "__main__":
 			curr += 1
 			progress(curr, total)
 			DRIVER.sync_db.members.insert_one({"chat":doc["chat"], "date":doc["date"], "user":doc["left_chat_member"], "performer":doc["user"], "left":True})
-	elif sys.argv[1] in ("user_messages_count", "user_messages"):
+	elif sys.argv[1] in ("count_user", "count_user_messages"):
 		total  = DRIVER.sync_db.users.count_documents({})
 
 		curr = 0
 		for doc in DRIVER.sync_db.users.find({}):
 			curr += 1
 			progress(curr, total)
-			if "messages" not in doc:
-				DRIVER.sync_db.users.update_one({"id":doc["id"]}, {"$set":{"messages":0}})
+			count = DRIVER.sync_db.messages.count_documents({"user":doc["id"]})
+			DRIVER.sync_db.users.update_one({"id":doc["id"]}, {"$set":{"messages":count}})
 	else:
 		raise ValueError("No command given")
