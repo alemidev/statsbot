@@ -201,7 +201,7 @@ def user_index(scoreboard, uid):
 	"chat" : ["-g", "--group"],
 	"results" : ["-r", "--results"],
 	"offset" : ["-o", "--offset"],
-}, flags=["-all"]))
+}, flags=["-all", "-bots"]))
 @report_error(logger)
 @set_offline
 @cancel_chat_action
@@ -213,6 +213,7 @@ async def top_messages_cmd(client, message):
 	By default, will only list top 10 members, but number of results can be specified with `-r`.
 	An username can be given to center scoreboard on that user.
 	An offset can be manually specified too with `-o`.
+	Add flag `-bots` to include bots in global scoreboard (always included in group scoreboards).
 	"""
 	results = min(int(message.command["results"] or 10), 100)
 	offset = int(message.command["offset"] or 0)
@@ -228,7 +229,10 @@ async def top_messages_cmd(client, message):
 	msg = await edit_or_reply(message, out, parse_mode="html")
 	await prog.tick()
 	if global_search:
-		async for u in DRIVER.db.users.find({"messages":{"$exists":1}}, {"_id":0,"id":1,"messages":1}):
+		query = {"messages":{"$exists":1}}
+		if not message.command["-bots"]:
+			query["flags.bot"] = False
+		async for u in DRIVER.db.users.find(query, {"_id":0,"id":1,"messages":1}):
 			await prog.tick()
 			res.append((u['id'], u['messages']))
 	else:
