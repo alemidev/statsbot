@@ -120,7 +120,7 @@ async def group_stats_cmd(client, message):
 	await prog.tick()
 	total_replies = await DRIVER.db.messages.count_documents({"chat":group.id,"reply":{"$exists":1}})
 	await prog.tick()
-	scoreboard_all_chats = await DRIVER.db.chats.find({}, {"_id":0,"id":1,"messages":1}).to_list(None)
+	scoreboard_all_chats = await DRIVER.db.chats.find({"flags.bot":False}, {"_id":0,"id":1,"messages":1}).to_list(None)
 	await prog.tick()
 	scoreboard_all_chats = sorted([ (doc["id"], sum(doc["messages"][val] for val in doc["messages"]) if "messages" in doc else 0) for doc in scoreboard_all_chats ], key=lambda x: -x[1])
 	position = [x[0] for x in scoreboard_all_chats].index(group.id) + 1
