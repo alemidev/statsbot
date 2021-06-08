@@ -50,7 +50,7 @@ async def stats_cmd(client, message):
 		user = await DRIVER.fetch_user(get_user(message).id, client)
 	prog = ProgressChatAction(client, message.chat.id)
 	uid = user["id"]
-	total_messages = sep(int(user["messages"]))
+	total_messages = int(user["messages"])
 	await prog.tick()
 	total_media = await DRIVER.db.messages.count_documents({"user":uid,"media":{"$exists":1}})
 	await prog.tick()
@@ -237,6 +237,8 @@ async def top_messages_cmd(client, message):
 			res.append((u['id'], u['messages']))
 	else:
 		doc = await DRIVER.db.chats.find_one({"id":target_chat.id}, {"_id":0, "messages":1})
+		if not doc or not doc["messages"]:
+			await edit_or_reply(msg, "<code>[!] → </code> No data")
 		res = [ (int(k), doc["messages"][k]) for k in doc["messages"].keys() ]
 	if len(res) < 1:
 		return await edit_or_reply(msg, "<code>[!] → </code> No results")
