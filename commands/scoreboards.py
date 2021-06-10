@@ -50,7 +50,7 @@ async def stats_cmd(client, message):
 		user = await DRIVER.fetch_user(get_user(message).id, client)
 	prog = ProgressChatAction(client, message.chat.id)
 	uid = user["id"]
-	total_messages = sep(int(user["messages"]))
+	total_messages = int(user["messages"])
 	await prog.tick()
 	total_media = await DRIVER.db.messages.count_documents({"user":uid,"media":{"$exists":1}})
 	await prog.tick()
@@ -62,10 +62,10 @@ async def stats_cmd(client, message):
 	await prog.tick()
 	partecipated_chats = len(await DRIVER.db.messages.distinct("chat", {"user":uid}))
 	await prog.tick()
-	scoreboard_all_users = await DRIVER.db.users.find({}, {"_id":0,"id":1,"messages":1}).to_list(None)
+	scoreboard_all_users = await DRIVER.db.users.find({"flags.bot":False}, {"_id":0,"id":1,"messages":1}).to_list(None)
 	await prog.tick()
 	scoreboard_all_users = sorted([ (doc["id"], doc["messages"]) for doc in scoreboard_all_users ], key=lambda x: -x[1])
-	position = [x[0] for x in scoreboard_all_users].index(message.from_user.id) + 1
+	position = [x[0] for x in scoreboard_all_users].index(user["id"]) + 1
 	position = sep(position) + (f" {'☆'*(4-position)}" if position < 4 else "")
 	oldest = datetime.now()
 	oldest_message = await DRIVER.db.messages.find_one({"user":uid}, sort=[("date",ASCENDING)])
@@ -201,7 +201,7 @@ def user_index(scoreboard, uid):
 	"chat" : ["-g", "--group"],
 	"results" : ["-r", "--results"],
 	"offset" : ["-o", "--offset"],
-}, flags=["-all"]))
+}, flags=["-all", "-bots"]))
 @report_error(logger)
 @set_offline
 @cancel_chat_action
@@ -213,6 +213,7 @@ async def top_messages_cmd(client, message):
 	By default, will only list top 10 members, but number of results can be specified with `-r`.
 	An username can be given to center scoreboard on that user.
 	An offset can be manually specified too with `-o`.
+	Add flag `-bots` to include bots in global scoreboard (always included in group scoreboards).
 	"""
 	results = min(int(message.command["results"] or 10), 100)
 	offset = int(message.command["offset"] or 0)
@@ -228,11 +229,16 @@ async def top_messages_cmd(client, message):
 	msg = await edit_or_reply(message, out, parse_mode="html")
 	await prog.tick()
 	if global_search:
-		async for u in DRIVER.db.users.find({"messages":{"$exists":1}}, {"_id":0,"id":1,"messages":1}):
+		query = {"messages":{"$exists":1}}
+		if not message.command["-bots"]:
+			query["flags.bot"] = False
+		async for u in DRIVER.db.users.find(query, {"_id":0,"id":1,"messages":1}):
 			await prog.tick()
 			res.append((u['id'], u['messages']))
 	else:
 		doc = await DRIVER.db.chats.find_one({"id":target_chat.id}, {"_id":0, "messages":1})
+		if not doc or not doc["messages"]:
+			await edit_or_reply(msg, "<code>[!] → </code> No data")
 		res = [ (int(k), doc["messages"][k]) for k in doc["messages"].keys() ]
 	if len(res) < 1:
 		return await edit_or_reply(msg, "<code>[!] → </code> No results")
