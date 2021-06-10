@@ -216,7 +216,7 @@ async def source_cmd(client, message):
 	"filter" : ["-f", "-filter"],
 	"collection" : ["-coll", "-collection"],
 	"database" : ["-db", "-database"]
-}, flags=["-cmd", "-count", "-id"]))
+}, flags=["-cmd", "-count", "-id", "-asc"]))
 @report_error(logger)
 @set_offline
 @cancel_chat_action
@@ -231,6 +231,7 @@ async def query_cmd(client, message):
 	If multiple userbots are logging in the same database (but in different collections), you can specify in which \
 	collection to query with `-coll`. You can also specify which database to use with `-db` option, but the user \
 	which the bot is using to login will need permissions to read.
+	Query will sort by date, descending. Add flag `-asc` to sort ascending.
 	"""
 	if len(message.command) < 1:
 		return await edit_or_reply(message, "`[!] → ` No input")
@@ -256,7 +257,7 @@ async def query_cmd(client, message):
 	elif message.command["-count"]:
 		buf = [ await collection.count_documents(q) ]
 	else:
-		cursor = collection.find(q, flt).sort("date", DESCENDING)
+		cursor = collection.find(q, flt).sort("date", ASCENDING if message.command["-asc"] else DESCENDING)
 		async for doc in cursor.limit(lim):
 			await prog.tick()
 			buf.append(doc)
