@@ -100,6 +100,11 @@ class DatabaseDriver:
 		# This is not unique but still speeds up a ton
 		if not has_index(self.sync_db.members.index_information(), [("chat",1),("user",1),("date",1)]):
 			self.sync_db.members.create_index([("chat",1),("user",1),("date",1)], name="alemibot-member-history")
+		# This is very useful for counting messages for each member
+		if not has_index(self.sync_db.messages.index_information(), [("user",1)]):
+			self.sync_db.messages.create_index([("user",1)], name="alemibot-per-user")
+		if not has_index(self.sync_db.service.index_information(), [("user",1)]):
+			self.sync_db.service.create_index([("user",1)], name="alemibot-per-user")
 		# Building these may fail, run datafix script with duplicates option
 		try:
 			if not has_index(self.sync_db.messages.index_information(), [("chat",1),("id",1),("date",-1)]):
