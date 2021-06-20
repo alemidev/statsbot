@@ -195,8 +195,8 @@ class DatabaseDriver:
 				usr = diff(prev, usr)
 			else:
 				self.counter.users()
-			if usr: # don't insert if no diff!
 				usr["messages"] = 0
+			if usr: # don't insert if no diff!
 				await self.db.users.update_one({"id": usr_id}, {"$set": usr}, upsert=True)
 
 	@_log_error_event
@@ -227,8 +227,8 @@ class DatabaseDriver:
 			usr = diff(prev, usr)
 		else:
 			self.counter.users()
-		if usr: # don't insert if no diff!
 			usr["messages"] = 0
+		if usr: # don't insert if no diff!
 			await self.db.users.update_one({"id": usr_id}, {"$set": usr}, upsert=True)
 
 	@_log_error_event
@@ -247,9 +247,11 @@ class DatabaseDriver:
 			await self.db.deletions.insert_one(deletion)
 			self.counter.deletions()
 
-			flt = {"id": deletion["id"], "dup": None}
+			flt = {"id": deletion["id"]}
 			if "chat" in deletion:
 				flt["chat"] = deletion["chat"]
+			else:
+				flt["chat"] = { "$ge":0 }
 			await self.db.messages.update_one(flt, {"$set": {"deleted": deletion["date"]}})
 
 	@_log_error_event
