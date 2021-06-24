@@ -110,7 +110,7 @@ async def group_stats_cmd(client, message):
 	await prog.tick()
 	group_doc = await DRIVER.db.chats.find_one({"id":group.id}, {"_id":0, "id":1, "messages":1})
 	total_messages = sum(group_doc["messages"][val] for val in group_doc["messages"]) if "messages" in group_doc else 0
-	active_users = len(group_doc["messages"])
+	active_users = len(group_doc["messages"] if "messages" in group_doc else '') # jank null check
 	await prog.tick()
 	total_users = await client.get_chat_members_count(group.id)
 	await prog.tick()
