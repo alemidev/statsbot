@@ -36,7 +36,7 @@ async def dbstats_cmd(client, message):
 
 	List collections, entries, new entries in this session and disk usage.
 	"""
-	with ProgressChatAction(client, message.chat.id) as prog:
+	with ProgressChatAction(client, message.chat.id, random=True) as prog:
 		oldest_msg = await DRIVER.db.messages.find_one({"date":{"$ne":None}}, sort=[("date", ASCENDING)])
 		msg_count = sep(await DRIVER.db.messages.count_documents({}))
 		user_count = sep(await DRIVER.db.users.count_documents({}))
