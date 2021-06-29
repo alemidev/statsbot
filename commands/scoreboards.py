@@ -48,34 +48,25 @@ async def stats_cmd(client, message):
 		user = await DRIVER.fetch_user(target_user.id, client)
 	else:
 		user = await DRIVER.fetch_user(get_user(message).id, client)
-	prog = ProgressChatAction(client, message.chat.id)
 	uid = user["id"]
 	total_messages = int(user["messages"])
-	await prog.tick()
-	total_media = await DRIVER.db.messages.count_documents({"user":uid,"media":{"$exists":1}})
-	await prog.tick()
-	total_edits = await DRIVER.db.messages.count_documents({"user":uid,"edits":{"$exists":1}})
-	await prog.tick()
-	total_replies = await DRIVER.db.messages.count_documents({"user":uid,"reply":{"$exists":1}})
-	await prog.tick()
-	visited_chats = len(await DRIVER.db.service.distinct("chat", {"user":uid}))
-	await prog.tick()
-	partecipated_chats = len(await DRIVER.db.messages.distinct("chat", {"user":uid}))
-	await prog.tick()
-	scoreboard_all_users = await DRIVER.db.users.find({"flags.bot":False}, {"_id":0,"id":1,"messages":1}).to_list(None)
-	await prog.tick()
-	scoreboard_all_users = sorted([ (doc["id"], doc["messages"]) for doc in scoreboard_all_users if "messages" in doc ], key=lambda x: -x[1])
-	position = [x[0] for x in scoreboard_all_users].index(user["id"]) + 1
-	position = sep(position) + (f" {'☆'*(4-position)}" if position < 4 else "")
-	oldest = datetime.now()
-	oldest_message = await DRIVER.db.messages.find_one({"user":uid}, sort=[("date",ASCENDING)])
-	if oldest_message:
-		oldest = oldest_message["date"]
-	await prog.tick()
-	oldest_event = await DRIVER.db.service.find_one({"user":uid}, sort=[("date",ASCENDING)])
-	if oldest_event:
-		oldest = min(oldest, oldest_event["date"])
-	await prog.tick()
+	with ProgressChatAction(client, message.chat.id) as prog:
+		total_media = await DRIVER.db.messages.count_documents({"user":uid,"media":{"$exists":1}})
+		total_edits = await DRIVER.db.messages.count_documents({"user":uid,"edits":{"$exists":1}})
+		total_replies = await DRIVER.db.messages.count_documents({"user":uid,"reply":{"$exists":1}})
+		visited_chats = len(await DRIVER.db.service.distinct("chat", {"user":uid}))
+		partecipated_chats = len(await DRIVER.db.messages.distinct("chat", {"user":uid}))
+		scoreboard_all_users = await DRIVER.db.users.find({"flags.bot":False}, {"_id":0,"id":1,"messages":1}).to_list(None)
+		scoreboard_all_users = sorted([ (doc["id"], doc["messages"]) for doc in scoreboard_all_users if "messages" in doc ], key=lambda x: -x[1])
+		position = [x[0] for x in scoreboard_all_users].index(user["id"]) + 1
+		position = sep(position) + (f" {'☆'*(4-position)}" if position < 4 else "")
+		oldest = datetime.now()
+		oldest_message = await DRIVER.db.messages.find_one({"user":uid}, sort=[("date",ASCENDING)])
+		if oldest_message:
+			oldest = oldest_message["date"]
+		oldest_event = await DRIVER.db.service.find_one({"user":uid}, sort=[("date",ASCENDING)])
+		if oldest_event:
+			oldest = min(oldest, oldest_event["date"])
 	welcome = random.choice(["Hi", "Hello", "Welcome", "Nice to see you", "What's up", "Good day"])
 	await edit_or_reply(message, f"<code>→ </code> {welcome} <b>{get_doc_username(user)}</b>\n" +
 								 f"<code> → </code> You sent <b>{sep(total_messages)}</b> messages\n" +
@@ -106,34 +97,25 @@ async def group_stats_cmd(client, message):
 				if message.command[0].isnumeric() else message.command[0])
 	if group.type not in ("group", "supergroup"):
 		return await edit_or_reply(message, "`[!] → ` Group stats available only in groups and supergroups")
-	prog = ProgressChatAction(client, message.chat.id)
-	await prog.tick()
-	group_doc = await DRIVER.db.chats.find_one({"id":group.id}, {"_id":0, "id":1, "messages":1})
-	total_messages = sum(group_doc["messages"][val] for val in group_doc["messages"]) if "messages" in group_doc else 0
-	active_users = len(group_doc["messages"] if "messages" in group_doc else '') # jank null check
-	await prog.tick()
-	total_users = await client.get_chat_members_count(group.id)
-	await prog.tick()
-	total_media = await DRIVER.db.messages.count_documents({"chat":group.id,"media":{"$exists":1}})
-	await prog.tick()
-	total_edits = await DRIVER.db.messages.count_documents({"chat":group.id,"edits":{"$exists":1}})
-	await prog.tick()
-	total_replies = await DRIVER.db.messages.count_documents({"chat":group.id,"reply":{"$exists":1}})
-	await prog.tick()
-	scoreboard_all_chats = await DRIVER.db.chats.find({}, {"_id":0,"id":1,"messages":1}).to_list(None)
-	await prog.tick()
-	scoreboard_all_chats = sorted([ (doc["id"], sum(doc["messages"][val] for val in doc["messages"]) if "messages" in doc else 0) for doc in scoreboard_all_chats ], key=lambda x: -x[1])
-	position = [x[0] for x in scoreboard_all_chats].index(group.id) + 1
-	position = sep(position) + (f" {'☆'*(4-position)}" if position < 4 else "")
-	oldest = datetime.now()
-	oldest_message = await DRIVER.db.messages.find_one({"chat":group.id}, sort=[("date",ASCENDING)])
-	if oldest_message:
-		oldest = oldest_message["date"]
-	await prog.tick()
-	oldest_event = await DRIVER.db.service.find_one({"chat":group.id}, sort=[("date",ASCENDING)])
-	if oldest_event:
-		oldest = min(oldest, oldest_event["date"])
-	await prog.tick()
+	with ProgressChatAction(client, message.chat.id) as prog:
+		group_doc = await DRIVER.db.chats.find_one({"id":group.id}, {"_id":0, "id":1, "messages":1})
+		total_messages = sum(group_doc["messages"][val] for val in group_doc["messages"]) if "messages" in group_doc else 0
+		active_users = len(group_doc["messages"] if "messages" in group_doc else '') # jank null check
+		total_users = await client.get_chat_members_count(group.id)
+		total_media = await DRIVER.db.messages.count_documents({"chat":group.id,"media":{"$exists":1}})
+		total_edits = await DRIVER.db.messages.count_documents({"chat":group.id,"edits":{"$exists":1}})
+		total_replies = await DRIVER.db.messages.count_documents({"chat":group.id,"reply":{"$exists":1}})
+		scoreboard_all_chats = await DRIVER.db.chats.find({}, {"_id":0,"id":1,"messages":1}).to_list(None)
+		scoreboard_all_chats = sorted([ (doc["id"], sum(doc["messages"][val] for val in doc["messages"]) if "messages" in doc else 0) for doc in scoreboard_all_chats ], key=lambda x: -x[1])
+		position = [x[0] for x in scoreboard_all_chats].index(group.id) + 1
+		position = sep(position) + (f" {'☆'*(4-position)}" if position < 4 else "")
+		oldest = datetime.now()
+		oldest_message = await DRIVER.db.messages.find_one({"chat":group.id}, sort=[("date",ASCENDING)])
+		if oldest_message:
+			oldest = oldest_message["date"]
+		oldest_event = await DRIVER.db.service.find_one({"chat":group.id}, sort=[("date",ASCENDING)])
+		if oldest_event:
+			oldest = min(oldest, oldest_event["date"])
 	welcome = random.choice(["Greetings", "Hello", "Good day"])
 	await edit_or_reply(message, f"<code>→ </code> {welcome} members of <b>{get_username(group)}</b>\n" +
 								 f"<code> → </code> Your group counts <b>{sep(total_messages)}</b> messages\n" +

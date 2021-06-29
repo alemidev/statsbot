@@ -36,43 +36,28 @@ async def dbstats_cmd(client, message):
 
 	List collections, entries, new entries in this session and disk usage.
 	"""
-	prog = ProgressChatAction(client, message.chat.id)
-	await prog.tick()
-	oldest_msg = await DRIVER.db.messages.find_one({"date":{"$ne":None}}, sort=[("date", ASCENDING)])
-	await prog.tick()
-	msg_count = sep(await DRIVER.db.messages.count_documents({}))
-	await prog.tick()
-	user_count = sep(await DRIVER.db.users.count_documents({}))
-	await prog.tick()
-	chat_count = sep(await DRIVER.db.chats.count_documents({}))
-	await prog.tick()
-	deletions_count = sep(await DRIVER.db.deletions.count_documents({}))
-	await prog.tick()
-	service_count = sep(await DRIVER.db.service.count_documents({}))
-	await prog.tick()
-	members_count = sep(await DRIVER.db.members.count_documents({}))
-	await prog.tick()
-	msg_size = order_suffix((await DRIVER.db.command("collstats", "messages"))['totalSize'])
-	await prog.tick()
-	user_size = order_suffix((await DRIVER.db.command("collstats", "users"))['totalSize'])
-	await prog.tick()
-	chat_size = order_suffix((await DRIVER.db.command("collstats", "chats"))['totalSize'])
-	await prog.tick()
-	deletions_size = order_suffix((await DRIVER.db.command("collstats", "deletions"))['totalSize'])
-	await prog.tick()
-	service_size = order_suffix((await DRIVER.db.command("collstats", "service"))['totalSize'])
-	await prog.tick()
-	members_size = order_suffix((await DRIVER.db.command("collstats", "members"))['totalSize'])
-	await prog.tick()
-	db_size = order_suffix((await DRIVER.db.command("dbstats"))["totalSize"])
-	await prog.tick()
-	medianumber = sep(len(os.listdir("plugins/statsbot/data")))
-	proc = await asyncio.create_subprocess_exec( # This is not cross platform!
-		"du", "-b", "plugins/statsbot/data/",
-		stdout=asyncio.subprocess.PIPE,
-		stderr=asyncio.subprocess.STDOUT)
-	stdout, _stderr = await proc.communicate()
-	mediasize = order_suffix(float(stdout.decode('utf-8').split("\t")[0]))
+	with ProgressChatAction(client, message.chat.id) as prog:
+		oldest_msg = await DRIVER.db.messages.find_one({"date":{"$ne":None}}, sort=[("date", ASCENDING)])
+		msg_count = sep(await DRIVER.db.messages.count_documents({}))
+		user_count = sep(await DRIVER.db.users.count_documents({}))
+		chat_count = sep(await DRIVER.db.chats.count_documents({}))
+		deletions_count = sep(await DRIVER.db.deletions.count_documents({}))
+		service_count = sep(await DRIVER.db.service.count_documents({}))
+		members_count = sep(await DRIVER.db.members.count_documents({}))
+		msg_size = order_suffix((await DRIVER.db.command("collstats", "messages"))['totalSize'])
+		user_size = order_suffix((await DRIVER.db.command("collstats", "users"))['totalSize'])
+		chat_size = order_suffix((await DRIVER.db.command("collstats", "chats"))['totalSize'])
+		deletions_size = order_suffix((await DRIVER.db.command("collstats", "deletions"))['totalSize'])
+		service_size = order_suffix((await DRIVER.db.command("collstats", "service"))['totalSize'])
+		members_size = order_suffix((await DRIVER.db.command("collstats", "members"))['totalSize'])
+		db_size = order_suffix((await DRIVER.db.command("dbstats"))["totalSize"])
+		medianumber = sep(len(os.listdir("plugins/statsbot/data")))
+		proc = await asyncio.create_subprocess_exec( # This is not cross platform!
+			"du", "-b", "plugins/statsbot/data/",
+			stdout=asyncio.subprocess.PIPE,
+			stderr=asyncio.subprocess.STDOUT)
+		stdout, _stderr = await proc.communicate()
+		mediasize = order_suffix(float(stdout.decode('utf-8').split("\t")[0]))
 
 	uptime = str(datetime.now() - client.start_time)
 	await edit_or_reply(message, f"<code>→ </code> <b>online for</b> <code>{uptime}</code>" +
