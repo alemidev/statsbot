@@ -49,7 +49,7 @@ async def stats_cmd(client, message):
 	else:
 		user = await DRIVER.fetch_user(get_user(message).id, client)
 	uid = user["id"]
-	total_messages = int(user["messages"])
+	total_messages = int(user["messages"] if "messages" in user else 0)
 	with ProgressChatAction(client, message.chat.id) as prog:
 		total_media = await DRIVER.db.messages.count_documents({"user":uid,"media":{"$exists":1}})
 		total_edits = await DRIVER.db.messages.count_documents({"user":uid,"edits":{"$exists":1}})
