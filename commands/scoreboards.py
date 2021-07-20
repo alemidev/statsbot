@@ -41,6 +41,8 @@ async def stats_cmd(client, message):
 	"""
 	if not get_user(message):
 		return await edit_or_reply(message, "`[!] → ` You are no one")
+	if message.sender_chat: # If sent anonymous msg, do /groupstats by default
+		return await group_stats_cmd(client, message)
 	user = None
 	if len(message.command) > 0 and check_superuser(message):
 		target_user = await client.get_users(int(message.command[0])
