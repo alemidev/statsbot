@@ -80,25 +80,24 @@ async def frequency_cmd(client, message):
 	output = f"<code>→ </code> {where} {from_who} {extra}\n<code>→ </code> <b>{results}</b> most frequent words (<i>len > {min_len}</i>):\n"
 	msg = await edit_or_reply(message, output, parse_mode="html") # placeholder msg so we don't ping if usernames show up
 	# Iterate db
-	prog = ProgressChatAction(client, message.chat.id)
 	words = []             		
 	curr = 0               		
-	cursor = DRIVER.db.messages.find(query).sort("date", DESCENDING)
-	if limit > 0:
-		cursor.limit(limit)
-	async for doc in cursor:
-		await prog.tick()
-		if doc["text"]:
-			words += [ w for w in re.sub(r"[^0-9a-zA-Z\s\n\-\_\@]+", "", doc["text"].lower()).split() if len(w) > min_len ]
-			curr += 1
-	count = Counter(words).most_common()
-	stars = 5 if len(count) > 5 else 0
-	output = f"<code>→ </code> last <b>{sep(curr)}<b> messages\n"
-	for i, word in enumerate(count):
-		output += f"<code> → </code> [<b>{sep(word[1])}</b>] <code>{word[0]}</code> {'☆'*stars}\n"
-		stars -=1
-		if i >= results - 1:
-			break
+	with ProgressChatAction(client, message.chat.id) as prog:
+		cursor = DRIVER.db.messages.find(query).sort("date", DESCENDING)
+		if limit > 0:
+			cursor.limit(limit)
+		async for doc in cursor:
+			if doc["text"]:
+				words += [ w for w in re.sub(r"[^0-9a-zA-Z\s\n\-\_\@]+", "", doc["text"].lower()).split() if len(w) > min_len ]
+				curr += 1
+		count = Counter(words).most_common()
+		stars = 5 if len(count) > 5 else 0
+		output = f"<code>→ </code> last <b>{sep(curr)}<b> messages\n"
+		for i, word in enumerate(count):
+			output += f"<code> → </code> [<b>{sep(word[1])}</b>] <code>{word[0]}</code> {'☆'*stars}\n"
+			stars -=1
+			if i >= results - 1:
+				break
 	await edit_or_reply(msg, output, parse_mode="html")
 
 @HELP.add(cmd="[<number>]", sudo=False)
@@ -123,16 +122,15 @@ async def active_cmd(client, message):
 	if target_group.id != message.chat.id:
 		output = f"<code>→ </code> <b>{get_username(target_group)}</b>\n" + output
 	msg = await edit_or_reply(message, output, parse_mode="html") # Send a placeholder first to not mention everyone
-	query = {"chat":target_group.id}
-	prog = ProgressChatAction(client, message.chat.id)
 	users = [] # using a set() would save me a "in" check but sets don't have order. I want most recently active members on top
-	async for doc in DRIVER.db.messages.find(query).sort("date", DESCENDING).limit(number):
-		await prog.tick()
-		if doc["user"] and doc["user"] not in users:
-			users.append(doc["user"])
-	users = await client.get_users(users)
-	# Build output message
-	output = ""
-	for usr in users:
-		output += f"<code> → </code> <b>{get_username(usr)}</b>\n"
+	query = {"chat":target_group.id}
+	with ProgressChatAction(client, message.chat.id) as prog:
+		async for doc in DRIVER.db.messages.find(query).sort("date", DESCENDING).limit(number):
+			if doc["user"] and doc["user"] not in users:
+				users.append(doc["user"])
+		users = await client.get_users(users)
+		# Build output message
+		output = ""
+		for usr in users:
+			output += f"<code> → </code> <b>{get_username(usr)}</b>\n"
 	await edit_or_reply(msg, output, parse_mode="html")
