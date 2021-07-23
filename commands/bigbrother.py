@@ -2,6 +2,7 @@ import io
 import os
 import re
 import json
+import html
 import asyncio
 
 from datetime import datetime
@@ -392,7 +393,7 @@ async def deleted_cmd(client, message): # This is a mess omg
 			user=author,
 			where=f"(<i>{get_channel(chat_cache[doc['chat']])}</i>)" if all_groups else "",
 			media=f"[<code>{doc['media']}</code>]" if "media" in doc else "",
-			text=doc["text"] if "text" in doc else "",
+			text=html.escape(doc["text"] if "text" in doc else ""),
 		)
 		count += 1
 		if count >= limit:
