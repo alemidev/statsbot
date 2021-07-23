@@ -147,30 +147,28 @@ async def top_groups_cmd(client, message):
 	"""
 	results = min(int(message.command["results"] or 10), 100)
 	offset = int(message.command["offset"] or 0)
-	prog = ProgressChatAction(client, message.chat.id)
 	out = "<code>→ </code> Most active groups\n"
 	msg = await edit_or_reply(message, out, parse_mode="html")
 	res = []
-	await prog.tick()
-	async for doc in DRIVER.db.chats.find({}):
-		if doc["type"] not in ("group", "supergroup"):
-			continue
-		res.append((doc, sum(doc["messages"][val] for val in doc["messages"]) if "messages" in doc else 0))
-	res.sort(key=lambda x: -x[1])
-	if len(message.command) > 0 and len(res) > results:
-		target_group = await client.get_chat(int(message.command[0]) if message.command[0].isnumeric() else message.command[0])
-		offset += [ doc[0]["id"] for doc in res ].index(target_group.id) - (results // 2)
-	stars = 3 if len(res) > 3 else 0
-	count = 0
 	out = ""
-	for doc, msgs in res:
-		await prog.tick()
-		count += 1
-		if count <= offset:
-			continue
-		if count > offset + results:
-			break
-		out += f"<code> → </code> <b>{count}. {get_doc_username(doc)}</b> [<b>{sep(msgs)}</b>] {'☆'*(stars+1-count)}\n"
+	with ProgressChatAction(client, message.chat.id) as prog:
+		async for doc in DRIVER.db.chats.find({}):
+			if doc["type"] not in ("group", "supergroup"):
+				continue
+			res.append((doc, sum(doc["messages"][val] for val in doc["messages"]) if "messages" in doc else 0))
+		res.sort(key=lambda x: -x[1])
+		if len(message.command) > 0 and len(res) > results:
+			target_group = await client.get_chat(int(message.command[0]) if message.command[0].isnumeric() else message.command[0])
+			offset += [ doc[0]["id"] for doc in res ].index(target_group.id) - (results // 2)
+		stars = 3 if len(res) > 3 else 0
+		count = 0
+		for doc, msgs in res:
+			count += 1
+			if count <= offset:
+				continue
+			if count > offset + results:
+				break
+			out += f"<code> → </code> <b>{count}. {get_doc_username(doc)}</b> [<b>{sep(msgs)}</b>] {'☆'*(stars+1-count)}\n"
 	await edit_or_reply(msg, out, parse_mode="html")
 
 
@@ -208,40 +206,37 @@ async def top_messages_cmd(client, message):
 			else message.command["chat"]
 		target_chat = await client.get_chat(tgt)
 	res = []
-	prog = ProgressChatAction(client, message.chat.id)
 	out = "<code>→ </code> Messages sent <b>globally</b>\n" if global_search else f"<code>→ </code> Messages sent in <b>{get_username(target_chat)}</b>\n"
 	msg = await edit_or_reply(message, out, parse_mode="html")
-	await prog.tick()
-	if global_search:
-		query = {"messages":{"$exists":1}}
-		if not message.command["-bots"]:
-			query["flags.bot"] = False
-		async for u in DRIVER.db.users.find(query, {"_id":0,"id":1,"messages":1}):
-			await prog.tick()
-			res.append((u['id'], u['messages']))
-	else:
-		doc = await DRIVER.db.chats.find_one({"id":target_chat.id}, {"_id":0, "messages":1})
-		if not doc or not doc["messages"]:
-			return await edit_or_reply(msg, "<code>[!] → </code> No data available")
-		res = [ (int(k), doc["messages"][k]) for k in doc["messages"].keys() ]
-	if len(res) < 1:
-		return await edit_or_reply(msg, "<code>[!] → </code> No results")
-	res.sort(key=lambda x: -x[1])
-	if len(message.command) > 0 and len(res) > results:
-		target_user = await client.get_users(int(message.command[0]) if message.command[0].isnumeric() else message.command[0])
-		offset += user_index(res, target_user.id) - (results // 2)
-	stars = 3 if len(res) > 3 else 0
-	count = 0
-	out = ""
-	for usr, msgs in res:
-		await prog.tick()
-		count += 1
-		if count <= offset:
-			continue
-		if count > offset + results:
-			break
-		user_doc = await DRIVER.fetch_user(usr, client)
-		out += f"<code> → </code> <b>{count}. {get_doc_username(user_doc)}</b> [<b>{sep(msgs)}</b>] {'☆'*(stars+1-count)}\n"
+	with ProgressChatAction(client, message.chat.id) as prog:
+		if global_search:
+			query = {"messages":{"$exists":1}}
+			if not message.command["-bots"]:
+				query["flags.bot"] = False
+			async for u in DRIVER.db.users.find(query, {"_id":0,"id":1,"messages":1}):
+				res.append((u['id'], u['messages']))
+		else:
+			doc = await DRIVER.db.chats.find_one({"id":target_chat.id}, {"_id":0, "messages":1})
+			if not doc or not doc["messages"]:
+				return await edit_or_reply(msg, "<code>[!] → </code> No data available")
+			res = [ (int(k), doc["messages"][k]) for k in doc["messages"].keys() ]
+		if len(res) < 1:
+			return await edit_or_reply(msg, "<code>[!] → </code> No results")
+		res.sort(key=lambda x: -x[1])
+		if len(message.command) > 0 and len(res) > results:
+			target_user = await client.get_users(int(message.command[0]) if message.command[0].isnumeric() else message.command[0])
+			offset += user_index(res, target_user.id) - (results // 2)
+		stars = 3 if len(res) > 3 else 0
+		count = 0
+		out = ""
+		for usr, msgs in res:
+			count += 1
+			if count <= offset:
+				continue
+			if count > offset + results:
+				break
+			user_doc = await DRIVER.fetch_user(usr, client)
+			out += f"<code> → </code> <b>{count}. {get_doc_username(user_doc)}</b> [<b>{sep(msgs)}</b>] {'☆'*(stars+1-count)}\n"
 	await edit_or_reply(msg, out, parse_mode="html")
 
 @HELP.add(cmd="[<user>]", sudo=False)
@@ -276,51 +271,49 @@ async def joindate_cmd(client, message):
 	if target_chat.type in ("bot", "private"):
 		return await edit_or_reply(message, "<code>[!] → </code> Can't query join dates in private chat")
 	res = []
-	prog = ProgressChatAction(client, message.chat.id)
 	out = f"<code>→ </code> Join dates in <b>{get_channel(target_chat)}</b>\n"
 	msg = await edit_or_reply(message, out, parse_mode="html")
-	members = await DRIVER.db.chats.find_one({"id":target_chat.id},{"_id":0,"messages":1})
-	members = [int(k) for k in members["messages"].keys()]
-	for uid in members:
-		await prog.tick()
-		event = await DRIVER.db.members.find_one(
-			{"chat":target_chat.id, "user":uid, "joined": {"$exists":1}},
-			sort=[("date", ASCENDING)]
-		)
-		if not event: # search in service messages too
-			event = await DRIVER.db.service.find_one(
-				{"chat":target_chat.id, "user":uid, "new_chat_members":uid},
+	with ProgressChatAction(client, message.chat.id) as prog:
+		members = await DRIVER.db.chats.find_one({"id":target_chat.id},{"_id":0,"messages":1})
+		members = [int(k) for k in members["messages"].keys()]
+		for uid in members:
+			event = await DRIVER.db.members.find_one(
+				{"chat":target_chat.id, "user":uid, "joined": {"$exists":1}},
 				sort=[("date", ASCENDING)]
 			)
-		if event:
-			res.append((uid, event['date']))
-		elif also_query:
-			try:
-				m = await client.get_chat_member(target_chat.id, uid)
-			except UserNotParticipant: # user left, can't query for a date anymore
+			if not event: # search in service messages too
+				event = await DRIVER.db.service.find_one(
+					{"chat":target_chat.id, "user":uid, "new_chat_members":uid},
+					sort=[("date", ASCENDING)]
+				)
+			if event:
+				res.append((uid, event['date']))
+			elif also_query:
+				try:
+					m = await client.get_chat_member(target_chat.id, uid)
+				except UserNotParticipant: # user left, can't query for a date anymore
+					continue
+				await DRIVER.db.members.insert_one(
+					{"chat":target_chat.id, "user":uid, "joined":True,
+					"date":datetime.utcfromtimestamp(m.joined_date)})
+				res.append((uid, datetime.utcfromtimestamp(m.joined_date)))
+		if len(res) < 1:
+			return await edit_or_reply(msg, "<code>[!] → </code> No results")
+		res.sort(key=lambda x: x[1])
+		if len(message.command) > 0 and len(res) > results:
+			target_user = await client.get_users(int(message.command[0]) if message.command[0].isnumeric() else message.command[0])
+			i = user_index(res, target_user.id)
+			if i > 0:
+				offset += i - (results // 2)
+		stars = 3 if len(res) > 3 else 0
+		count = 0
+		out = ""
+		for usr, date in res:
+			count += 1
+			if count <= offset:
 				continue
-			await DRIVER.db.members.insert_one(
-				{"chat":target_chat.id, "user":uid, "joined":True,
-				"date":datetime.utcfromtimestamp(m.joined_date)})
-			res.append((uid, datetime.utcfromtimestamp(m.joined_date)))
-	if len(res) < 1:
-		return await edit_or_reply(msg, "<code>[!] → </code> No results")
-	res.sort(key=lambda x: x[1])
-	if len(message.command) > 0 and len(res) > results:
-		target_user = await client.get_users(int(message.command[0]) if message.command[0].isnumeric() else message.command[0])
-		i = user_index(res, target_user.id)
-		if i > 0:
-			offset += i - (results // 2)
-	stars = 3 if len(res) > 3 else 0
-	count = 0
-	out = ""
-	for usr, date in res:
-		await prog.tick()
-		count += 1
-		if count <= offset:
-			continue
-		if count > offset + results:
-			break
-		user_doc = await DRIVER.fetch_user(usr, client)
-		out += f"<code> → </code> <b>{count}. {get_doc_username(user_doc)}</b> [<code>{str(date)}</code>] {'☆'*(stars+1-count)}\n"
+			if count > offset + results:
+				break
+			user_doc = await DRIVER.fetch_user(usr, client)
+			out += f"<code> → </code> <b>{count}. {get_doc_username(user_doc)}</b> [<code>{str(date)}</code>] {'☆'*(stars+1-count)}\n"
 	await edit_or_reply(msg, out, parse_mode="html")

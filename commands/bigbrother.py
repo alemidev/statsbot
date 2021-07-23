@@ -179,14 +179,12 @@ async def source_cmd(client, message):
 		return await edit_or_reply(message, "<code>[!] → </code> No input", parse_mode="html")
 	minmsgs = int(message.command["min"] or 10)
 	msg = await edit_or_reply(message, f"<code>→ </code> Chats mentioning <code>{message.command[0]}</code> (<i>>= {minmsgs} times</i>)", parse_mode="html")
-	prog = ProgressChatAction(client, message.chat.id, action="playing")
 	results = []
-	await prog.tick()
-	for chat in await DRIVER.db.messages.distinct("chat", {"text": {"$regex": message.command[0]}}):
-		await prog.tick()
-		count = await DRIVER.db.messages.count_documents({"chat":chat,"text":{"$regex":message.command[0]}})
-		if count >= minmsgs:
-			results.append((await safe_get_chat(client, chat), count))
+	with ProgressChatAction(client, message.chat.id, action="playing") as prog:
+		for chat in await DRIVER.db.messages.distinct("chat", {"text": {"$regex": message.command[0]}}):
+			count = await DRIVER.db.messages.count_documents({"chat":chat,"text":{"$regex":message.command[0]}})
+			if count >= minmsgs:
+				results.append((await safe_get_chat(client, chat), count))
 	if len(results) < 1:
 		return await edit_or_reply(msg, "<code>[!] → </code> No results", parse_mode="html")
 	results.sort(key= lambda x: x[1], reverse=True)
@@ -234,7 +232,7 @@ async def query_cmd(client, message):
 
 	q = json.loads(message.command[0])
 	flt = json.loads(message.command["filter"] or '{}')
-	prog = ProgressChatAction(client, message.chat.id)
+	with ProgressChatAction(client, message.chat.id) as prog:
 	if not message.command["-id"]:
 		flt["_id"] = False
 
@@ -292,7 +290,7 @@ async def hist_cmd(client, message):
 		out = LINE.format(
 			date=f"[--{doc['date']}--]" if show_time else "",
 			author=f"**{author}** >" if show_author else "",
-			text=doc["text"],
+			text=html.escape(doc["text"] if "text" in doc else ""),
 		) 
 		if "edits" in doc:
 			for edit in doc["edits"]:
@@ -362,7 +360,6 @@ async def deleted_cmd(client, message): # This is a mess omg
 	if target_group:
 		flt["chat"] = target_group.id
 
-	prog = ProgressChatAction(client, message.chat.id)
 	pre_text = f"<code>→ </code> Peeking <b>{limit}</b> message{'s' if limit > 1 else ''} " + \
 			("down " if msg_after else "") + \
 			(f"in <b>{get_channel(target_group)}</b> " if "group" in message.command else '') + \
@@ -372,32 +369,32 @@ async def deleted_cmd(client, message): # This is a mess omg
 	cursor = DRIVER.db.messages.find(flt).sort("date", ASCENDING if msg_after else DESCENDING)
 	chat_cache = {}
 	out = ""
-	async for doc in cursor:
-		await prog.tick()
-		if offset > 0:
-			offset -=1
-			continue
-		author = f"<s>{doc['user']}</s>"
-		try: # TODO completely rely on database!
-			usr = await (client.get_chat(doc["user"]) if doc["user"] < 0 else client.get_users(doc["user"]))
-			if not message.command["-bots"] and doc["user"] > 0 and usr.is_bot:
+	with ProgressChatAction(client, message.chat.id) as prog:
+		async for doc in cursor:
+			if offset > 0:
+				offset -=1
 				continue
-			author = get_username(usr)
-		except PeerIdInvalid:
-			pass # ignore, sometimes we can't lookup users
-		if doc["chat"] not in chat_cache: # cache since this causes floodwaits!
-			chat_cache[doc["chat"]] = await client.get_chat(doc["chat"])
-		out += LINE.format(
-			time=f"[<code>{doc['date']}</code>] " if show_time else "",
-			m_id=f"[<code>{doc['id']}</code>] " if show_id else "",
-			user=author,
-			where=f"(<i>{get_channel(chat_cache[doc['chat']])}</i>)" if all_groups else "",
-			media=f"[<code>{doc['media']}</code>]" if "media" in doc else "",
-			text=html.escape(doc["text"] if "text" in doc else ""),
-		)
-		count += 1
-		if count >= limit:
-			break
+			author = f"<s>{doc['user']}</s>"
+			try: # TODO completely rely on database!
+				usr = await (client.get_chat(doc["user"]) if doc["user"] < 0 else client.get_users(doc["user"]))
+				if not message.command["-bots"] and doc["user"] > 0 and usr.is_bot:
+					continue
+				author = get_username(usr)
+			except PeerIdInvalid:
+				pass # ignore, sometimes we can't lookup users
+			if doc["chat"] not in chat_cache: # cache since this causes floodwaits!
+				chat_cache[doc["chat"]] = await client.get_chat(doc["chat"])
+			out += LINE.format(
+				time=f"[<code>{doc['date']}</code>] " if show_time else "",
+				m_id=f"[<code>{doc['id']}</code>] " if show_id else "",
+				user=author,
+				where=f"(<i>{get_channel(chat_cache[doc['chat']])}</i>)" if all_groups else "",
+				media=f"[<code>{doc['media']}</code>]" if "media" in doc else "",
+				text=html.escape(doc["text"] if "text" in doc else ""),
+			)
+			count += 1
+			if count >= limit:
+				break
 	if not out:
 		out += "<code>[!] → </code> Nothing to display"
 	await edit_or_reply(msg, out, parse_mode="html")
