@@ -232,7 +232,7 @@ async def query_cmd(client, message):
 
 	q = json.loads(message.command[0])
 	flt = json.loads(message.command["filter"] or '{}')
-	with ProgressChatAction(client, message.chat.id) as prog:
+	prog = ProgressChatAction(client, message.chat.id)
 	if not message.command["-id"]:
 		flt["_id"] = False
 
