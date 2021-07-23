@@ -308,7 +308,7 @@ async def hist_cmd(client, message):
 @alemiBot.on_message(is_allowed & filterCommand(["peek", "deld", "deleted", "removed"], list(alemiBot.prefixes), options={
 	"group" : ["-g", "-group"],
 	"offset" : ["-o", "-offset"],
-}, flags=["-time", "-id", "-all", "-down"]))
+}, flags=["-time", "-id", "-all", "-down", "-bots"]))
 @report_error(logger)
 @set_offline
 async def deleted_cmd(client, message): # This is a mess omg
@@ -323,6 +323,7 @@ async def deleted_cmd(client, message): # This is a mess omg
 	An offset can be specified with `-o` : if given, the most `<offset>` recent messages will be skipped and older messages will be peeked.
 	Superuser can peek globally (`-all`) or in a specific group (`-g <id>`).
 	Keep in mind that Telegram doesn't send easy to use deletion data, so the bot needs to lookup ids and messages in the database when he receives a deletion.
+	Messages from bots will be filtered out, add `-bots` flag to keep them.
 	Telegram doesn't even always include the chat id, so false positives may happen.
 	For specific searches, use the query (`.q`) command.
 	"""
@@ -378,6 +379,8 @@ async def deleted_cmd(client, message): # This is a mess omg
 		author = f"<s>{doc['user']}</s>"
 		try: # TODO completely rely on database!
 			usr = await (client.get_chat(doc["user"]) if doc["user"] < 0 else client.get_users(doc["user"]))
+			if not message.command["-bots"] and doc["user"] > 0 and usr.is_bot:
+				continue
 			author = get_username(usr)
 		except PeerIdInvalid:
 			pass # ignore, sometimes we can't lookup users
