@@ -30,7 +30,13 @@ class Counter:
 	   Increase (and add new value if missing) just with
 	   		counter.something() """
 	def __init__(self, keys:list):
+		self.start = datetime.now()
 		self.storage = { k : 0 for k in keys }
+
+	def per_second(self, name:str) -> float:
+		"""Calculate how many events per second happened since bot start"""
+		delta = (datetime.now() - self.start).total_seconds()
+		return self.storage[name] / delta
 
 	def __getattr__(self, name:str) -> int:
 		if name not in self.storage:
