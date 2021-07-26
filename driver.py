@@ -35,6 +35,8 @@ class Counter:
 
 	def per_second(self, name:str) -> float:
 		"""Calculate how many events per second happened since bot start"""
+		if name not in self.storage:
+			self.storage[name] = 0
 		delta = (datetime.now() - self.start).total_seconds()
 		return self.storage[name] / delta
 
