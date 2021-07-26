@@ -62,6 +62,12 @@ async def stats_cmd(client, message):
 		scoreboard_all_users = sorted([ (doc["id"], doc["messages"]) for doc in scoreboard_all_users if "messages" in doc ], key=lambda x: -x[1])
 		position = [x[0] for x in scoreboard_all_users].index(user["id"]) + 1
 		position = sep(position) + (f" {'☆'*(4-position)}" if position < 4 else "")
+		# Calculate msgs/minute sent today
+		today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0) # Force start of day
+		minutes_passed_today = (datetime.utcnow() - today).total_seconds() / 60
+		msgs_today = await DRIVER.db.messages.count_documents({"user":uid,"date":{"$gte":today}})
+		msgs_per_minute_today = msgs_today / minutes_passed_today
+		# Calculate oldest message
 		oldest = datetime.now()
 		oldest_message = await DRIVER.db.messages.find_one({"user":uid}, sort=[("date",ASCENDING)])
 		if oldest_message:
@@ -73,6 +79,7 @@ async def stats_cmd(client, message):
 	await edit_or_reply(message, f"<code>→ </code> {welcome} <b>{get_doc_username(user)}</b>\n" +
 								 f"<code> → </code> You sent <b>{sep(total_messages)}</b> messages\n" +
 								 f"<code>  → </code> Position <b>{position}</b> on global scoreboard\n" +
+								 f"<code>  → </code> Average of <b>{msgs_per_minute_today:.1f}</b> messages per minute\n" +
 								 f"<code>  → </code> <b>{sep(total_media)}</b> media | <b>{sep(total_replies)}</b> replies | <b>{sep(total_edits)}</b> edits\n" +
 								 f"<code> → </code> You visited <b>{sep(max(visited_chats, partecipated_chats))}</b> chats\n" +
 								 f"<code>  → </code> and partecipated in <b>{sep(partecipated_chats)}</b>\n" +
@@ -111,6 +118,12 @@ async def group_stats_cmd(client, message):
 		scoreboard_all_chats = sorted([ (doc["id"], sum(doc["messages"][val] for val in doc["messages"]) if "messages" in doc else 0) for doc in scoreboard_all_chats ], key=lambda x: -x[1])
 		position = [x[0] for x in scoreboard_all_chats].index(group.id) + 1
 		position = sep(position) + (f" {'☆'*(4-position)}" if position < 4 else "")
+		# Calculate msgs/minute sent today
+		today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0) # Force start of day
+		minutes_passed_today = (datetime.utcnow() - today).total_seconds() / 60
+		msgs_today = await DRIVER.db.messages.count_documents({"chat":group.id,"date":{"$gte":today}})
+		msgs_per_minute_today = msgs_today / minutes_passed_today
+		# Calculate oldest message
 		oldest = datetime.now()
 		oldest_message = await DRIVER.db.messages.find_one({"chat":group.id}, sort=[("date",ASCENDING)])
 		if oldest_message:
@@ -122,6 +135,7 @@ async def group_stats_cmd(client, message):
 	await edit_or_reply(message, f"<code>→ </code> {welcome} members of <b>{get_username(group)}</b>\n" +
 								 f"<code> → </code> Your group counts <b>{sep(total_messages)}</b> messages\n" +
 								 f"<code>  → </code> Position <b>{position}</b> on global scoreboard\n" +
+								 f"<code>  → </code> Average of <b>{msgs_per_minute_today:.1f}</b> messages per minute\n" +
 								 f"<code>  → </code> <b>{sep(total_media)}</b> media | <b>{sep(total_replies)}</b> replies | <b>{sep(total_edits)}</b> edits\n" +
 								 f"<code> → </code> Your group has <b>{sep(total_users)}</b> users\n" +
 								 f"<code>  → </code> of these, <b>{sep(active_users)}</b> sent at least 1 message\n" +
