@@ -55,7 +55,7 @@ async def dbstats_cmd(client, message):
 		medianumber = sep(len(os.listdir("plugins/statsbot/data")))
 		now = datetime.now()
 		msgs_per_s = DRIVER.counter['messages'] / (now - client.start_time).total_seconds()
-		service_per_min = DRIVER.counter['service'] / ((now - client.start_time).total_seconds() / 3600)
+		service_per_h = DRIVER.counter['service'] / ((now - client.start_time).total_seconds() / 3600)
 		deletions_per_s = DRIVER.counter['deletions'] / (now - client.start_time).total_seconds()
 		members_per_h = DRIVER.counter['members'] / ((now - client.start_time).total_seconds() / 3600)
 		users_per_h = DRIVER.counter['users'] / ((now - client.start_time).total_seconds() / 3600)
