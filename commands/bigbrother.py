@@ -53,6 +53,13 @@ async def dbstats_cmd(client, message):
 		members_size = order_suffix((await DRIVER.db.command("collstats", "members"))['totalSize'])
 		db_size = order_suffix((await DRIVER.db.command("dbstats"))["totalSize"])
 		medianumber = sep(len(os.listdir("plugins/statsbot/data")))
+		now = datetime.now()
+		msgs_per_s = DRIVER.counter['messages'] / (now - client.start_time).total_seconds()
+		service_per_min = DRIVER.counter['service'] / ((now - client.start_time).total_seconds() / 3600)
+		deletions_per_s = DRIVER.counter['deletions'] / (now - client.start_time).total_seconds()
+		members_per_h = DRIVER.counter['members'] / ((now - client.start_time).total_seconds() / 3600)
+		users_per_h = DRIVER.counter['users'] / ((now - client.start_time).total_seconds() / 3600)
+		chats_per_h = DRIVER.counter['chats'] / ((now - client.start_time).total_seconds() / 3600)
 		proc = await asyncio.create_subprocess_exec( # This is not cross platform!
 			"du", "-b", "plugins/statsbot/data/",
 			stdout=asyncio.subprocess.PIPE,
@@ -63,12 +70,12 @@ async def dbstats_cmd(client, message):
 	uptime = str(datetime.now() - client.start_time)
 	await edit_or_reply(message, f"<code>→ </code> <b>online for</b> <code>{uptime}</code>" +
 					f"\n<code>→ </code> <b>first event</b> <code>{oldest_msg['date']}</code>" +
-					f"\n<code> → </code> <b>{msg_count}</b> msgs logged (+{sep(DRIVER.counter['messages'])} new | <i>{DRIVER.counter.per_second('messages'):.2f}/s</i> | <b>{msg_size}</b>)" +
-					f"\n<code> → </code> <b>{service_count}</b> events tracked (+{sep(DRIVER.counter['service'])} new | <i>{DRIVER.counter.per_second('service'):.2f}/s</i> | <b>{service_size}</b>)" +
-					f"\n<code> → </code> <b>{deletions_count}</b> deletions saved (+{sep(DRIVER.counter['deletions'])} new | <i>{DRIVER.counter.per_second('deletions'):.2f}/s</i> | <b>{deletions_size}</b>)" +
-					f"\n<code> → </code> <b>{members_count}</b> members updated (+{sep(DRIVER.counter['members'])} new | <i>{DRIVER.counter.per_second('members'):.2f}/s</i> | <b>{members_size}</b>)" +
-					f"\n<code> → </code> <b>{user_count}</b> users met (+{sep(DRIVER.counter['users'])} new | <i>{DRIVER.counter.per_second('users'):.2f}/s</i> | <b>{user_size}</b>)" +
-					f"\n<code> → </code> <b>{chat_count}</b> chats visited (+{sep(DRIVER.counter['chats'])} new | <i>{DRIVER.counter.per_second('chats'):.2f}/s</i> | <b>{chat_size}</b>)" +
+					f"\n<code> → </code> <b>{msg_count}</b> msgs logged (+{sep(DRIVER.counter['messages'])} new | <i>{msgs_per_s:.2f}/s</i> | <b>{msg_size}</b>)" +
+					f"\n<code> → </code> <b>{service_count}</b> events tracked (+{sep(DRIVER.counter['service'])} new | <i>{service_per_h:.2f}/h</i> | <b>{service_size}</b>)" +
+					f"\n<code> → </code> <b>{deletions_count}</b> deletions saved (+{sep(DRIVER.counter['deletions'])} new | <i>{deletions_per_s:.2f}/s</i> | <b>{deletions_size}</b>)" +
+					f"\n<code> → </code> <b>{members_count}</b> members updated (+{sep(DRIVER.counter['members'])} new | <i>{members_per_h:.2f}/h</i> | <b>{members_size}</b>)" +
+					f"\n<code> → </code> <b>{user_count}</b> users met (+{sep(DRIVER.counter['users'])} new | <i>{users_per_h:.2f}/h</i> | <b>{user_size}</b>)" +
+					f"\n<code> → </code> <b>{chat_count}</b> chats visited (+{sep(DRIVER.counter['chats'])} new | <i>{chats_per_h:.2f}/h</i> | <b>{chat_size}</b>)" +
 					f"\n<code> → </code> DB total size <b>{db_size}</b>" +
 					f"\n<code> → </code> <b>{medianumber}</b> documents archived (size <b>{mediasize}</b>)", parse_mode="html"
 	)
