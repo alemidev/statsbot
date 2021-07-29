@@ -166,9 +166,11 @@ class DatabaseDriver:
 		if not usr:
 			try:
 				usr = extract_user(await client.get_users(uid))
+				await self.db.users.insert_one(usr)
 			except PeerIdInvalid:
 				return {"id":uid}
-			await self.db.users.insert_one(usr)
+			except (ServerSelectionTimeoutError, DuplicateKeyError):
+				pass # ignore, usr has been set anyway
 		return usr
 
 	@_log_error_event
