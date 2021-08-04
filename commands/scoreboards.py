@@ -108,14 +108,16 @@ async def group_stats_cmd(client, message):
 		return await edit_or_reply(message, "`[!] → ` Group stats available only in groups and supergroups")
 	with ProgressChatAction(client, message.chat.id) as prog:
 		group_doc = await DRIVER.db.chats.find_one({"id":group.id}, {"_id":0, "id":1, "messages":1})
-		total_messages = sum(group_doc["messages"][val] for val in group_doc["messages"]) if "messages" in group_doc else 0
+		# total_messages = sum(group_doc["messages"][val] for val in group_doc["messages"]) if "messages" in group_doc else 0
+		total_messages = group_doc["messages"]["total"]
 		active_users = len(group_doc["messages"] if "messages" in group_doc else '') # jank null check
 		total_users = await client.get_chat_members_count(group.id)
 		total_media = await DRIVER.db.messages.count_documents({"chat":group.id,"media":{"$exists":1}})
 		total_edits = await DRIVER.db.messages.count_documents({"chat":group.id,"edits":{"$exists":1}})
 		total_replies = await DRIVER.db.messages.count_documents({"chat":group.id,"reply":{"$exists":1}})
 		scoreboard_all_chats = await DRIVER.db.chats.find({}, {"_id":0,"id":1,"messages":1}).to_list(None)
-		scoreboard_all_chats = sorted([ (doc["id"], sum(doc["messages"][val] for val in doc["messages"]) if "messages" in doc else 0) for doc in scoreboard_all_chats ], key=lambda x: -x[1])
+		# scoreboard_all_chats = sorted([ (doc["id"], sum(doc["messages"][val] for val in doc["messages"]) if "messages" in doc else 0) for doc in scoreboard_all_chats ], key=lambda x: -x[1])
+		scoreboard_all_chats = sorted([ (doc["id"], doc["messages"]["total"]) if "messages" in doc and "total" in doc["messages"]) for doc in scoreboard_all_chats ], key=lambda x: -x[1])
 		position = [x[0] for x in scoreboard_all_chats].index(group.id) + 1
 		position = sep(position) + (f" {'☆'*(4-position)}" if position < 4 else "")
 		# Calculate msgs/minute sent today
@@ -307,10 +309,14 @@ async def joindate_cmd(client, message):
 					m = await client.get_chat_member(target_chat.id, uid)
 				except (UserNotParticipant, PeerIdInvalid): # user left, can't query for a date anymore
 					continue
+				joined_date = m.joined_date
+				if joined_date is None: # Chat creator, get 1st event in target chat
+					first_message = await client.get_history(target_chat.id, limit=1, reverse=True)
+					joined_date = first_message[0].date
 				await DRIVER.db.members.insert_one(
 					{"chat":target_chat.id, "user":uid, "joined":True,
-					"date":datetime.utcfromtimestamp(m.joined_date or 1)})
-				res.append((uid, datetime.utcfromtimestamp(m.joined_date)))
+					"date":datetime.utcfromtimestamp(joined_date)})
+				res.append((uid, datetime.utcfromtimestamp(first_message[0].date)))
 		if len(res) < 1:
 			return await edit_or_reply(msg, "<code>[!] → </code> No results")
 		res.sort(key=lambda x: x[1])

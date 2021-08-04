@@ -2,7 +2,7 @@ import functools
 import traceback
 
 from datetime import datetime
-from typing import Any
+from typing import Any, List
 
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo.errors import ServerSelectionTimeoutError, DuplicateKeyError
@@ -156,14 +156,16 @@ class DatabaseDriver:
 				await self.db.exceptions.insert_one(doc)
 		return wrapper
 
-	async def fetch_user(self, uid:int, client:'pyrogram.Client') -> dict:
+	async def fetch_user(self, uid:int, client:'pyrogram.Client' = None) -> dict:
 		"""get a user from db or telegram
 
 		Try to fetch an user from database and, if missing, fetch it from telegram and insert it.
-		Needs a client instance to fetch from telegram if missing.
+		Needs a client instance to fetch from telegram missing users.
 		"""
 		usr = await self.db.users.find_one({"id":uid})
 		if not usr:
+			if not client:
+				return {"id":uid}
 			try:
 				usr = extract_user(await client.get_users(uid))
 				await self.db.users.insert_one(usr)
@@ -186,7 +188,7 @@ class DatabaseDriver:
 		self.counter.messages()
 
 		if message.from_user:
-			await self.db.chats.update_one({"id":message.chat.id}, {"$inc": {f"messages.{message.from_user.id}":1}})
+			await self.db.chats.update_one({"id":message.chat.id}, {"$inc": {f"messages.{message.from_user.id}":1}, "$inc": {"messages.total":1}})
 			await self.db.users.update_one({"id":message.from_user.id}, {"$inc": {"messages":1}})
 
 		# Log users writing in dms so we have stats!
@@ -214,6 +216,8 @@ class DatabaseDriver:
 				chat = diff(prev, chat)
 			else:
 				self.counter.chats()
+				chat["messages.total"] = 0 if message.chat.type not in ("supergroup", "channel") \
+						else await client.get_history_count(chat_id)
 			if chat: # don't insert if no diff!
 				await self.db.chats.update_one({"id": chat_id}, {"$set": chat}, upsert=True)
 
@@ -244,7 +248,7 @@ class DatabaseDriver:
 		)
 
 	@_log_error_event
-	async def parse_deletion_event(self, message:Message):
+	async def parse_deletion_event(self, message:List[Message]):
 		deletions = extract_delete(message)
 		for deletion in deletions:
 			await self.db.deletions.insert_one(deletion)
