@@ -309,7 +309,7 @@ async def joindate_cmd(client, message):
 					continue
 				await DRIVER.db.members.insert_one(
 					{"chat":target_chat.id, "user":uid, "joined":True,
-					"date":datetime.utcfromtimestamp(m.joined_date)})
+					"date":datetime.utcfromtimestamp(m.joined_date or 1)})
 				res.append((uid, datetime.utcfromtimestamp(m.joined_date)))
 		if len(res) < 1:
 			return await edit_or_reply(msg, "<code>[!] → </code> No results")
