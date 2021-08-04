@@ -91,14 +91,18 @@ if __name__ == "__main__":
 		from pyrogram import Client
 		with Client(sys.argv[2] if len(sys.argv) > 2 else "alemibot") as app:
 			total  = DRIVER.sync_db.chats.count_documents({})
+			me = app.get_me()
 			curr = 0
 			for doc in DRIVER.sync_db.chats.find({"type":"supergroup"}):
 				curr += 1
 				progress(curr, total)
-				try:
-					count = app.get_history_count(doc["id"])
-				except Exception:
-					continue
+				if me.is_bot:	
+					count = sum(int(doc["messages"][val]) for val in doc["messages"])
+				else:
+					try:
+						count = app.get_history_count(doc["id"])
+					except Exception:
+						continue
 				if "messages" not in doc:
 					DRIVER.sync_db.chats.update_one({"id":doc["id"]}, {"$set":{"messages":{}}}, upsert=True)
 				DRIVER.sync_db.chats.update_one({"id":doc["id"]}, {"$set":{"messages.total":count}}, upsert=True)
