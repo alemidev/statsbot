@@ -100,7 +100,7 @@ if __name__ == "__main__":
 				except Exception:
 					continue
 				if "messages" not in doc:
-					DRIVER.sync_db.users.update_one({"id":doc["id"]}, {"$set":{"messages":{}}}, upsert=True)
-				DRIVER.sync_db.users.update_one({"id":doc["id"]}, {"$set":{"messages.total":count}}, upsert=True)
+					DRIVER.sync_db.chats.update_one({"id":doc["id"]}, {"$set":{"messages":{}}}, upsert=True)
+				DRIVER.sync_db.chats.update_one({"id":doc["id"]}, {"$set":{"messages.total":count}}, upsert=True)
 	else:
 		raise ValueError("No command given")
