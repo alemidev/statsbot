@@ -87,5 +87,15 @@ if __name__ == "__main__":
 			progress(curr, total)
 			count = DRIVER.sync_db.messages.count_documents({"user":doc["id"]})
 			DRIVER.sync_db.users.update_one({"id":doc["id"]}, {"$set":{"messages":count}})
+	elif sys.argv[1] in ("count_chat_messages"):
+		from pyrogram import Client
+		with Client(sys.argv[2] if len(sys.argv) > 2 else "alemibot") as app:
+			total  = DRIVER.sync_db.chats.count_documents({})
+			curr = 0
+			for doc in DRIVER.sync_db.chats.find({}):
+				curr += 1
+				progress(curr, total)
+				count = app.get_history_count(doc["id"])
+				DRIVER.sync_db.users.update_one({"id":doc["id"]}, {"$set":{"messages.total":count}})
 	else:
 		raise ValueError("No command given")
