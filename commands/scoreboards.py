@@ -7,7 +7,7 @@ from uuid import uuid4
 from pymongo import ASCENDING
 
 from pyrogram.types import InputTextMessageContent, InlineQueryResultArticle, InlineKeyboardMarkup, InlineKeyboardButton
-from pyrogram.errors import UserNotParticipant
+from pyrogram.errors import UserNotParticipant, PeerIdInvalid
 
 from bot import alemiBot
 
@@ -305,7 +305,7 @@ async def joindate_cmd(client, message):
 			elif also_query:
 				try:
 					m = await client.get_chat_member(target_chat.id, uid)
-				except UserNotParticipant: # user left, can't query for a date anymore
+				except UserNotParticipant, PeerIdInvalid: # user left, can't query for a date anymore
 					continue
 				await DRIVER.db.members.insert_one(
 					{"chat":target_chat.id, "user":uid, "joined":True,
