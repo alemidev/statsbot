@@ -97,6 +97,8 @@ if __name__ == "__main__":
 				curr += 1
 				progress(curr, total)
 				if me.is_bot:	
+					if "messages" not in doc:
+						continue
 					count = sum(int(doc["messages"][val]) for val in doc["messages"])
 				else:
 					try:
