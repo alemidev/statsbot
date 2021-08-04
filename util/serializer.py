@@ -1,4 +1,5 @@
 from datetime import datetime
+from collections.abc import Iterable
 
 from typing import Union, List
 from pyrogram.methods.chats import join_chat
@@ -206,6 +207,12 @@ def extract_chat(chat:Chat):
 
 def extract_delete(deletions:List[Message]):
 	out = []
+	if not isinstance(messages, Iterable): # Sometimes it's not a list for some reason?
+		return [{
+			"id": deletions.message_id,
+			"chat": deletions.chat.id if deletions.chat else None,
+			"date": datetime.now(), # It isn't included! Assume it happened when it was received
+		}]
 	for deletion in deletions:
 		out.append({
 			"id": deletion.message_id,
