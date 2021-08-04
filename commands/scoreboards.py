@@ -117,7 +117,7 @@ async def group_stats_cmd(client, message):
 		total_replies = await DRIVER.db.messages.count_documents({"chat":group.id,"reply":{"$exists":1}})
 		scoreboard_all_chats = await DRIVER.db.chats.find({}, {"_id":0,"id":1,"messages":1}).to_list(None)
 		# scoreboard_all_chats = sorted([ (doc["id"], sum(doc["messages"][val] for val in doc["messages"]) if "messages" in doc else 0) for doc in scoreboard_all_chats ], key=lambda x: -x[1])
-		scoreboard_all_chats = sorted([ (doc["id"], doc["messages"]["total"]) if "messages" in doc and "total" in doc["messages"]) for doc in scoreboard_all_chats ], key=lambda x: -x[1])
+		scoreboard_all_chats = sorted([ (doc["id"], doc["messages"]["total"]) for doc in scoreboard_all_chats if "messages" in doc and "total" in doc["messages"] ], key=lambda x: -x[1])
 		position = [x[0] for x in scoreboard_all_chats].index(group.id) + 1
 		position = sep(position) + (f" {'☆'*(4-position)}" if position < 4 else "")
 		# Calculate msgs/minute sent today
