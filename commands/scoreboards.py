@@ -168,7 +168,7 @@ async def top_groups_cmd(client, message):
 	res = []
 	out = ""
 	with ProgressChatAction(client, message.chat.id) as prog:
-		async for doc in DRIVER.db.chats.find({"messages":{"$exists":1}}, {"type":1, "messages.total":1}):
+		async for doc in DRIVER.db.chats.find({}, {"type":1, "messages.total":1, "title":1, "id":1, "username":1}):
 			if doc["type"] not in ("group", "supergroup"):
 				continue
 			# res.append((doc, sum(doc["messages"][val] for val in doc["messages"]) if "messages" in doc else 0))
