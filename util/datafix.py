@@ -92,10 +92,15 @@ if __name__ == "__main__":
 		with Client(sys.argv[2] if len(sys.argv) > 2 else "alemibot") as app:
 			total  = DRIVER.sync_db.chats.count_documents({})
 			curr = 0
-			for doc in DRIVER.sync_db.chats.find({}):
+			for doc in DRIVER.sync_db.chats.find({"type":"supergroup"}):
 				curr += 1
 				progress(curr, total)
-				count = app.get_history_count(doc["id"])
-				DRIVER.sync_db.users.update_one({"id":doc["id"]}, {"$set":{"messages.total":count}})
+				try:
+					count = app.get_history_count(doc["id"])
+				except Exception:
+					continue
+				if "messages" not in doc:
+					DRIVER.sync_db.users.update_one({"id":doc["id"]}, {"$set":{"messages":{}}}, upsert=True)
+				DRIVER.sync_db.users.update_one({"id":doc["id"]}, {"$set":{"messages.total":count}}, upsert=True)
 	else:
 		raise ValueError("No command given")
