@@ -207,7 +207,7 @@ def extract_chat(chat:Chat):
 
 def extract_delete(deletions:List[Message]):
 	out = []
-	if not isinstance(messages, Iterable): # Sometimes it's not a list for some reason?
+	if not isinstance(deletions, Iterable): # Sometimes it's not a list for some reason?
 		return [{
 			"id": deletions.message_id,
 			"chat": deletions.chat.id if deletions.chat else None,
