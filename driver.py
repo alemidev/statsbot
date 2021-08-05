@@ -216,8 +216,8 @@ class DatabaseDriver:
 				chat = diff(prev, chat)
 			else:
 				self.counter.chats()
-				chat["messages.total"] = 0 if message.chat.type not in ("supergroup", "channel") \
-						else await client.get_history_count(chat_id)
+				chat["messages.total"] = 0 if client.me.is_bot or message.chat.type not in ("supergroup", "channel") \
+						else await message._client.get_history_count(chat_id) # Accessing _client is a cheap fix
 			if chat: # don't insert if no diff!
 				await self.db.chats.update_one({"id": chat_id}, {"$set": chat}, upsert=True)
 
