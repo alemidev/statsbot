@@ -237,7 +237,7 @@ async def top_messages_cmd(client, message):
 			doc = await DRIVER.db.chats.find_one({"id":target_chat.id}, {"_id":0, "messages":1})
 			if not doc or not doc["messages"]:
 				return await edit_or_reply(msg, "<code>[!] → </code> No data available")
-			res = [ (int(k), doc["messages"][k]) for k in doc["messages"].keys() ]
+			res = [ (int(k), doc["messages"][k]) for k in doc["messages"].keys() if k.isnumeric() ]
 		if len(res) < 1:
 			return await edit_or_reply(msg, "<code>[!] → </code> No results")
 		res.sort(key=lambda x: -x[1])
