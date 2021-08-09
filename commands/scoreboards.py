@@ -27,7 +27,6 @@ logger = logging.getLogger(__name__)
 
 HELP = HelpCategory("SCOREBOARDS")
 
-
 @HELP.add(sudo=False)
 @alemiBot.on_message(is_allowed & filterCommand(["stats", "stat"], list(alemiBot.prefixes)))
 @report_error(logger)
@@ -60,7 +59,8 @@ async def stats_cmd(client, message):
 		partecipated_chats = len(await DRIVER.db.messages.distinct("chat", {"user":uid}))
 		scoreboard_all_users = await DRIVER.db.users.find({"flags.bot":False}, {"_id":0,"id":1,"messages":1}).to_list(None)
 		scoreboard_all_users = sorted([ (doc["id"], doc["messages"]) for doc in scoreboard_all_users if "messages" in doc ], key=lambda x: -x[1])
-		position = [x[0] for x in scoreboard_all_users].index(user["id"]) + 1
+		scoreboard_id_only = [x[0] for x in scoreboard_all_users]
+		position = (scoreboard_id_only.index(user["id"]) + 1) if user["id"] in scoreboard_id_only else len(scoreboard_id_only)
 		position = sep(position) + (f" {'☆'*(4-position)}" if position < 4 else "")
 		# Calculate msgs/minute sent today
 		today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0) # Force start of day
@@ -118,7 +118,8 @@ async def group_stats_cmd(client, message):
 		scoreboard_all_chats = await DRIVER.db.chats.find({}, {"_id":0,"id":1,"messages":1}).to_list(None)
 		# scoreboard_all_chats = sorted([ (doc["id"], sum(doc["messages"][val] for val in doc["messages"]) if "messages" in doc else 0) for doc in scoreboard_all_chats ], key=lambda x: -x[1])
 		scoreboard_all_chats = sorted([ (doc["id"], doc["messages"]["total"]) for doc in scoreboard_all_chats if "messages" in doc and "total" in doc["messages"] ], key=lambda x: -x[1])
-		position = [x[0] for x in scoreboard_all_chats].index(group.id) + 1
+		scoreboard_id_only = [x[0] for x in scoreboard_all_chats]
+		position = (scoreboard_id_only.index(group.id) + 1) if group.id in scoreboard_id_only else len(scoreboard_id_only)
 		position = sep(position) + (f" {'☆'*(4-position)}" if position < 4 else "")
 		# Calculate msgs/minute sent today
 		today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0) # Force start of day
