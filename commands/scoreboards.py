@@ -110,7 +110,7 @@ async def group_stats_cmd(client, message):
 		group_doc = await DRIVER.db.chats.find_one({"id":group.id, "messages":{"$exists":1}}, {"_id":0, "id":1, "messages.total":1})
 		# total_messages = sum(group_doc["messages"][val] for val in group_doc["messages"]) if "messages" in group_doc else 0
 		total_messages = group_doc["messages"]["total"]
-		active_users = len(group_doc["messages"] if "messages" in group_doc else '') # jank null check
+		active_users = max(0, len(group_doc["messages"] if "messages" in group_doc else '') -1) # jank af don't judge me it works
 		total_users = await client.get_chat_members_count(group.id)
 		total_media = await DRIVER.db.messages.count_documents({"chat":group.id,"media":{"$exists":1}})
 		total_edits = await DRIVER.db.messages.count_documents({"chat":group.id,"edits":{"$exists":1}})
@@ -294,7 +294,7 @@ async def joindate_cmd(client, message):
 	msg = await edit_or_reply(message, out, parse_mode="html")
 	with ProgressChatAction(client, message.chat.id) as prog:
 		members = await DRIVER.db.chats.find_one({"id":target_chat.id},{"_id":0,"messages":1})
-		members = [int(k) for k in members["messages"].keys()]
+		members = [int(k) for k in members["messages"].keys() if k.isnumeric()]
 		for uid in members:
 			event = await DRIVER.db.members.find_one(
 				{"chat":target_chat.id, "user":uid, "joined": {"$exists":1}},
