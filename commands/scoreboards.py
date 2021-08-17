@@ -147,7 +147,7 @@ async def group_stats_cmd(client, message):
 
 
 @HELP.add(cmd="[<chat>]")
-@alemiBot.on_message(is_allowed & filterCommand(["topgroups", "topgroup", "top_groups", "top_group"], list(alemiBot.prefixes), options={
+@alemiBot.on_message(is_superuser & filterCommand(["topgroups", "topgroup", "top_groups", "top_group"], list(alemiBot.prefixes), options={
 	"results" : ["-r", "--results"],
 	"offset" : ["-o", "--offset"],
 }))
@@ -162,7 +162,7 @@ async def top_groups_cmd(client, message):
 	An username/group id can be given to center scoreboard on that group.
 	An offset can be manually specified too with `-o`.
 	"""
-	results = min(int(message.command["results"] or 10), 100)
+	results = int(message.command["results"] or 10)
 	offset = int(message.command["offset"] or 0)
 	out = "<code>→ </code> Most active groups\n"
 	msg = await edit_or_reply(message, out, parse_mode="html")
