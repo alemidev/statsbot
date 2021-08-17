@@ -12,7 +12,7 @@ from pyrogram.errors import UserNotParticipant, PeerIdInvalid
 from bot import alemiBot
 
 from util.command import filterCommand
-from util.permission import is_allowed, check_superuser
+from util.permission import is_allowed, is_superuser, check_superuser
 from util.message import ProgressChatAction, edit_or_reply
 from util.text import sep
 from util.getters import get_username, get_channel, get_user
