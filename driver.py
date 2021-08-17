@@ -187,8 +187,9 @@ class DatabaseDriver:
 		await self.db.messages.insert_one(msg)
 		self.counter.messages()
 
+		await self.db.chats.update_one({"id":message.chat.id}, {"$inc": {"messages.total":1}})
 		if message.from_user:
-			await self.db.chats.update_one({"id":message.chat.id}, {"$inc": {f"messages.{message.from_user.id}":1}, "$inc": {"messages.total":1}})
+			await self.db.chats.update_one({"id":message.chat.id}, {"$inc": {f"messages.{message.from_user.id}":1}})
 			await self.db.users.update_one({"id":message.from_user.id}, {"$inc": {"messages":1}})
 
 		# Log users writing in dms so we have stats!
