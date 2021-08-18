@@ -78,7 +78,7 @@ async def frequency_cmd(client, message):
 	extra = f" | + <code>{query}</code>" if extra_query else ""
 	where = "<b>everywhere</b>"
 	if group:
-		where = f"<b>[{get_channel(group)}]({group.invite_link})</b>" if group.invite_link else f"<b>{get_channel(group)}</b>"
+		where = f"<b><a href={group.invite_link}>{get_channel(group)}</a></b>" if group.invite_link else f"<b>{get_channel(group)}</b>"
 	output = f"<code>→ </code> {where} {from_who} {extra}\n<code>→ </code> <b>{results}</b> most frequent words (<i>len > {min_len}</i>):\n"
 	msg = await edit_or_reply(message, output, parse_mode="html") # placeholder msg so we don't ping if usernames show up
 	# Iterate db
@@ -94,7 +94,7 @@ async def frequency_cmd(client, message):
 			cursor.limit(limit)
 		async for doc in cursor:
 			if doc["text"]:
-				buf = [ w for w in process(doc["text"]) if len(w) > min_len ]
+				words += [ w for w in process(doc["text"]) if len(w) > min_len ]
 				curr += 1
 		count = Counter(words).most_common()
 		stars = 5 if len(count) > 5 else 0
