@@ -31,7 +31,7 @@ HELP = HelpCategory("CURIOSITY")
 	"minlen" : ["-min"],
 	"group" : ["-g", "--group"],
 	"query" : ["-q", "--query"],
-}, flags=["-all"]))
+}, flags=["-all", "-alnum"]))
 @report_error(logger)
 @set_offline
 @cancel_chat_action
@@ -43,10 +43,12 @@ async def frequency_cmd(client, message):
 	Perform a global search with flag `-all` or search in a specific group with `-g` (only for superuser).
 	Provide an username/user_id as argument to count only messages from that user (or reply to a message).
 	Extra parameters for the db query can be given with `-q`. (only for superuser)
+	Add flag `-alnum` to remove all non-alphanumeric characters.
 	"""
 	results = min(int(message.command["results"] or 10), 100)
 	limit = int(message.command["limit"] or 0)
 	min_len = int(message.command["minlen"] or 3)
+	replace_unicode = bool(message.command["-alnum"])
 	# Build query
 	query = {"text":{"$exists":1}} # only msgs with text
 	extra_query = False # Extra query
@@ -80,6 +82,10 @@ async def frequency_cmd(client, message):
 	output = f"<code>→ </code> {where} {from_who} {extra}\n<code>→ </code> <b>{results}</b> most frequent words (<i>len > {min_len}</i>):\n"
 	msg = await edit_or_reply(message, output, parse_mode="html") # placeholder msg so we don't ping if usernames show up
 	# Iterate db
+	def process(text):
+		if replace_unicode:
+			text = re.sub(r"[^0-9a-zA-Z\s\n\-\_\@]+", "", text)
+		return text.lower().split()
 	words = []             		
 	curr = 0               		
 	with ProgressChatAction(client, message.chat.id) as prog:
@@ -88,7 +94,7 @@ async def frequency_cmd(client, message):
 			cursor.limit(limit)
 		async for doc in cursor:
 			if doc["text"]:
-				words += [ w for w in re.sub(r"[^0-9a-zA-Z\s\n\-\_\@]+", "", doc["text"].lower()).split() if len(w) > min_len ]
+				buf = [ w for w in process(doc["text"]) if len(w) > min_len ]
 				curr += 1
 		count = Counter(words).most_common()
 		stars = 5 if len(count) > 5 else 0
