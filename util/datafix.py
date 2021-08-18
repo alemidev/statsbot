@@ -59,7 +59,7 @@ if __name__ == "__main__":
 		for doc in DRIVER.sync_db['users'].find({}):
 			DRIVER.sync_db.update_one({"id":doc["id"]}, {"$set": {"messages":0}})
 		for doc in DRIVER.sync_db['chats'].find({}):
-			DRIVER.sync_db.update_one({"id":doc["id"}}, {"$set": {"messages":{}}})
+			DRIVER.sync_db.update_one({"id":doc["id"]}, {"$set": {"messages":{}}})
 
 		total = DRIVER.sync_db['messages'].count_documents({})
 
