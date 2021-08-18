@@ -56,14 +56,21 @@ if __name__ == "__main__":
 					dupes = DRIVER.sync_db[coll].count_documents({"chat":doc["chat"],"id":doc["id"],"date":doc["date"]})
 
 	elif sys.argv[1] in ("count_all", "count_all_messages"):
+		for doc in DRIVER.sync_db['users'].find({}):
+			DRIVER.sync_db.update_one({"id":doc["id"]}, {"$set": {"messages":0}})
+		for doc in DRIVER.sync_db['chats'].find({}):
+			DRIVER.sync_db.update_one({"id":doc["id"}}, {"$set": {"messages":{}}})
+
 		total = DRIVER.sync_db['messages'].count_documents({})
 
 		curr = 0
 		for doc in DRIVER.sync_db['messages'].find({}):
 			curr += 1
 			progress(curr, total)
-			DRIVER.sync_db.chats.update_one({"id":doc["chat"]}, {"$inc": {f"messages.{doc['user']}":1}})
-			DRIVER.sync_db.users.update_one({"id":doc["user"]}, {"$inc": {"messages":1}})
+			DRIVER.sync_db.chats.update_one({"id":doc["chat"]}, {"$inc": {f"messages.total":1}})
+			if not str(doc["user"]).startswith("-"):
+				DRIVER.sync_db.chats.update_one({"id":doc["chat"]}, {"$inc": {f"messages.{doc['user']}":1}})
+				DRIVER.sync_db.users.update_one({"id":doc["user"]}, {"$inc": {"messages":1}})
 	elif sys.argv[1] in ("joindates", "migrate_joins"):
 		total  = DRIVER.sync_db.service.count_documents({"new_chat_members":{"$exists":1}})
 		total += DRIVER.sync_db.service.count_documents({"left_chat_member":{"$exists":1}})
