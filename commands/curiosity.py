@@ -127,7 +127,7 @@ async def active_cmd(client, message):
 	output = f"<code>→ </code> Active members in last <b>{sep(number)}</b> messages:\n"
 	if target_group.id != message.chat.id:
 		output = f"<code>→ </code> <b>{get_username(target_group)}</b>\n" + output
-	msg = await edit_or_reply(message, output, parse_mode="html") # Send a placeholder first to not mention everyone
+	msg = await edit_or_reply(message, output, parse_mode="html", disable_web_page_preview=True) # Send a placeholder first to not mention everyone
 	users = [] # using a set() would save me a "in" check but sets don't have order. I want most recently active members on top
 	query = {"chat":target_group.id}
 	with ProgressChatAction(client, message.chat.id) as prog:
