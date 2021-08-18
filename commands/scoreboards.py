@@ -343,6 +343,6 @@ async def joindate_cmd(client, message):
 			if count > offset + results:
 				break
 			user_doc = await DRIVER.fetch_user(usr, client)
-			when = "CREATOR" if date < datetime(1970, 1, 1, 0, 0, 1) else str(date) # cheap fix for bots
+			when = "CREATOR" if date < datetime(1970, 1, 1, 1, 0, 0) else str(date) # cheap fix for bots
 			out += f"<code> → </code> <b>{count}. {get_doc_username(user_doc)}</b> [<code>{when}</code>] {'☆'*(stars+1-count)}\n"
 	await edit_or_reply(msg, out, parse_mode="html", disable_web_page_preview=True)
