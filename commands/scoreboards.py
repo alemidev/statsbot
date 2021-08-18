@@ -296,7 +296,7 @@ async def joindate_cmd(client, message):
 	msg = await edit_or_reply(message, out, parse_mode="html", disable_web_page_preview=True)
 	with ProgressChatAction(client, message.chat.id) as prog:
 		members = await DRIVER.db.chats.find_one({"id":target_chat.id},{"_id":0,"messages":1})
-		members = [int(k) for k in members["messages"].keys() if k.isnumeric()]
+		members = [ int(k) for k in members["messages"].keys() if k.isnumeric() ] if "messages" in members else []
 		for uid in members:
 			event = await DRIVER.db.members.find_one(
 				{"chat":target_chat.id, "user":uid, "joined": {"$exists":1}},
