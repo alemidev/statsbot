@@ -15,7 +15,7 @@ from util.command import filterCommand
 from util.permission import is_allowed, is_superuser, check_superuser
 from util.message import ProgressChatAction, edit_or_reply
 from util.text import sep
-from util.getters import get_username, get_channel, get_user
+from util.getters import get_username, get_user
 from util.decorators import report_error, set_offline, cancel_chat_action
 from util.help import HelpCategory
 
@@ -292,7 +292,7 @@ async def joindate_cmd(client, message):
 	if target_chat.type in ("bot", "private"):
 		return await edit_or_reply(message, "<code>[!] → </code> Can't query join dates in private chat")
 	res = []
-	out = f"<code>→ </code> Join dates in <b>{get_channel(target_chat)}</b>\n"
+	out = f"<code>→ </code> Join dates in <b>{get_username(target_chat)}</b>\n"
 	msg = await edit_or_reply(message, out, parse_mode="html")
 	with ProgressChatAction(client, message.chat.id) as prog:
 		members = await DRIVER.db.chats.find_one({"id":target_chat.id},{"_id":0,"messages":1})

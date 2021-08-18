@@ -13,7 +13,7 @@ from bot import alemiBot
 
 from util.command import filterCommand
 from util.permission import is_allowed, is_superuser, check_superuser
-from util.getters import get_username, get_channel
+from util.getters import get_username
 from util.message import ProgressChatAction, edit_or_reply, is_me
 from util.text import tokenize_json, order_suffix, sep
 from util.decorators import report_error, set_offline, cancel_chat_action
@@ -359,7 +359,7 @@ async def deleted_cmd(client, message): # This is a mess omg
 
 	pre_text = f"<code>→ </code> Peeking <b>{limit}</b> message{'s' if limit > 1 else ''} " + \
 			("down " if msg_after else "") + \
-			(f"in <b>{get_channel(target_group)}</b> " if "group" in message.command else '') + \
+			(f"in <b>{get_username(target_group)}</b> " if "group" in message.command else '') + \
 			(f"from <a href=\"{message.reply_to_message.link}\">here</a> " if client.me.is_bot else "") + "\n"
 	msg = await edit_or_reply(message, pre_text, parse_mode="html")
 	LINE = "<code> → </code> {time}{m_id}<b>{user}</b> {where} {media} <code>|</code> {text}\n"
@@ -385,7 +385,7 @@ async def deleted_cmd(client, message): # This is a mess omg
 				time=f"[<code>{doc['date']}</code>] " if show_time else "",
 				m_id=f"[<code>{doc['id']}</code>] " if show_id else "",
 				user=author,
-				where=f"(<i>{get_channel(chat_cache[doc['chat']])}</i>)" if all_groups else "",
+				where=f"(<i>{get_username(chat_cache[doc['chat']])}</i>)" if all_groups else "",
 				media=f"[<code>{doc['media']}</code>]" if "media" in doc else "",
 				text=html.escape(doc["text"] if "text" in doc else ""),
 			)
