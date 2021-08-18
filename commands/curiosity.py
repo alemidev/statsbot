@@ -80,7 +80,7 @@ async def frequency_cmd(client, message):
 	if group:
 		where = f"<b>{get_username(group)}</b>"
 	output = f"<code>→ </code> {where} {from_who} {extra}\n<code>→ </code> <b>{results}</b> most frequent words (<i>len > {min_len}</i>):\n"
-	msg = await edit_or_reply(message, output, parse_mode="html", disable_web_preview=True) # placeholder msg so we don't ping if usernames show up
+	msg = await edit_or_reply(message, output, parse_mode="html", disable_web_page_preview=True) # placeholder msg so we don't ping if usernames show up
 	# Iterate db
 	def process(text):
 		if replace_unicode:
@@ -104,7 +104,7 @@ async def frequency_cmd(client, message):
 			stars -=1
 			if i >= results - 1:
 				break
-	await edit_or_reply(msg, output, parse_mode="html", disable_web_preview=True)
+	await edit_or_reply(msg, output, parse_mode="html", disable_web_page_preview=True)
 
 @HELP.add(cmd="[<number>]", sudo=False)
 @alemiBot.on_message(is_allowed & filterCommand(["active"], list(alemiBot.prefixes), options={
