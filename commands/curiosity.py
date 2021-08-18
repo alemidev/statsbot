@@ -12,7 +12,7 @@ from bot import alemiBot
 from util.permission import is_allowed, is_superuser, check_superuser
 from util.message import ProgressChatAction, edit_or_reply
 from util.text import sep
-from util.getters import get_text, get_username, get_channel
+from util.getters import get_text, get_username
 from util.command import filterCommand
 from util.decorators import report_error, set_offline, cancel_chat_action
 from util.help import HelpCategory
@@ -78,9 +78,9 @@ async def frequency_cmd(client, message):
 	extra = f" | + <code>{query}</code>" if extra_query else ""
 	where = "<b>everywhere</b>"
 	if group:
-		where = f"<b><a href={group.invite_link}>{get_channel(group)}</a></b>" if group.invite_link else f"<b>{get_channel(group)}</b>"
+		where = f"<b>{get_username(group)}</b>"
 	output = f"<code>→ </code> {where} {from_who} {extra}\n<code>→ </code> <b>{results}</b> most frequent words (<i>len > {min_len}</i>):\n"
-	msg = await edit_or_reply(message, output, parse_mode="html") # placeholder msg so we don't ping if usernames show up
+	msg = await edit_or_reply(message, output, parse_mode="html", disable_web_preview=True) # placeholder msg so we don't ping if usernames show up
 	# Iterate db
 	def process(text):
 		if replace_unicode:
@@ -104,7 +104,7 @@ async def frequency_cmd(client, message):
 			stars -=1
 			if i >= results - 1:
 				break
-	await edit_or_reply(msg, output, parse_mode="html")
+	await edit_or_reply(msg, output, parse_mode="html", disable_web_preview=True)
 
 @HELP.add(cmd="[<number>]", sudo=False)
 @alemiBot.on_message(is_allowed & filterCommand(["active"], list(alemiBot.prefixes), options={
