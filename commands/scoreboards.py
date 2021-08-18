@@ -167,7 +167,7 @@ async def top_groups_cmd(client, message):
 	results = int(message.command["results"] or 10)
 	offset = int(message.command["offset"] or 0)
 	out = "<code>→ </code> Most active groups\n"
-	msg = await edit_or_reply(message, out, parse_mode="html")
+	msg = await edit_or_reply(message, out, parse_mode="html", disable_web_page_preview=True)
 	res = []
 	out = ""
 	with ProgressChatAction(client, message.chat.id) as prog:
@@ -228,7 +228,7 @@ async def top_messages_cmd(client, message):
 		target_chat = await client.get_chat(tgt)
 	res = []
 	out = "<code>→ </code> Messages sent <b>globally</b>\n" if global_search else f"<code>→ </code> Messages sent in <b>{get_username(target_chat)}</b>\n"
-	msg = await edit_or_reply(message, out, parse_mode="html")
+	msg = await edit_or_reply(message, out, parse_mode="html", disable_web_page_preview=True)
 	with ProgressChatAction(client, message.chat.id) as prog:
 		if global_search:
 			query = {"messages":{"$exists":1}}
@@ -293,7 +293,7 @@ async def joindate_cmd(client, message):
 		return await edit_or_reply(message, "<code>[!] → </code> Can't query join dates in private chat")
 	res = []
 	out = f"<code>→ </code> Join dates in <b>{get_username(target_chat)}</b>\n"
-	msg = await edit_or_reply(message, out, parse_mode="html")
+	msg = await edit_or_reply(message, out, parse_mode="html", disable_web_page_preview=True)
 	with ProgressChatAction(client, message.chat.id) as prog:
 		members = await DRIVER.db.chats.find_one({"id":target_chat.id},{"_id":0,"messages":1})
 		members = [int(k) for k in members["messages"].keys() if k.isnumeric()]

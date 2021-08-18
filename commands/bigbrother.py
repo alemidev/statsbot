@@ -175,7 +175,7 @@ async def source_cmd(client, message):
 	if len(message.command) < 1:
 		return await edit_or_reply(message, "<code>[!] → </code> No input", parse_mode="html")
 	minmsgs = int(message.command["min"] or 10)
-	msg = await edit_or_reply(message, f"<code>→ </code> Chats mentioning <code>{message.command[0]}</code> (<i>>= {minmsgs} times</i>)", parse_mode="html")
+	msg = await edit_or_reply(message, f"<code>→ </code> Chats mentioning <code>{message.command[0]}</code> (<i>>= {minmsgs} times</i>)", parse_mode="html", disable_web_page_preview=True)
 	results = []
 	with ProgressChatAction(client, message.chat.id, action="playing") as prog:
 		for chat in await DRIVER.db.messages.distinct("chat", {"text": {"$regex": message.command[0]}}):
@@ -361,7 +361,7 @@ async def deleted_cmd(client, message): # This is a mess omg
 			("down " if msg_after else "") + \
 			(f"in <b>{get_username(target_group)}</b> " if "group" in message.command else '') + \
 			(f"from <a href=\"{message.reply_to_message.link}\">here</a> " if client.me.is_bot else "") + "\n"
-	msg = await edit_or_reply(message, pre_text, parse_mode="html")
+	msg = await edit_or_reply(message, pre_text, parse_mode="html", disable_web_page_preview=True)
 	LINE = "<code> → </code> {time}{m_id}<b>{user}</b> {where} {media} <code>|</code> {text}\n"
 	cursor = DRIVER.db.messages.find(flt).sort("date", ASCENDING if msg_after else DESCENDING)
 	chat_cache = {}
