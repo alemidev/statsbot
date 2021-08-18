@@ -317,7 +317,7 @@ async def joindate_cmd(client, message):
 				joined_date = m.joined_date
 				if joined_date is None: # Chat creator, get 1st event in target chat
 					if client.me.is_bot:
-						joined_date = 0 # cheap fix
+						joined_date = 0 # cheap fix for bots
 					else:
 						first_message = await client.get_history(target_chat.id, limit=1, reverse=True)
 						joined_date = first_message[0].date
@@ -343,5 +343,6 @@ async def joindate_cmd(client, message):
 			if count > offset + results:
 				break
 			user_doc = await DRIVER.fetch_user(usr, client)
-			out += f"<code> → </code> <b>{count}. {get_doc_username(user_doc)}</b> [<code>{str(date)}</code>] {'☆'*(stars+1-count)}\n"
+			when = "CREATOR" if date < datetime(1970, 1, 1, 0, 0, 1) else str(date) # cheap fix for bots
+			out += f"<code> → </code> <b>{count}. {get_doc_username(user_doc)}</b> [<code>{when}</code>] {'☆'*(stars+1-count)}\n"
 	await edit_or_reply(msg, out, parse_mode="html", disable_web_page_preview=True)
