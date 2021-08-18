@@ -20,6 +20,7 @@ from util.decorators import report_error, set_offline, cancel_chat_action
 from util.help import HelpCategory
 
 from plugins.statsbot.driver import DRIVER
+from plugins.statsbot.util.getters import get_doc_username
 
 import logging
 logger = logging.getLogger(__name__)
@@ -77,7 +78,8 @@ async def dbstats_cmd(client, message):
 					f"\n<code> → </code> <b>{user_count}</b> users met (+{sep(DRIVER.counter['users'])} new | <i>{users_per_h:.2f}/h</i> | <b>{user_size}</b>)" +
 					f"\n<code> → </code> <b>{chat_count}</b> chats visited (+{sep(DRIVER.counter['chats'])} new | <i>{chats_per_h:.2f}/h</i> | <b>{chat_size}</b>)" +
 					f"\n<code> → </code> DB total size <b>{db_size}</b>" +
-					f"\n<code> → </code> <b>{medianumber}</b> documents archived (size <b>{mediasize}</b>)", parse_mode="html"
+					f"\n<code> → </code> <b>{medianumber}</b> documents archived (size <b>{mediasize}</b>)",
+					parse_mode="html", disable_web_page_preview=True
 	)
 
 BACKFILL_STOP = False
@@ -151,19 +153,7 @@ async def safe_get_chat(client, chat):
 		doc = await DRIVER.db.chats.find_one({"id":chat})
 		if not doc:
 			return f"<s>{chat}</s>"
-		if "username" in doc:
-			return f"<b>@{doc['username']}</b>"
-		if "title" in doc:
-			if "invite" in doc:
-				return f'<a href="{doc["invite"]}">{doc["title"]}</a>'
-			return f"{doc['title']}"
-		if "invite" in doc:
-			return f'<u>{doc["invite"]}</u>'
-		if "first_name" in doc:
-			if "last_name" in doc:
-				return f"{doc['first_name']} {doc['last_name']}"
-			return doc['first_name']
-		return f"<s>{chat}</s>"
+		return get_doc_username(doc)
 	except Exception as e:
 		logger.exception("Failed to search channel '%s'", str(chat))
 		return f"<s>{chat}</s>"
@@ -198,7 +188,7 @@ async def source_cmd(client, message):
 	out = ""
 	for res in results:
 		out += f"<code> → </code> [<b>{sep(res[1])}</b>] {res[0]}\n"
-	await edit_or_reply(msg, out, parse_mode="html")
+	await edit_or_reply(msg, out, parse_mode="html", disable_web_page_preview=True)
 
 
 @HELP.add(cmd="<{query}>")
@@ -404,4 +394,4 @@ async def deleted_cmd(client, message): # This is a mess omg
 				break
 	if not out:
 		out += "<code>[!] → </code> Nothing to display"
-	await edit_or_reply(msg, out, parse_mode="html")
+	await edit_or_reply(msg, out, parse_mode="html", disable_web_page_preview=True)

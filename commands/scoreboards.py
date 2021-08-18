@@ -83,7 +83,8 @@ async def stats_cmd(client, message):
 								 f"<code>  → </code> <b>{sep(total_media)}</b> media | <b>{sep(total_replies)}</b> replies | <b>{sep(total_edits)}</b> edits\n" +
 								 f"<code> → </code> You visited <b>{sep(max(visited_chats, partecipated_chats))}</b> chats\n" +
 								 f"<code>  → </code> and partecipated in <b>{sep(partecipated_chats)}</b>\n" +
-								 f"<code> → </code> First saw you <code>{oldest}</code>", parse_mode="html"
+								 f"<code> → </code> First saw you <code>{oldest}</code>",
+								 parse_mode="html", disable_web_page_preview=True
 	)
 
 @HELP.add(sudo=False)
@@ -142,7 +143,8 @@ async def group_stats_cmd(client, message):
 								 f"<code>  → </code> <b>{sep(total_media)}</b> media | <b>{sep(total_replies)}</b> replies | <b>{sep(total_edits)}</b> edits\n" +
 								 f"<code> → </code> Your group has <b>{sep(total_users)}</b> users\n" +
 								 f"<code>  → </code> of these, <b>{sep(active_users)}</b> sent at least 1 message\n" +
-								 f"<code> → </code> Started tracking this chat on <code>{oldest}</code>", parse_mode="html"
+								 f"<code> → </code> Started tracking this chat on <code>{oldest}</code>",
+								 parse_mode="html", disable_web_page_preview=True
 	)
 
 
@@ -188,7 +190,7 @@ async def top_groups_cmd(client, message):
 			if count > offset + results:
 				break
 			out += f"<code> → </code> <b>{count}. {get_doc_username(doc)}</b> [<b>{sep(msgs)}</b>] {'☆'*(stars+1-count)}\n"
-	await edit_or_reply(msg, out, parse_mode="html")
+	await edit_or_reply(msg, out, parse_mode="html", disable_web_page_preview=True)
 
 
 def user_index(scoreboard, uid):
@@ -256,7 +258,7 @@ async def top_messages_cmd(client, message):
 				break
 			user_doc = await DRIVER.fetch_user(usr, client)
 			out += f"<code> → </code> <b>{count}. {get_doc_username(user_doc)}</b> [<b>{sep(msgs)}</b>] {'☆'*(stars+1-count)}\n"
-	await edit_or_reply(msg, out, parse_mode="html")
+	await edit_or_reply(msg, out, parse_mode="html", disable_web_page_preview=True)
 
 @HELP.add(cmd="[<user>]", sudo=False)
 @alemiBot.on_message(is_allowed & filterCommand(["joindate", "joindates", "join_date"], list(alemiBot.prefixes), options={
@@ -339,4 +341,4 @@ async def joindate_cmd(client, message):
 				break
 			user_doc = await DRIVER.fetch_user(usr, client)
 			out += f"<code> → </code> <b>{count}. {get_doc_username(user_doc)}</b> [<code>{str(date)}</code>] {'☆'*(stars+1-count)}\n"
-	await edit_or_reply(msg, out, parse_mode="html")
+	await edit_or_reply(msg, out, parse_mode="html", disable_web_page_preview=True)
