@@ -107,7 +107,7 @@ async def group_stats_cmd(client, message):
 	if group.type not in ("group", "supergroup"):
 		return await edit_or_reply(message, "`[!] → ` Group stats available only in groups and supergroups")
 	with ProgressChatAction(client, message.chat.id) as prog:
-		group_doc = await DRIVER.db.chats.find_one({"id":group.id, "messages":{"$exists":1}}, {"_id":0, "id":1, "messages.total":1})
+		group_doc = await DRIVER.db.chats.find_one({"id":group.id, "messages":{"$exists":1}}, {"_id":0, "id":1, "messages":1})
 		# total_messages = sum(group_doc["messages"][val] for val in group_doc["messages"]) if "messages" in group_doc else 0
 		total_messages = group_doc["messages"]["total"]
 		active_users = max(0, len(group_doc["messages"] if "messages" in group_doc else '') -1) # jank af don't judge me it works
