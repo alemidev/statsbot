@@ -139,4 +139,4 @@ async def active_cmd(client, message):
 		output = ""
 		for usr in users:
 			output += f"<code> → </code> <b>{get_username(usr)}</b>\n"
-	await edit_or_reply(msg, output, parse_mode="html")
+	await edit_or_reply(msg, output, parse_mode="html", disable_web_page_preview=True)
