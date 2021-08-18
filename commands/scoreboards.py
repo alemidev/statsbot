@@ -316,8 +316,11 @@ async def joindate_cmd(client, message):
 					continue
 				joined_date = m.joined_date
 				if joined_date is None: # Chat creator, get 1st event in target chat
-					first_message = await client.get_history(target_chat.id, limit=1, reverse=True)
-					joined_date = first_message[0].date
+					if client.me.is_bot:
+						joined_date = 0 # cheap fix
+					else:
+						first_message = await client.get_history(target_chat.id, limit=1, reverse=True)
+						joined_date = first_message[0].date
 				await DRIVER.db.members.insert_one(
 					{"chat":target_chat.id, "user":uid, "joined":True,
 					"date":datetime.utcfromtimestamp(joined_date)})
