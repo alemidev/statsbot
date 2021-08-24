@@ -3,7 +3,7 @@ import random
 from time import time
 from datetime import datetime
 from uuid import uuid4
-                             
+
 from pymongo import ASCENDING
 
 from pyrogram.types import InputTextMessageContent, InlineQueryResultArticle, InlineKeyboardMarkup, InlineKeyboardButton
@@ -76,15 +76,17 @@ async def stats_cmd(client, message):
 		if oldest_event:
 			oldest = min(oldest, oldest_event["date"])
 	welcome = random.choice(["Hi", "Hello", "Welcome", "Nice to see you", "What's up", "Good day"])
-	await edit_or_reply(message, f"<code>→ </code> {welcome} <b>{get_doc_username(user)}</b>\n" +
-								 f"<code> → </code> You sent <b>{sep(total_messages)}</b> messages\n" +
-								 f"<code>  → </code> Position <b>{position}</b> on global scoreboard\n" +
-								 f"<code>  → </code> Average of <b>{msgs_per_minute_today:.2f}</b> messages per minute today\n" +
-								 f"<code>  → </code> <b>{sep(total_media)}</b> media | <b>{sep(total_replies)}</b> replies | <b>{sep(total_edits)}</b> edits\n" +
-								 f"<code> → </code> You visited <b>{sep(max(visited_chats, partecipated_chats))}</b> chats\n" +
-								 f"<code>  → </code> and partecipated in <b>{sep(partecipated_chats)}</b>\n" +
-								 f"<code> → </code> First saw you <code>{oldest}</code>",
-								 parse_mode="html", disable_web_page_preview=True
+	await edit_or_reply(
+		message,
+		f"<code>→ </code> {welcome} <b>{get_doc_username(user)}</b>\n" +
+		f"<code> → </code> You sent <b>{sep(total_messages)}</b> messages\n" +
+		f"<code>  → </code> Position <b>{position}</b> on global scoreboard\n" +
+		f"<code>  → </code> Average of <b>{msgs_per_minute_today:.2f}</b> messages per minute today\n" +
+		f"<code>  → </code> <b>{sep(total_media)}</b> media | <b>{sep(total_replies)}</b> replies | <b>{sep(total_edits)}</b> edits\n" +
+		f"<code> → </code> You visited <b>{sep(max(visited_chats, partecipated_chats))}</b> chats\n" +
+		f"<code>  → </code> and partecipated in <b>{sep(partecipated_chats)}</b>\n" +
+		f"<code> → </code> First saw you <code>{oldest}</code>",
+		parse_mode="html", disable_web_page_preview=True
 	)
 
 @HELP.add(sudo=False)
@@ -136,15 +138,17 @@ async def group_stats_cmd(client, message):
 		if oldest_event:
 			oldest = min(oldest, oldest_event["date"])
 	welcome = random.choice(["Greetings", "Hello", "Good day"])
-	await edit_or_reply(message, f"<code>→ </code> {welcome} members of <b>{get_username(group)}</b>\n" +
-								 f"<code> → </code> Your group counts <b>{sep(total_messages)}</b> messages\n" +
-								 f"<code>  → </code> Position <b>{position}</b> on global scoreboard\n" +
-								 f"<code>  → </code> Average of <b>{msgs_per_minute_today:.2f}</b> messages per minute today\n" +
-								 f"<code>  → </code> <b>{sep(total_media)}</b> media | <b>{sep(total_replies)}</b> replies | <b>{sep(total_edits)}</b> edits\n" +
-								 f"<code> → </code> Your group has <b>{sep(total_users)}</b> users\n" +
-								 f"<code>  → </code> of these, <b>{sep(active_users)}</b> sent at least 1 message\n" +
-								 f"<code> → </code> Started tracking this chat on <code>{oldest}</code>",
-								 parse_mode="html", disable_web_page_preview=True
+	await edit_or_reply(
+		message,
+		f"<code>→ </code> {welcome} members of <b>{get_username(group)}</b>\n" +
+		f"<code> → </code> Your group counts <b>{sep(total_messages)}</b> messages\n" +
+		f"<code>  → </code> Position <b>{position}</b> on global scoreboard\n" +
+		f"<code>  → </code> Average of <b>{msgs_per_minute_today:.2f}</b> messages per minute today\n" +
+		f"<code>  → </code> <b>{sep(total_media)}</b> media | <b>{sep(total_replies)}</b> replies | <b>{sep(total_edits)}</b> edits\n" +
+		f"<code> → </code> Your group has <b>{sep(total_users)}</b> users\n" +
+		f"<code>  → </code> of these, <b>{sep(active_users)}</b> sent at least 1 message\n" +
+		f"<code> → </code> Started tracking this chat on <code>{oldest}</code>",
+		parse_mode="html", disable_web_page_preview=True
 	)
 
 

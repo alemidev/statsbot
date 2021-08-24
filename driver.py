@@ -51,7 +51,7 @@ class Counter:
 		if name not in self.storage:
 			return 0
 		return self.storage[name]
-	
+
 	def __setitem__(self, name:str, value:Any):
 		self.storage[name] = value
 
