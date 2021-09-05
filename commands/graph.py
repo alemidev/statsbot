@@ -329,8 +329,8 @@ async def timeshift_cmd(client, message):
 	fig = plt.figure()
 	plt.bar(labels, vals)
 	plot_title = "Msgs at hour of day" + \
-		(f" ({get_username(target_group)})" if target_group else '') + \
-		(f" [from {get_username(target_user)}]" if target_user else '') + \
+		(f" ({get_username(target_group, mention=False)})" if target_group else '') + \
+		(f" [from {get_username(target_user, mention=False)}]" if target_user else '') + \
 		(f" containing `{message.command['keyword']}`" if message.command["keyword"] else '') + \
 		f" | last {sep(count)}"
 	plt.title(plot_title)
@@ -341,7 +341,7 @@ async def timeshift_cmd(client, message):
 
 	prog = ProgressChatAction(client, message.chat.id, action="upload_document")
 	caption = f"`→ ` Messages per hour [`UTC{time_offset:+02d}`] last **{sep(count)}** messages" + \
-		("\n` → ` sent --globally--" if not target_group else f"\n` → ` in --{get_username(target_group, mention=False)}--" if target_group.id != message.chat.id else "") + \
-		(f"\n` → ` from **{get_username(target_user, mention=False)}**" if target_user else '') + \
+		("\n` → ` sent --globally--" if not target_group else f"\n` → ` in --{get_username(target_group)}--" if target_group.id != message.chat.id else "") + \
+		(f"\n` → ` from **{get_username(target_user)}**" if target_user else '') + \
 		(f"\n` → ` containing `{message.command['keyword']}`" if message.command['keyword'] else '')
 	await client.send_photo(message.chat.id, buf, reply_to_message_id=message.message_id, caption=caption, progress=prog.tick)
