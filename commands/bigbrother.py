@@ -77,19 +77,19 @@ async def dbstats_cmd(client, message):
 		stdout, _stderr = await proc.communicate()
 		mediasize = order_suffix(float(stdout.decode('utf-8').split("\t")[0]))
 
-	uptime = str(datetime.now() - client.start_time)
-	await edit_or_reply(message, f"<code>→ </code> <b>online for</b> <code>{uptime}</code>" +
-					f"\n<code>→ </code> <b>first event</b> <code>{oldest_msg['date']}</code>" +
-					f"\n<code> → </code> <b>{msg_count}</b> msgs logged (+{sep(DRIVER.counter['messages'])} new | <i>{msgs_per_s:.2f}/s</i> | <b>{msg_size}</b>)" +
-					f"\n<code> → </code> <b>{service_count}</b> events tracked (+{sep(DRIVER.counter['service'])} new | <i>{service_per_h:.2f}/h</i> | <b>{service_size}</b>)" +
-					f"\n<code> → </code> <b>{deletions_count}</b> deletions saved (+{sep(DRIVER.counter['deletions'])} new | <i>{deletions_per_s:.2f}/s</i> | <b>{deletions_size}</b>)" +
-					f"\n<code> → </code> <b>{members_count}</b> members updated (+{sep(DRIVER.counter['members'])} new | <i>{members_per_h:.2f}/h</i> | <b>{members_size}</b>)" +
-					f"\n<code> → </code> <b>{user_count}</b> users met (+{sep(DRIVER.counter['users'])} new | <i>{users_per_h:.2f}/h</i> | <b>{user_size}</b>)" +
-					f"\n<code> → </code> <b>{chat_count}</b> chats visited (+{sep(DRIVER.counter['chats'])} new | <i>{chats_per_h:.2f}/h</i> | <b>{chat_size}</b>)" +
-					f"\n<code> → </code> DB total size <b>{db_size}</b>" +
-					f"\n<code> → </code> <b>{medianumber}</b> documents archived (size <b>{mediasize}</b>)",
-					parse_mode="html", disable_web_page_preview=True
-	)
+		uptime = str(datetime.now() - client.start_time)
+		await edit_or_reply(message, f"<code>→ </code> <b>online for</b> <code>{uptime}</code>" +
+						f"\n<code>→ </code> <b>first event</b> <code>{oldest_msg['date']}</code>" +
+						f"\n<code> → </code> <b>{msg_count}</b> msgs logged (+{sep(DRIVER.counter['messages'])} new | <i>{msgs_per_s:.2f}/s</i> | <b>{msg_size}</b>)" +
+						f"\n<code> → </code> <b>{service_count}</b> events tracked (+{sep(DRIVER.counter['service'])} new | <i>{service_per_h:.2f}/h</i> | <b>{service_size}</b>)" +
+						f"\n<code> → </code> <b>{deletions_count}</b> deletions saved (+{sep(DRIVER.counter['deletions'])} new | <i>{deletions_per_s:.2f}/s</i> | <b>{deletions_size}</b>)" +
+						f"\n<code> → </code> <b>{members_count}</b> members updated (+{sep(DRIVER.counter['members'])} new | <i>{members_per_h:.2f}/h</i> | <b>{members_size}</b>)" +
+						f"\n<code> → </code> <b>{user_count}</b> users met (+{sep(DRIVER.counter['users'])} new | <i>{users_per_h:.2f}/h</i> | <b>{user_size}</b>)" +
+						f"\n<code> → </code> <b>{chat_count}</b> chats visited (+{sep(DRIVER.counter['chats'])} new | <i>{chats_per_h:.2f}/h</i> | <b>{chat_size}</b>)" +
+						f"\n<code> → </code> DB total size <b>{db_size}</b>" +
+						f"\n<code> → </code> <b>{medianumber}</b> documents archived (size <b>{mediasize}</b>)",
+						parse_mode="html", disable_web_page_preview=True
+		)
 
 BACKFILL_STOP = False
 
