@@ -6,7 +6,7 @@ import html
 import asyncio
 
 from datetime import datetime
-from pymongo import ASCENDING, DESCENDING
+from pymongo import ASCENDING, DESCENDING, collection
 from pyrogram.errors import PeerIdInvalid
 
 from bot import alemiBot
@@ -27,9 +27,15 @@ logger = logging.getLogger(__name__)
 
 HELP = HelpCategory("BIGBROTHER")
 
+# I'm very lazy and made this
+async def _run_count(collection, full_count=False):
+	if full_count:
+		return await collection.count_documents({})
+	else:
+		return await collection.estimated_document_count()
 
 @HELP.add()
-@alemiBot.on_message(is_superuser & filterCommand(["dbstats", "dbstat"], list(alemiBot.prefixes)))
+@alemiBot.on_message(is_superuser & filterCommand(["dbstats", "dbstat"], list(alemiBot.prefixes), flags=["-count"]))
 @report_error(logger)
 @set_offline
 @cancel_chat_action
@@ -37,15 +43,18 @@ async def dbstats_cmd(client, message):
 	"""get database stats
 
 	List collections, entries, new entries in this session and disk usage.
+	Results are calculated from metadata for faster queries.
+	Add flag `-count` to actually count entries (very slow with 1M+ entries!).
 	"""
+	full_count = bool(message.command["-count"])
 	with ProgressChatAction(client, message.chat.id, random=True) as prog:
 		oldest_msg = await DRIVER.db.messages.find_one({"date":{"$ne":None}}, sort=[("date", ASCENDING)])
-		msg_count = sep(await DRIVER.db.messages.count_documents({}))
-		user_count = sep(await DRIVER.db.users.count_documents({}))
-		chat_count = sep(await DRIVER.db.chats.count_documents({}))
-		deletions_count = sep(await DRIVER.db.deletions.count_documents({}))
-		service_count = sep(await DRIVER.db.service.count_documents({}))
-		members_count = sep(await DRIVER.db.members.count_documents({}))
+		msg_count = sep(await _run_count(DRIVER.db.messages, full_count))
+		user_count = sep(await _run_count(DRIVER.db.users, full_count))
+		chat_count = sep(await _run_count(DRIVER.db.chats, full_count))
+		deletions_count = sep(await _run_count(DRIVER.db.deletions, full_count))
+		service_count = sep(await _run_count(DRIVER.db.service, full_count))
+		members_count = sep(await _run_count(DRIVER.db.members, full_count))
 		msg_size = order_suffix((await DRIVER.db.command("collstats", "messages"))['totalSize'])
 		user_size = order_suffix((await DRIVER.db.command("collstats", "users"))['totalSize'])
 		chat_size = order_suffix((await DRIVER.db.command("collstats", "chats"))['totalSize'])
@@ -219,7 +228,7 @@ async def query_cmd(client, message):
 	buf = []
 	cursor = None
 	lim = int(message.command["limit"] or 10)
-	
+
 	database = DRIVER.db
 	if "database" in message.command:
 		database = DRIVER.client[message.command["database"]]
@@ -288,7 +297,7 @@ async def hist_cmd(client, message):
 			date=f"[--{doc['date']}--]" if show_time else "",
 			author=f"**{author}** >" if show_author else "",
 			text=html.escape(doc["text"] if "text" in doc else ""),
-		) 
+		)
 		if "edits" in doc:
 			for edit in doc["edits"]:
 				out += LINE.format(
