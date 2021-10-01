@@ -143,7 +143,7 @@ class DatabaseDriver:
 				logger.info(str(event))
 			except DuplicateKeyError as e:
 				error_key = getattr(e, '_OperationFailure__details')["keyValue"]
-				logger.error(f"Rejecting duplicate document | {error_key}")
+				logger.warning(f"Rejecting duplicate document\n\t{error_key}\n\t{str(event)}")
 			except Exception as ex:
 				logger.exception("Serialization error")
 				exc_data = {
