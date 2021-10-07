@@ -85,19 +85,21 @@ def _log_error_event(func: Callable):
 			await self.db.exceptions.insert_one(doc)
 	return wrapper
 
-async def insert_replace(db:'motor.Database', collection:str, doc:dict):
+async def insert_replace(db:'motor.Database', collection:str, doc:dict) -> bool:
 	"""Attempt to insert a document, replace any duplicate found"""
 	try:
 		await db[collection].insert_one(doc)
+		return True
 	except DuplicateKeyError as e:
 		error_key = getattr(e, '_OperationFailure__details')["keyValue"]
 		prev = await db[collection].find_one(error_key)
 		doc["_id"] = prev["_id"]
-		logging.warning("Replacing duplicate on %s | key %s", collection, str(error_key))
+		logger.warning("Replacing duplicate on %s | key %s", collection, str(error_key))
 		await asyncio.gather(
 			db.exceptions.insert_one({"_": "Replace", "prev": prev, "new": doc}),
 			db[collection].replace_one(error_key, doc)
 		)
+	return False
 
 def has_index(indexes, index):
 	for name in indexes:
@@ -202,8 +204,8 @@ class DatabaseDriver:
 		if file_name:
 			msg["file"] = file_name
 
-		await insert_replace(self.db, 'messages', msg)
-		self.counter.messages()
+		if await insert_replace(self.db, 'messages', msg):
+			self.counter.messages()
 
 		await self.db.chats.update_one({"id":message.chat.id}, {"$inc": {"messages.total":1}})
 		if message.from_user:
@@ -243,8 +245,8 @@ class DatabaseDriver:
 	@_log_error_event
 	async def parse_member_event(self, update:ChatMemberUpdated):
 		doc = extract_member_update(update)
-		await insert_replace(self.db, 'members', doc)
-		self.counter.members()
+		if await insert_replace(self.db, 'members', doc):
+			self.counter.members()
 
 		usr = extract_user((update.new_chat_member or update.old_chat_member).user)
 		usr_id = usr["id"]
@@ -270,8 +272,8 @@ class DatabaseDriver:
 	async def parse_deletion_event(self, message:List[Message]):
 		deletions = extract_delete(message)
 		for deletion in deletions:
-			await insert_replace(self.db, 'deletions', deletion)
-			self.counter.deletions()
+			if await insert_replace(self.db, 'deletions', deletion):
+				self.counter.deletions()
 
 			flt = {"id": deletion["id"]}
 			if "chat" in deletion:
