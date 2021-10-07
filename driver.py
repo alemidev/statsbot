@@ -92,6 +92,7 @@ async def insert_replace(db:'motor.Database', collection:str, doc:dict):
 	except DuplicateKeyError as e:
 		error_key = getattr(e, '_OperationFailure__details')["keyValue"]
 		prev = await db[collection].find_one(error_key)
+		doc["_id"] = prev["_id"]
 		logging.warning("Replacing duplicate on %s | key %s", collection, str(error_key))
 		await asyncio.gather(
 			db.exceptions.insert_one({"_": "Replace", "prev": prev, "new": doc}),
