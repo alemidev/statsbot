@@ -1,13 +1,15 @@
+import asyncio
 import functools
 import traceback
 
 from datetime import datetime
-from typing import Any, List
+from typing import Any, List, Callable
 
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo.errors import ServerSelectionTimeoutError, DuplicateKeyError
 from pymongo import ASCENDING, DESCENDING, MongoClient
 
+from pyrogram import Client
 from pyrogram.types import Message, User, ChatMemberUpdated
 from pyrogram.errors import PeerIdInvalid
 
@@ -33,7 +35,7 @@ class Counter:
 		self.start = datetime.now()
 		self.storage = { k : 0 for k in keys }
 
-	def __getattr__(self, name:str) -> int:
+	def __getattr__(self, name:str) -> Callable[[], int]:
 		if name not in self.storage:
 			self.storage[name] = 0
 		def incr():
@@ -54,6 +56,47 @@ class Counter:
 
 	def __setitem__(self, name:str, value:Any):
 		self.storage[name] = value
+
+def _log_error_event(func: Callable):
+	"""will log exceptions to db
+
+	If an error happens while parsing and serializing an event, this decorator
+	will catch it and log to a separate db the whole event with a stacktrace.
+	"""
+	@functools.wraps(func)
+	async def wrapper(self, event:Any, *args, **kwargs):
+		try:
+			await func(self, event, *args, **kwargs)
+		except ServerSelectionTimeoutError as ex:
+			logger.error("Could not connect to MongoDB")
+			logger.info(str(event))
+		except DuplicateKeyError as e:
+			error_key = getattr(e, '_OperationFailure__details')["keyValue"]
+			logger.warning(f"Rejecting duplicate document\n\t{error_key}\n\t{str(event)}")
+		except Exception as ex:
+			logger.exception("Serialization error")
+			exc_data = {
+				"type" : repr(ex),
+				"text" : str(ex),
+				"traceback" : traceback.format_exc(),
+			}
+			doc = convert_to_dict(event)
+			doc["exception"] = exc_data
+			await self.db.exceptions.insert_one(doc)
+	return wrapper
+
+async def insert_replace(db:'motor.Database', collection:str, doc:dict):
+	"""Attempt to insert a document, replace any duplicate found"""
+	try:
+		await db[collection].insert_one(doc)
+	except DuplicateKeyError as e:
+		error_key = getattr(e, '_OperationFailure__details')["keyValue"]
+		prev = await db[collection].find_one(error_key)
+		logging.warning("Replacing duplicate on %s | key %s", collection, str(error_key))
+		await asyncio.gather(
+			db.exceptions.insert_one({"_": "Replace", "prev": prev, "new": doc}),
+			db[collection].replace_one(error_key, doc)
+		)
 
 def has_index(indexes, index):
 	for name in indexes:
@@ -77,14 +120,14 @@ class DatabaseDriver:
 		self.log_service = alemiBot.config.get("database", "log_service", fallback=True)
 		self.log_media = alemiBot.config.get("database", "log_media", fallback=False)
 
-		self.counter = Counter(["service", "messages", "deletions", "edits", "users", "chats"])
+		self.counter : Counter = Counter(["service", "messages", "deletions", "edits", "users", "chats"])
 
 		self.client = AsyncIOMotorClient(host, port, **kwargs)
 		dbname = alemiBot.config.get("database", "dbname", fallback="alemibot")
-		self.db = self.client[dbname]
+		self.db : 'motor.Database' = self.client[dbname]
 		# create a (sync) MongoClient too for blocking operations
 		self.sync_client = MongoClient(host, port, **kwargs)
-		self.sync_db = self.sync_client[dbname]
+		self.sync_db : 'pymongo.Database' = self.sync_client[dbname]
 
 		# Check (and create if missing) essential indexes
 		logger.info("Checking index (may take a while first time...)")
@@ -128,35 +171,8 @@ class DatabaseDriver:
 		except:
 			logger.exception("Error while building users/chats indexes. Not having these indexes will affect performance!")
 
-	def _log_error_event(func):
-		"""will log exceptions to db
 
-		If an error happens while parsing and serializing an event, this decorator
-		will catch it and log to a separate db the whole event with a stacktrace.
-		"""
-		@functools.wraps(func)
-		async def wrapper(self, event:Any, *args, **kwargs):
-			try:
-				await func(self, event, *args, **kwargs)
-			except ServerSelectionTimeoutError as ex:
-				logger.error("Could not connect to MongoDB")
-				logger.info(str(event))
-			except DuplicateKeyError as e:
-				error_key = getattr(e, '_OperationFailure__details')["keyValue"]
-				logger.warning(f"Rejecting duplicate document\n\t{error_key}\n\t{str(event)}")
-			except Exception as ex:
-				logger.exception("Serialization error")
-				exc_data = {
-					"type" : repr(ex),
-					"text" : str(ex),
-					"traceback" : traceback.format_exc(),
-				}
-				doc = convert_to_dict(event)
-				doc["exception"] = exc_data
-				await self.db.exceptions.insert_one(doc)
-		return wrapper
-
-	async def fetch_user(self, uid:int, client:'pyrogram.Client' = None) -> dict:
+	async def fetch_user(self, uid:int, client:Client = None) -> dict:
 		"""get a user from db or telegram
 
 		Try to fetch an user from database and, if missing, fetch it from telegram and insert it.
@@ -184,7 +200,8 @@ class DatabaseDriver:
 		msg = extract_message(message)
 		if file_name:
 			msg["file"] = file_name
-		await self.db.messages.insert_one(msg)
+
+		await insert_replace(self.db, 'messages', msg)
 		self.counter.messages()
 
 		await self.db.chats.update_one({"id":message.chat.id}, {"$inc": {"messages.total":1}})
@@ -208,7 +225,7 @@ class DatabaseDriver:
 	@_log_error_event
 	async def parse_service_event(self, message:Message):
 		msg = extract_service_message(message)
-		await self.db.service.insert_one(msg)
+		await insert_replace(self.db, 'service', msg)
 		if message.chat:
 			chat = extract_chat(message.chat)
 			chat_id = chat["id"]
@@ -225,7 +242,7 @@ class DatabaseDriver:
 	@_log_error_event
 	async def parse_member_event(self, update:ChatMemberUpdated):
 		doc = extract_member_update(update)
-		await self.db.members.insert_one(doc)
+		await insert_replace(self.db, 'members', doc)
 		self.counter.members()
 
 		usr = extract_user((update.new_chat_member or update.old_chat_member).user)
@@ -252,7 +269,7 @@ class DatabaseDriver:
 	async def parse_deletion_event(self, message:List[Message]):
 		deletions = extract_delete(message)
 		for deletion in deletions:
-			await self.db.deletions.insert_one(deletion)
+			await insert_replace(self.db, 'deletions', deletion)
 			self.counter.deletions()
 
 			flt = {"id": deletion["id"]}
