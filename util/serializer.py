@@ -116,6 +116,8 @@ def extract_service_message(msg:Message):
 		"chat" : msg.chat.id,
 		"date" : datetime.utcfromtimestamp(msg.date),
 	}
+	if hasattr(msg, "reply_to_message") and msg.reply_to_message:
+		doc["reply"] = msg.reply_to_message.message_id
 	if hasattr(msg, "new_chat_members") and msg.new_chat_members:
 		doc["new_chat_members"] = [ u.id for u in msg.new_chat_members ]
 	if hasattr(msg, "left_chat_member") and msg.left_chat_member:
