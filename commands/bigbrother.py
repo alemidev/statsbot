@@ -275,7 +275,7 @@ async def groups_cmd(client, message):
 		await edit_or_reply(message, "`[!] → ` No input")
 	uid = message.command[0]
 	user = await client.get_users(int(uid) if uid.isnumeric() else uid)
-	msg = await edit_or_reply(message, "<code> → </code> Checking sightings", parse_mode="html")
+	msg = await edit_or_reply(message, "<code>→ </code> Checking sightings\n", parse_mode="html", disable_web_page_preview="True")
 	member_groups, service_groups, message_groups = await asyncio.gather(
 		DRIVER.db.members.distinct("chat", {"user": user.id}),
 		DRIVER.db.service.distinct("chat", {"user": user.id}),
@@ -287,10 +287,19 @@ async def groups_cmd(client, message):
 
 	group_ids = member_groups.union(service_groups, message_groups)
 	groups = [ doc async for doc in DRIVER.db.chats.find({"id": {"$in": list(group_ids)}}) ]
+	unkns = group_ids - set(doc["id"] for doc in groups)
 
-	output = f"<code> → </code> {get_username(user)}"
+	output = f"<code> → </code> of {get_username(user)}"
 	for group in groups:
 		output += f"\n<code>  → </code> {get_doc_username(group)}"
+
+	for unk in unkns:
+		try:
+			where = get_username(await client.get_chat(unk))
+		except PeerIdInvalid:
+			where = f"<s>{unk}</s>"
+		output += f"\n<code>  → </code> {where}"
+
 	await edit_or_reply(msg, output, parse_mode="html", disable_web_page_preview=True)
 
 
