@@ -110,8 +110,8 @@ async def density_cmd(client, message):
 		ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
 
 	plot_title = "Msgs per day" + \
-		(f" ({get_username(target_group)})" if target_group else '') + \
-		(f" [from {get_username(target_user)}]" if target_user else '') + \
+		(f" ({get_username(target_group, mention=False)})" if target_group else '') + \
+		(f" [from {get_username(target_user, mention=False)}]" if target_user else '') + \
 		(f" containing `{message.command['keyword']}`" if message.command["keyword"] else '') + \
 		f" | last {length} days"
 	ax.set_title(plot_title)
@@ -236,8 +236,8 @@ async def heatmap_cmd(client, message):
 	                       ha="center", va="center", color="w")
 	
 	plot_title = "Msgs per weekday" + \
-		(f" ({get_username(target_group)})" if target_group else '') + \
-		(f" [from {get_username(target_user)}]" if target_user else '') + \
+		(f" ({get_username(target_group, mention=False)})" if target_group else '') + \
+		(f" [from {get_username(target_user, mention=False)}]" if target_user else '') + \
 		(f" containing `{message.command['keyword']}`" if message.command["keyword"] else '')
 	ax.set_title(plot_title)
 	fig.tight_layout()
