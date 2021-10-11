@@ -286,7 +286,7 @@ async def groups_cmd(client, message):
 	message_groups = set(message_groups)
 
 	group_ids = member_groups.union(service_groups, message_groups)
-	groups = await DRIVER.db.chats.find({"id": {"$in": list(group_ids)}})
+	groups = [ doc async for doc in DRIVER.db.chats.find({"id": {"$in": list(group_ids)}}) ]
 
 	output = f"<code> → </code> {get_username(user)}"
 	for group in groups:
