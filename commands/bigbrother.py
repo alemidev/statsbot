@@ -261,6 +261,39 @@ async def query_cmd(client, message):
 	else:
 		await edit_or_reply(message, "` → `" + tokenize_json(raw))
 
+@HELP.add(cmd="<user>")
+@alemiBot.on_message(is_superuser & filterCommand(["groups"], list(alemiBot.prefixes)))
+@report_error(logger)
+@set_offline
+async def groups_cmd(client, message):
+	"""get all groups a user has been sighted in
+
+	Will scan database for member updates and messages sent by specified member.
+	Any group which received a message or a member update, will be listed.
+	"""
+	if len(message.command) < 1:
+		await edit_or_reply(message, "`[!] → ` No input")
+	uid = message.command[0]
+	user = await client.get_users(int(uid) if uid.isnumeric() else uid)
+	msg = await edit_or_reply(message, "<code> → </code> Checking sightings", parse_mode="html")
+	member_groups, service_groups, message_groups = await asyncio.gather(
+		DRIVER.db.members.distinct("chat", {"user": user.id}),
+		DRIVER.db.service.distinct("chat", {"user": user.id}),
+		DRIVER.db.messages.distinct("chat", {"user": user.id})
+	)
+	member_groups = set(member_groups)
+	service_groups = set(service_groups)
+	message_groups = set(message_groups)
+
+	group_ids = member_groups.union(service_groups, message_groups)
+	groups = await DRIVER.db.chats.find({"id": {"$in": list(group_ids)}})
+
+	output = f"<code> → </code> {get_username(user)}"
+	for group in groups:
+		output += f"\n<code>  → </code> {get_doc_username(group)}"
+	await edit_or_reply(msg, output, parse_mode="html", disable_web_page_preview=True)
+
+
 @HELP.add(cmd="[<id>]", sudo=False)
 @alemiBot.on_message(is_allowed & filterCommand(["history", "hist"], list(alemiBot.prefixes), options={
 	"group" : ["-g"]

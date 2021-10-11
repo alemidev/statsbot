@@ -16,6 +16,8 @@ def get_doc_username(doc:dict, mention=True) -> str:
 	if "title" in doc and doc["title"]:
 		if mention and "invite_link" in doc and doc["invite_link"]:
 			return f"<a href={doc['invite_link']}>{doc['title']}</a>"
+		if mention and "username" in doc and doc["username"]:
+			return f"<a href=https://t.me/{doc['username']}>{doc['title']}</a>"
 		return doc["title"]
 	if "id" in doc:
 		return str(doc["id"])
