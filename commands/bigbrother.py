@@ -268,38 +268,41 @@ async def query_cmd(client, message):
 async def groups_cmd(client, message):
 	"""get all groups a user has been sighted in
 
-	Will scan database for member updates and messages sent by specified member.
+	Will scan database for member updates, service messages and messages sent by specified member.
 	Any group which received a message or a member update, will be listed.
+	For each group listed, regular messages sent in there from user will be counted.
 	"""
 	if len(message.command) < 1:
 		await edit_or_reply(message, "`[!] → ` No input")
 	uid = message.command[0]
 	user = await client.get_users(int(uid) if uid.isnumeric() else uid)
 	msg = await edit_or_reply(message, "<code>→ </code> Checking sightings\n", parse_mode="html", disable_web_page_preview="True")
-	member_groups, service_groups, message_groups = await asyncio.gather(
-		DRIVER.db.members.distinct("chat", {"user": user.id}),
-		DRIVER.db.service.distinct("chat", {"user": user.id}),
-		DRIVER.db.messages.distinct("chat", {"user": user.id})
-	)
-	member_groups = set(member_groups)
-	service_groups = set(service_groups)
-	message_groups = set(message_groups)
+	with ProgressChatAction(client, message.chat.id, action="find_location") as prog:
+		member_groups, service_groups, message_groups = await asyncio.gather(
+			DRIVER.db.members.distinct("chat", {"user": user.id}),
+			DRIVER.db.service.distinct("chat", {"user": user.id}),
+			DRIVER.db.messages.distinct("chat", {"user": user.id})
+		)
+		member_groups = set(member_groups)
+		service_groups = set(service_groups)
+		message_groups = set(message_groups)
 
-	group_ids = member_groups.union(service_groups, message_groups)
-	groups = [ doc async for doc in DRIVER.db.chats.find({"id": {"$in": list(group_ids)}}) ]
-	unkns = group_ids - set(doc["id"] for doc in groups)
+		group_ids = member_groups.union(service_groups, message_groups)
+		groups = [ doc async for doc in DRIVER.db.chats.find({"id": {"$in": list(group_ids)}}) ]
+		unkns = group_ids - set(doc["id"] for doc in groups)
 
-	output = f"<code> → </code> of {get_username(user)}"
-	for group in groups:
-		output += f"\n<code>  → </code> {get_doc_username(group)}"
+		output = f"<code> → </code> of {get_username(user)}"
+		for group in groups:
+			count = await DRIVER.db.messages.count_documents({"chat": group.id, "user": user.id})
+			output += f"\n<code>  → </code> {get_doc_username(group)} [<b>{count}</b>]"
 
-	for unk in unkns:
-		try:
-			where = get_username(await client.get_chat(unk))
-		except PeerIdInvalid:
-			where = f"<s>{unk}</s>"
-		output += f"\n<code>  → </code> {where}"
-
+		for unk in unkns:
+			count = await DRIVER.db.messages.count_documents({"chat": unk, "user": user.id})
+			try:
+				where = get_username(await client.get_chat(unk))
+			except PeerIdInvalid:
+				where = f"<s>{unk}</s>"
+			output += f"\n<code>  → </code> {where} [<b>{count}</b>]"
 	await edit_or_reply(msg, output, parse_mode="html", disable_web_page_preview=True)
 
 
