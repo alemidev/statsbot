@@ -264,6 +264,7 @@ async def query_cmd(client, message):
 @HELP.add(cmd="<user>")
 @alemiBot.on_message(is_superuser & filterCommand(["groups"], list(alemiBot.prefixes)))
 @report_error(logger)
+@cancel_chat_action
 @set_offline
 async def groups_cmd(client, message):
 	"""get all groups a user has been sighted in
@@ -273,11 +274,11 @@ async def groups_cmd(client, message):
 	For each group listed, regular messages sent in there from user will be counted.
 	"""
 	if len(message.command) < 1:
-		await edit_or_reply(message, "`[!] → ` No input")
+		return await edit_or_reply(message, "`[!] → ` No input")
 	uid = message.command[0]
 	user = await client.get_users(int(uid) if uid.isnumeric() else uid)
 	msg = await edit_or_reply(message, "<code>→ </code> Checking sightings\n", parse_mode="html", disable_web_page_preview="True")
-	with ProgressChatAction(client, message.chat.id, action="find_location") as prog:
+	with ProgressChatAction(client, message.chat.id, "find_location") as prog:
 		member_groups, service_groups, message_groups = await asyncio.gather(
 			DRIVER.db.members.distinct("chat", {"user": user.id}),
 			DRIVER.db.service.distinct("chat", {"user": user.id}),
