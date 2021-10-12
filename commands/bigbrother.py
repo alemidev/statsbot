@@ -294,7 +294,7 @@ async def groups_cmd(client, message):
 
 		output = f"<code> → </code> of {get_username(user)}"
 		for group in groups:
-			count = await DRIVER.db.messages.count_documents({"chat": group.id, "user": user.id})
+			count = await DRIVER.db.messages.count_documents({"chat": group["id"], "user": user.id})
 			output += f"\n<code>  → </code> {get_doc_username(group)} [<b>{count}</b>]"
 
 		for unk in unkns:
