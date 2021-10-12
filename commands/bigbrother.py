@@ -7,7 +7,7 @@ import asyncio
 
 from datetime import datetime
 from pymongo import ASCENDING, DESCENDING, collection
-from pyrogram.errors import PeerIdInvalid
+from pyrogram.errors import PeerIdInvalid, ChannelPrivate
 
 from bot import alemiBot
 
@@ -301,7 +301,7 @@ async def groups_cmd(client, message):
 			count = await DRIVER.db.messages.count_documents({"chat": unk, "user": user.id})
 			try:
 				where = get_username(await client.get_chat(unk))
-			except PeerIdInvalid:
+			except (PeerIdInvalid, ChannelPrivate):
 				where = f"<s>{unk}</s>"
 			output += f"\n<code>  → </code> {where} [<b>{count}</b>]"
 	await edit_or_reply(msg, output, parse_mode="html", disable_web_page_preview=True)
