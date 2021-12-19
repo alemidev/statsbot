@@ -27,6 +27,15 @@ logger = logging.getLogger(__name__)
 
 HELP = HelpCategory("SCOREBOARDS")
 
+def level_from_points(pts:int, amount:int=10, factor:int=2):
+	lvl = 0
+	while pts >= amount:
+		pts -= amount
+		amount *= factor
+		lvl += 1
+	return lvl
+
+
 @HELP.add(sudo=False)
 @alemiBot.on_message(is_allowed & filterCommand(["stats", "stat"], list(alemiBot.prefixes)))
 @report_error(logger)
@@ -75,10 +84,18 @@ async def stats_cmd(client, message):
 		oldest_event = await DRIVER.db.service.find_one({"user":uid}, sort=[("date",ASCENDING)])
 		if oldest_event:
 			oldest = min(oldest, oldest_event["date"])
+	points = (
+		partecipated_chats * 25  +
+		total_media        * 7   +
+		visited_chats      * 5   +
+		total_replies      * 3   +
+		total_messages     * 2   +
+		total_edits        * 1
+	)
 	welcome = random.choice(["Hi", "Hello", "Welcome", "Nice to see you", "What's up", "Good day"])
 	await edit_or_reply(
 		message,
-		f"<code>→ </code> {welcome} <b>{get_doc_username(user)}</b>\n" +
+		f"<code>→ </code> {welcome} <b>{get_doc_username(user)}</b> (lvl {level_from_points(points)})\n" +
 		f"<code> → </code> You sent <b>{sep(total_messages)}</b> messages\n" +
 		f"<code>  → </code> Position <b>{position}</b> on global scoreboard\n" +
 		f"<code>  → </code> Average of <b>{msgs_per_minute_today:.2f}</b> messages per minute today\n" +
