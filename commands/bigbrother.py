@@ -202,10 +202,10 @@ async def source_cmd(client, message):
 
 @HELP.add(cmd="<{query}>")
 @alemiBot.on_message(is_superuser & filterCommand(["query", "q", "log"], list(alemiBot.prefixes), options={
-	"limit" : ["-l", "-limit"],
-	"filter" : ["-f", "-filter"],
-	"collection" : ["-coll", "-collection"],
-	"database" : ["-db", "-database"]
+	"limit" : ["-l", "-lim", "--limit"],
+	"filter" : ["-f", "--filter"],
+	"collection" : ["-coll", "--collection"],
+	"database" : ["-db", "--database"]
 }, flags=["-cmd", "-count", "-id", "-asc"]))
 @report_error(logger)
 @set_offline
