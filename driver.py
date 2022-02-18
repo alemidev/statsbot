@@ -13,10 +13,10 @@ from pyrogram import Client
 from pyrogram.types import Message, User, ChatMemberUpdated
 from pyrogram.errors import PeerIdInvalid
 
-from bot import alemiBot
-from util.serialization import convert_to_dict
+from alemibot import alemiBot
+from alemibot.util.serialization import convert_to_dict
 
-from plugins.statsbot.util.serializer import (
+from .util.serializer import (
 	diff, extract_chat, extract_member_update, extract_message, extract_user, extract_delete, 
 	extract_service_message, extract_edit_message
 )

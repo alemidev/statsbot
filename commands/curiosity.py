@@ -7,17 +7,15 @@ from collections import Counter
 from pyrogram import filters
 from pymongo import DESCENDING
 
-from bot import alemiBot
+from alemibot import alemiBot
 
-from util.permission import is_allowed, is_superuser, check_superuser
-from util.message import ProgressChatAction, edit_or_reply
-from util.text import sep
-from util.getters import get_text, get_username
-from util.command import filterCommand
-from util.decorators import report_error, set_offline, cancel_chat_action
-from util.help import HelpCategory
+from alemibot.util.command import _Message as Message
+from alemibot.util import (
+	is_allowed, sudo, ProgressChatAction, edit_or_reply, sep, get_text,
+	get_username, filterCommand, report_error, set_offline, cancel_chat_action, HelpCategory
+)
 
-from plugins.statsbot.driver import DRIVER
+from ..driver import DRIVER
 
 import logging
 logger = logging.getLogger(__name__)
@@ -25,7 +23,7 @@ logger = logging.getLogger(__name__)
 HELP = HelpCategory("CURIOSITY")
 
 @HELP.add(cmd="[<user>]", sudo=False)
-@alemiBot.on_message(is_allowed & filterCommand(["freq", "frequent"], list(alemiBot.prefixes), options={
+@alemiBot.on_message(is_allowed & filterCommand(["freq", "frequent"], options={
 	"limit" : ["-l", "--limit"],
 	"results" : ["-r", "--results"],
 	"minlen" : ["-min"],
@@ -35,7 +33,7 @@ HELP = HelpCategory("CURIOSITY")
 @report_error(logger)
 @set_offline
 @cancel_chat_action
-async def frequency_cmd(client, message):
+async def frequency_cmd(client:alemiBot, message:Message):
 	"""find frequent words in messages
 
 	By default, 10 most frequent words are shown, but number of results can be changed with `-r`.
@@ -52,12 +50,12 @@ async def frequency_cmd(client, message):
 	# Build query
 	query = {"text":{"$exists":1}} # only msgs with text
 	extra_query = False # Extra query
-	if check_superuser(message) and "query" in message.command:
+	if sudo(client, message) and "query" in message.command:
 		extra_query = True
 		query = {**query, **json.loads(message.command["query"])}
 	# Add group filter to query
 	group = message.chat
-	if check_superuser(message):
+	if sudo(client, message):
 		if message.command["-all"]:
 			group = None
 		elif "group" in message.command:
@@ -107,13 +105,13 @@ async def frequency_cmd(client, message):
 	await edit_or_reply(msg, output, parse_mode="html", disable_web_page_preview=True)
 
 @HELP.add(cmd="[<number>]", sudo=False)
-@alemiBot.on_message(is_allowed & filterCommand(["active"], list(alemiBot.prefixes), options={
+@alemiBot.on_message(is_allowed & filterCommand(["active"], options={
 	"group" : ["-g", "--group"],
 }))
 @report_error(logger)
 @set_offline
 @cancel_chat_action
-async def active_cmd(client, message):
+async def active_cmd(client:alemiBot, message:Message):
 	"""find members active in last messages
 
 	Will iterate previous messages (default 100) to find members who sent at least 1 message.
@@ -121,7 +119,7 @@ async def active_cmd(client, message):
 	"""
 	number = int(message.command[0] or 100)
 	target_group = message.chat
-	if check_superuser(message) and "group" in message.command:
+	if sudo(client, message) and "group" in message.command:
 		arg = message.command["group"]
 		target_group = await client.get_chat(int(arg) if arg.isnumeric() else arg)
 	output = f"<code>→ </code> Active members in last <b>{sep(number)}</b> messages:\n"
