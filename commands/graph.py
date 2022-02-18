@@ -1,5 +1,6 @@
 import io
 from datetime import datetime, timedelta
+from typing import Dict, Any
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -7,18 +8,15 @@ import matplotlib.dates as mdates
 
 from pymongo import DESCENDING
 
-from bot import alemiBot
+from alemibot import alemiBot
 
-from util.permission import is_allowed, check_superuser
-from util.message import ProgressChatAction, edit_or_reply
-from util.text import sep
-from util.getters import get_user, get_username
-from util.time import parse_timedelta
-from util.command import filterCommand
-from util.decorators import report_error, set_offline, cancel_chat_action
-from util.help import HelpCategory
+from alemibot.util.command import _Message as Message
+from alemibot.util import (
+	is_allowed, sudo, ProgressChatAction, edit_or_reply, sep, get_user, get_username,
+	parse_timedelta, filterCommand, report_error, set_offline, cancel_chat_action, HelpCategory
+)
 
-from plugins.statsbot.driver import DRIVER
+from ..driver import DRIVER
 
 import logging
 logger = logging.getLogger(__name__)
@@ -26,7 +24,7 @@ logger = logging.getLogger(__name__)
 HELP = HelpCategory("GRAPHS")
 
 @HELP.add(cmd="[<len>]", sudo=False)
-@alemiBot.on_message(is_allowed & filterCommand(["density", "activity"], list(alemiBot.prefixes), options={
+@alemiBot.on_message(is_allowed & filterCommand(["density", "activity"], options={
 	"group" : ["-g", "--group"],
 	"user" : ["-u", "--user"],
 	"keyword" : ["-k", "--keyword"],
@@ -36,7 +34,7 @@ HELP = HelpCategory("GRAPHS")
 @report_error(logger)
 @set_offline
 @cancel_chat_action
-async def density_cmd(client, message):
+async def density_cmd(client:alemiBot, message:Message):
 	"""show messages per day in last days
 
 	Show messages sent per day in last X days (default 20, cap 90) in current group \
@@ -61,7 +59,7 @@ async def density_cmd(client, message):
 	if "user" in message.command:
 		u_input = message.command["user"]
 		target_user = await client.get_users(int(u_input) if u_input.isnumeric() else u_input)
-	if check_superuser(message):
+	if sudo(client, message):
 		if "group" in message.command:
 			arg = message.command["group"]
 			target_group = await client.get_chat(int(arg) if arg.isnumeric() else arg)
@@ -133,7 +131,7 @@ async def density_cmd(client, message):
 	await client.send_photo(message.chat.id, buf, reply_to_message_id=message.message_id, caption=caption, progress=prog.tick)
 
 @HELP.add(sudo=False)
-@alemiBot.on_message(is_allowed & filterCommand(["heat", "heatmap"], list(alemiBot.prefixes), options={
+@alemiBot.on_message(is_allowed & filterCommand(["heat", "heatmap"], options={
 	"group" : ["-g", "--group"],
 	"user" : ["-u", "--user"],
 	"keyword" : ["-k", "--keyword"],
@@ -144,7 +142,7 @@ async def density_cmd(client, message):
 @report_error(logger)
 @set_offline
 @cancel_chat_action
-async def heatmap_cmd(client, message):
+async def heatmap_cmd(client:alemiBot, message:Message):
 	"""show heatmap of messages in week
 
 	Show messages sent per day of the week (in last 7 weeks) in current group \
@@ -168,7 +166,7 @@ async def heatmap_cmd(client, message):
 	if client.me.is_bot and message.chat.type == "private":
 		target_group = None
 		target_user = message.from_user
-	if check_superuser(message):
+	if sudo(client, message):
 		if "group" in message.command:
 			arg = message.command["group"]
 			target_group = await client.get_chat(int(arg) if arg.isnumeric() else arg)
@@ -256,7 +254,7 @@ async def heatmap_cmd(client, message):
 
 
 @HELP.add(cmd="[<lim>]", sudo=False)
-@alemiBot.on_message(is_allowed & filterCommand(["shift", "timeshift"], list(alemiBot.prefixes), options={
+@alemiBot.on_message(is_allowed & filterCommand(["shift", "timeshift"], options={
 	"group" : ["-g", "--group"],
 	"user" : ["-u", "--user"],
 	"keyword" : ["-k", "--keyword"],
@@ -266,7 +264,7 @@ async def heatmap_cmd(client, message):
 @report_error(logger)
 @set_offline
 @cancel_chat_action
-async def timeshift_cmd(client, message):
+async def timeshift_cmd(client:alemiBot, message:Message):
 	"""show at which time users are more active
 
 	Show messages sent per time of day in current group (superuser can specify group or search globally).
@@ -294,7 +292,7 @@ async def timeshift_cmd(client, message):
 	if "user" in message.command:
 		u_input = message.command["user"]
 		target_user = await client.get_users(int(u_input) if u_input.isnumeric() else u_input)
-	if check_superuser(message):
+	if sudo(client, message):
 		if "group" in message.command:
 			arg = message.command["group"]
 			target_group = await client.get_chat(int(arg) if arg.isnumeric() else arg)
@@ -304,7 +302,7 @@ async def timeshift_cmd(client, message):
 		limit = min(limit, 100000)
 
 	# Build query
-	query = {"date":{"$ne":None}}
+	query : Dict[str, Any] = {"date":{"$ne":None}}
 	if target_group:
 		query["chat"] = target_group.id
 	if target_user:

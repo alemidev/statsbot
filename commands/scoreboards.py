@@ -3,29 +3,39 @@ import random
 from time import time
 from datetime import datetime
 from uuid import uuid4
+from typing import Dict, Any
 
 from pymongo import ASCENDING
 
 from pyrogram.types import InputTextMessageContent, InlineQueryResultArticle, InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.errors import UserNotParticipant, PeerIdInvalid
 
-from bot import alemiBot
+from alemibot import alemiBot
 
-from util.command import filterCommand
-from util.permission import is_allowed, is_superuser, check_superuser
-from util.message import ProgressChatAction, edit_or_reply
-from util.text import sep
-from util.getters import get_username, get_user
-from util.decorators import report_error, set_offline, cancel_chat_action
-from util.help import HelpCategory
+from alemibot.util.command import _Message as Message
 
-from plugins.statsbot.driver import DRIVER
-from plugins.statsbot.util.getters import get_doc_username
+from alemibot.util import (
+	filterCommand, is_allowed, sudo,  ProgressChatAction, edit_or_reply, sep,
+	get_username, get_user, report_error, set_offline, cancel_chat_action, HelpCategory
+)
+
+from ..driver import DRIVER
+from ..util.getters import get_doc_username
 
 import logging
 logger = logging.getLogger(__name__)
 
 HELP = HelpCategory("SCOREBOARDS")
+
+# @HELP.add()
+# @alemiBot.on_message(is_allowed & filterCommand(["rep", "reputation"]))
+# @report_error(logger)
+# @set_offline
+# async def reputation_cmd(client:alemiBot, message:Message):
+# 	if not message.reply_to_message:
+# 		return await edit_or_reply(message, "`[!] → ` Reply to someone")
+# 	if len(message.command) <= 0:
+# 		return await edit_or_reply(message, "`[!] → ` ")
 
 def level_from_points(pts:int, amount:int=10, factor:int=2):
 	lvl = 0
@@ -35,13 +45,12 @@ def level_from_points(pts:int, amount:int=10, factor:int=2):
 		lvl += 1
 	return lvl
 
-
 @HELP.add(sudo=False)
-@alemiBot.on_message(is_allowed & filterCommand(["stats", "stat"], list(alemiBot.prefixes)))
+@alemiBot.on_message(is_allowed & filterCommand(["stats", "stat"]))
 @report_error(logger)
 @set_offline
 @cancel_chat_action
-async def stats_cmd(client, message):
+async def stats_cmd(client:alemiBot, message:Message):
 	"""get your stats
 
 	Will show your first sighting and count your sent messages, \
@@ -52,7 +61,7 @@ async def stats_cmd(client, message):
 	if message.sender_chat: # If sent anonymous msg, do /groupstats by default
 		return await group_stats_cmd(client, message)
 	user = None
-	if len(message.command) > 0 and check_superuser(message):
+	if len(message.command) > 0 and sudo(client, message):
 		target_user = await client.get_users(int(message.command[0])
 				if message.command[0].isnumeric() else message.command[0])
 		user = await DRIVER.fetch_user(target_user.id, client)
@@ -107,11 +116,11 @@ async def stats_cmd(client, message):
 	)
 
 @HELP.add(sudo=False)
-@alemiBot.on_message(is_allowed & filterCommand(["groupstats", "groupstat"], list(alemiBot.prefixes)))
+@alemiBot.on_message(is_allowed & filterCommand(["groupstats", "groupstat"]))
 @report_error(logger)
 @set_offline
 @cancel_chat_action
-async def group_stats_cmd(client, message):
+async def group_stats_cmd(client:alemiBot, message:Message):
 	"""get current group stats
 
 	Will show group message count and global scoreboard position.
@@ -121,7 +130,7 @@ async def group_stats_cmd(client, message):
 	if not message.chat:
 		return await edit_or_reply(message, "`[!] → ` No chat")
 	group = message.chat
-	if len(message.command) > 0 and check_superuser(message):
+	if len(message.command) > 0 and sudo(client, message):
 		group = await client.get_chat(int(message.command[0])
 				if message.command[0].isnumeric() else message.command[0])
 	if group.type not in ("group", "supergroup"):
@@ -170,14 +179,14 @@ async def group_stats_cmd(client, message):
 
 
 @HELP.add(cmd="[<chat>]")
-@alemiBot.on_message(is_superuser & filterCommand(["topgroups", "topgroup", "top_groups", "top_group"], list(alemiBot.prefixes), options={
+@alemiBot.on_message(sudo & filterCommand(["topgroups", "topgroup", "top_groups", "top_group"], options={
 	"results" : ["-r", "--results"],
 	"offset" : ["-o", "--offset"],
 }))
 @report_error(logger)
 @set_offline
 @cancel_chat_action
-async def top_groups_cmd(client, message):
+async def top_groups_cmd(client:alemiBot, message:Message):
 	"""list tracked messages for groups
 
 	Checks (tracked) number of messages sent in each group.
@@ -221,7 +230,7 @@ def user_index(scoreboard, uid):
 	return -1
 
 @HELP.add(cmd="[<user>]", sudo=False)
-@alemiBot.on_message(is_allowed & filterCommand(["topmsg", "topmsgs", "top_messages"], list(alemiBot.prefixes), options={
+@alemiBot.on_message(is_allowed & filterCommand(["topmsg", "topmsgs", "top_messages"], options={
 	"chat" : ["-g", "--group"],
 	"results" : ["-r", "--results"],
 	"offset" : ["-o", "--offset"],
@@ -229,7 +238,7 @@ def user_index(scoreboard, uid):
 @report_error(logger)
 @set_offline
 @cancel_chat_action
-async def top_messages_cmd(client, message):
+async def top_messages_cmd(client:alemiBot, message:Message):
 	"""list tracked messages for users
 
 	Checks (tracked) number of messages sent by group members in this chat.
@@ -241,9 +250,9 @@ async def top_messages_cmd(client, message):
 	"""
 	results = min(int(message.command["results"] or 10), 100)
 	offset = int(message.command["offset"] or 0)
-	global_search = check_superuser(message) and message.command["-all"]
+	global_search = sudo(client, message) and message.command["-all"]
 	target_chat = message.chat
-	if check_superuser(message) and "chat" in message.command:
+	if sudo(client, message) and "chat" in message.command:
 		tgt = int(message.command["chat"]) if message.command["chat"].isnumeric() \
 			else message.command["chat"]
 		target_chat = await client.get_chat(tgt)
@@ -252,7 +261,7 @@ async def top_messages_cmd(client, message):
 	msg = await edit_or_reply(message, out, parse_mode="html", disable_web_page_preview=True)
 	with ProgressChatAction(client, message.chat.id) as prog:
 		if global_search:
-			query = {"messages":{"$exists":1}}
+			query : Dict[str, Any] = {"messages":{"$exists":1}}
 			if not message.command["-bots"]:
 				query["flags.bot"] = False
 			async for u in DRIVER.db.users.find(query, {"_id":0,"id":1,"messages":1}):
@@ -282,7 +291,7 @@ async def top_messages_cmd(client, message):
 	await edit_or_reply(msg, out, parse_mode="html", disable_web_page_preview=True)
 
 @HELP.add(cmd="[<user>]", sudo=False)
-@alemiBot.on_message(is_allowed & filterCommand(["joindate", "joindates", "join_date"], list(alemiBot.prefixes), options={
+@alemiBot.on_message(is_allowed & filterCommand(["joindate", "joindates", "join_date"], options={
 	"chat" : ["-g", "--group"],
 	"results" : ["-r", "--results"],
 	"offset" : ["-o", "--offset"],
@@ -290,7 +299,7 @@ async def top_messages_cmd(client, message):
 @report_error(logger)
 @set_offline
 @cancel_chat_action
-async def joindate_cmd(client, message):
+async def joindate_cmd(client:alemiBot, message:Message):
 	"""list date users joined group
 
 	Checks join date for users in current chat against database.
@@ -306,7 +315,7 @@ async def joindate_cmd(client, message):
 	offset = int(message.command["offset"] or 0)
 	also_query = bool(message.command["-query"])
 	target_chat = message.chat
-	if check_superuser(message) and "chat" in message.command:
+	if sudo(client, message) and "chat" in message.command:
 		tgt = int(message.command["chat"]) if message.command["chat"].isnumeric() \
 			else message.command["chat"]
 		target_chat = await client.get_chat(tgt)

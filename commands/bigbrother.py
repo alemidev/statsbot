@@ -9,18 +9,17 @@ from datetime import datetime
 from pymongo import ASCENDING, DESCENDING, collection
 from pyrogram.errors import PeerIdInvalid, ChannelPrivate
 
-from bot import alemiBot
+from alemibot import alemiBot
 
-from util.command import filterCommand
-from util.permission import is_allowed, is_superuser, check_superuser
-from util.getters import get_username
-from util.message import ProgressChatAction, edit_or_reply, is_me
-from util.text import tokenize_json, order_suffix, sep
-from util.decorators import report_error, set_offline, cancel_chat_action
-from util.help import HelpCategory
+from alemibot.util.command import _Message as Message
+from alemibot.util import (
+	filterCommand, is_allowed, sudo, get_username,
+	ProgressChatAction, edit_or_reply, is_me, tokenize_json, order_suffix, sep,
+	report_error, set_offline, cancel_chat_action, HelpCategory
+)
 
-from plugins.statsbot.driver import DRIVER
-from plugins.statsbot.util.getters import get_doc_username
+from ..driver import DRIVER
+from ..util.getters import get_doc_username
 
 import logging
 logger = logging.getLogger(__name__)
@@ -35,11 +34,11 @@ async def _run_count(collection, full_count=False):
 		return await collection.estimated_document_count()
 
 @HELP.add()
-@alemiBot.on_message(is_superuser & filterCommand(["dbstats", "dbstat"], list(alemiBot.prefixes), flags=["-count"]))
+@alemiBot.on_message(sudo & filterCommand(["dbstats", "dbstat"], flags=["-count"]))
 @report_error(logger)
 @set_offline
 @cancel_chat_action
-async def dbstats_cmd(client, message):
+async def dbstats_cmd(client:alemiBot, message:Message):
 	"""get database stats
 
 	List collections, entries, new entries in this session and disk usage.
@@ -115,14 +114,14 @@ async def back_fill_messages(client, message, target_group, limit, offset, inter
 
 
 @HELP.add(cmd="<amount>")
-@alemiBot.on_message(is_superuser & filterCommand(["backfill"], list(alemiBot.prefixes), options={
+@alemiBot.on_message(sudo & filterCommand(["backfill"], options={
 	"group" : ["-g", "--group"],
 	"interval" : ["-i", "--interval"],
 	"offset" : ["-o", "--offset"],
 }, flags=["-silent", "-stop"]))
 @report_error(logger)
 @set_offline
-async def back_fill_cmd(client, message):
+async def back_fill_cmd(client:alemiBot, message:Message):
 	"""iter previous history to fill database
 
 	Call telegram iter_history to put in db messages sent before joining.
@@ -168,13 +167,13 @@ async def safe_get_chat(client, chat):
 		return f"<s>{chat}</s>"
 
 @HELP.add(cmd="<regex>")
-@alemiBot.on_message(is_superuser & filterCommand(["source"], list(alemiBot.prefixes), options={
+@alemiBot.on_message(sudo & filterCommand(["source"], options={
 	"min" : ["-m", "--min"],
 }))
 @report_error(logger)
 @set_offline
 @cancel_chat_action
-async def source_cmd(client, message):
+async def source_cmd(client:alemiBot, message:Message):
 	"""find chats where certain regex is used
 
 	Will search all chats which contain at least 10 occurrence of given regex, and show \
@@ -201,7 +200,7 @@ async def source_cmd(client, message):
 
 
 @HELP.add(cmd="<{query}>")
-@alemiBot.on_message(is_superuser & filterCommand(["query", "q", "log"], list(alemiBot.prefixes), options={
+@alemiBot.on_message(sudo & filterCommand(["query", "q", "log"], options={
 	"limit" : ["-l", "-lim", "--limit"],
 	"filter" : ["-f", "--filter"],
 	"collection" : ["-coll", "--collection"],
@@ -210,7 +209,7 @@ async def source_cmd(client, message):
 @report_error(logger)
 @set_offline
 @cancel_chat_action
-async def query_cmd(client, message):
+async def query_cmd(client:alemiBot, message:Message):
 	"""interact with db
 
 	Make queries to the underlying database (MongoDB) to request documents.
@@ -243,7 +242,7 @@ async def query_cmd(client, message):
 		flt["_id"] = False
 
 	if message.command["-cmd"]:
-		buf = [ await database.command(*message.command.args) ]
+		buf = [ await database.command(*message.command.arg) ]
 	elif message.command["-count"]:
 		buf = [ await collection.count_documents(q) ]
 	else:
@@ -262,11 +261,11 @@ async def query_cmd(client, message):
 		await edit_or_reply(message, "` → `" + tokenize_json(raw))
 
 @HELP.add(cmd="<user>")
-@alemiBot.on_message(is_superuser & filterCommand(["groups"], list(alemiBot.prefixes)))
+@alemiBot.on_message(sudo & filterCommand(["groups"]))
 @report_error(logger)
 @cancel_chat_action
 @set_offline
-async def groups_cmd(client, message):
+async def groups_cmd(client:alemiBot, message:Message):
 	"""get all groups a user has been sighted in
 
 	Will scan database for member updates, service messages and messages sent by specified member.
@@ -308,12 +307,12 @@ async def groups_cmd(client, message):
 
 
 @HELP.add(cmd="[<id>]", sudo=False)
-@alemiBot.on_message(is_allowed & filterCommand(["history", "hist"], list(alemiBot.prefixes), options={
+@alemiBot.on_message(is_allowed & filterCommand(["history", "hist"], options={
 	"group" : ["-g"]
 }, flags=["-t", "-a"]))
 @report_error(logger)
 @set_offline
-async def hist_cmd(client, message):
+async def hist_cmd(client:alemiBot, message:Message):
 	"""get edit history of a message
 
 	Request edit history of a message. You can specify a message id or reply to a message.
@@ -330,7 +329,7 @@ async def hist_cmd(client, message):
 		m_id = int(message.command[0])
 	if m_id is None:
 		return
-	if "group" in message.command and check_superuser(message):
+	if "group" in message.command and sudo(client, message):
 		if message.command["group"].isnumeric():
 			c_id = int(message.command["group"])
 		else:
@@ -356,13 +355,13 @@ async def hist_cmd(client, message):
 		await edit_or_reply(message, "`[!] → ` Nothing found")
 
 @HELP.add(cmd="[<n>]", sudo=False)
-@alemiBot.on_message(is_allowed & filterCommand(["peek", "deld", "deleted", "removed"], list(alemiBot.prefixes), options={
+@alemiBot.on_message(is_allowed & filterCommand(["peek", "deld", "deleted", "removed"], options={
 	"group" : ["-g", "-group"],
 	"offset" : ["-o", "-offset"],
 }, flags=["-time", "-id", "-all", "-down", "-bots"]))
 @report_error(logger)
 @set_offline
-async def deleted_cmd(client, message): # This is a mess omg
+async def deleted_cmd(client:alemiBot, message:Message): # This is a mess omg
 	"""get deleted messages
 
 	Request last deleted messages in this chat.
@@ -387,7 +386,7 @@ async def deleted_cmd(client, message): # This is a mess omg
 	limit = int(message.command[0] or 1)
 	if client.me.is_bot and not message.reply_to_message:
 		return await edit_or_reply(message, "`[!] → ` You need to reply to a message")
-	if check_superuser(message):
+	if sudo(client, message):
 		if all_groups:
 			target_group = None
 		elif "group" in message.command:

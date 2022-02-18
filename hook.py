@@ -2,15 +2,16 @@
 import logging
 
 from pyrogram import filters
+from pyrogram.types import Message
 
-from bot import alemiBot
+from alemibot import alemiBot
 
-from plugins.statsbot.driver import DRIVER
+from .driver import DRIVER
 
 logger = logging.getLogger(__name__)
 
 @alemiBot.on_message(~filters.edited & ~filters.service, group=999999) # happen last and always!
-async def log_message_hook(client, message):
+async def log_message_hook(client:alemiBot, message:Message):
 	"""Log all new non-service messages"""
 	fname = None
 	if DRIVER.log_media:
