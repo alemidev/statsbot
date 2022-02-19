@@ -136,19 +136,19 @@ class DatabaseDriver:
 		# Build dates indexes first
 		if not has_index(await self.db.messages.index_information(), [("date",-1)]):
 			await self.db.messages.create_index([("date",-1)], name="alemibot-chronological")
-		if not has_index(self.db.service.index_information(), [("date",-1)]):
+		if not has_index(await self.db.service.index_information(), [("date",-1)]):
 			await self.db.service.create_index([("date",-1)], name="alemibot-chronological")
-		if not has_index(self.db.deletions.index_information(), [("date",-1)]):
+		if not has_index(await self.db.deletions.index_information(), [("date",-1)]):
 			await self.db.deletions.create_index([("date",-1)], name="alemibot-chronological")
-		if not has_index(self.db.members.index_information(), [("date",-1)]):
+		if not has_index(await self.db.members.index_information(), [("date",-1)]):
 			await self.db.members.create_index([("date",-1)], name="alemibot-chronological")
 		# This is not unique but still speeds up a ton
-		if not has_index(self.db.members.index_information(), [("chat",1),("user",1),("date",1)]):
+		if not has_index(await self.db.members.index_information(), [("chat",1),("user",1),("date",1)]):
 			await self.db.members.create_index([("chat",1),("user",1),("date",1)], name="alemibot-member-history")
 		# This is very useful for counting messages for each member
-		if not has_index(self.db.messages.index_information(), [("user",1)]):
+		if not has_index(await self.db.messages.index_information(), [("user",1)]):
 			await self.db.messages.create_index([("user",1)], name="alemibot-per-user")
-		if not has_index(self.db.service.index_information(), [("user",1)]):
+		if not has_index(await self.db.service.index_information(), [("user",1)]):
 			await self.db.service.create_index([("user",1)], name="alemibot-per-user")
 		# Building these may fail, run datafix script with duplicates option
 		try:
