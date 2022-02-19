@@ -3,8 +3,9 @@ import functools
 import traceback
 
 from datetime import datetime
-from typing import Any, List, Callable
+from typing import Any, List, Callable, Dict
 
+import motor
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo.errors import ServerSelectionTimeoutError, DuplicateKeyError
 from pymongo import ASCENDING, DESCENDING, MongoClient
@@ -108,69 +109,66 @@ def has_index(indexes, index):
 	return False
 
 class DatabaseDriver:
-	def __init__(self):
-		kwargs = {}
-		host = alemiBot.config.get("database", "host", fallback="localhost")
-		port = int(alemiBot.config.get("database", "port", fallback=27017))
-		username = alemiBot.config.get("database", "username", fallback=None)
+	async def configure(self, app:alemiBot):
+		kwargs : Dict[str, Any] = {}
+		host = app.config.get("database", "host", fallback="localhost")
+		port = int(app.config.get("database", "port", fallback=27017))
+		username = app.config.get("database", "username", fallback=None)
 		if username:
 			kwargs["username"] = username
-		password = alemiBot.config.get("database", "password", fallback=None)
+		password = app.config.get("database", "password", fallback=None)
 		if password:
 			kwargs["password"] = password
-		kwargs["connectTimeoutMS"] = int(alemiBot.config.get("database", "timeout", fallback=3000))
-		self.log_messages = alemiBot.config.get("database", "log_messages", fallback=True)
-		self.log_service = alemiBot.config.get("database", "log_service", fallback=True)
-		self.log_media = alemiBot.config.get("database", "log_media", fallback=False)
+		kwargs["connectTimeoutMS"] = app.config.getint("database", "timeout", fallback=3000)
+		self.log_messages = app.config.get("database", "log_messages", fallback=True)
+		self.log_service = app.config.get("database", "log_service", fallback=True)
+		self.log_media = app.config.get("database", "log_media", fallback=False)
 
 		self.counter : Counter = Counter(["service", "messages", "deletions", "edits", "users", "chats"])
 
 		self.client = AsyncIOMotorClient(host, port, **kwargs)
-		dbname = alemiBot.config.get("database", "dbname", fallback="alemibot")
+		dbname = app.config.get("database", "dbname", fallback="alemibot")
 		self.db : 'motor.Database' = self.client[dbname]
-		# create a (sync) MongoClient too for blocking operations
-		self.sync_client = MongoClient(host, port, **kwargs)
-		self.sync_db : 'pymongo.Database' = self.sync_client[dbname]
 
 		# Check (and create if missing) essential indexes
 		logger.info("Checking index (may take a while first time...)")
 
 		# Build dates indexes first
-		if not has_index(self.sync_db.messages.index_information(), [("date",-1)]):
-			self.sync_db.messages.create_index([("date",-1)], name="alemibot-chronological")
-		if not has_index(self.sync_db.service.index_information(), [("date",-1)]):
-			self.sync_db.service.create_index([("date",-1)], name="alemibot-chronological")
-		if not has_index(self.sync_db.deletions.index_information(), [("date",-1)]):
-			self.sync_db.deletions.create_index([("date",-1)], name="alemibot-chronological")
-		if not has_index(self.sync_db.members.index_information(), [("date",-1)]):
-			self.sync_db.members.create_index([("date",-1)], name="alemibot-chronological")
+		if not has_index(await self.db.messages.index_information(), [("date",-1)]):
+			await self.db.messages.create_index([("date",-1)], name="alemibot-chronological")
+		if not has_index(self.db.service.index_information(), [("date",-1)]):
+			await self.db.service.create_index([("date",-1)], name="alemibot-chronological")
+		if not has_index(self.db.deletions.index_information(), [("date",-1)]):
+			await self.db.deletions.create_index([("date",-1)], name="alemibot-chronological")
+		if not has_index(self.db.members.index_information(), [("date",-1)]):
+			await self.db.members.create_index([("date",-1)], name="alemibot-chronological")
 		# This is not unique but still speeds up a ton
-		if not has_index(self.sync_db.members.index_information(), [("chat",1),("user",1),("date",1)]):
-			self.sync_db.members.create_index([("chat",1),("user",1),("date",1)], name="alemibot-member-history")
+		if not has_index(self.db.members.index_information(), [("chat",1),("user",1),("date",1)]):
+			await self.db.members.create_index([("chat",1),("user",1),("date",1)], name="alemibot-member-history")
 		# This is very useful for counting messages for each member
-		if not has_index(self.sync_db.messages.index_information(), [("user",1)]):
-			self.sync_db.messages.create_index([("user",1)], name="alemibot-per-user")
-		if not has_index(self.sync_db.service.index_information(), [("user",1)]):
-			self.sync_db.service.create_index([("user",1)], name="alemibot-per-user")
+		if not has_index(self.db.messages.index_information(), [("user",1)]):
+			await self.db.messages.create_index([("user",1)], name="alemibot-per-user")
+		if not has_index(self.db.service.index_information(), [("user",1)]):
+			await self.db.service.create_index([("user",1)], name="alemibot-per-user")
 		# Building these may fail, run datafix script with duplicates option
 		try:
-			if not has_index(self.sync_db.messages.index_information(), [("chat",1),("id",1),("date",-1)]):
-				self.sync_db.messages.create_index([("chat",1),("id",1),("date",-1)],
+			if not has_index(await self.db.messages.index_information(), [("chat",1),("id",1),("date",-1)]):
+				await self.db.messages.create_index([("chat",1),("id",1),("date",-1)],
 												name="alemibot-unique-messages", unique=True)
-			if not has_index(self.sync_db.service.index_information(), [("chat",1),("id",1),("date",-1)]):
-				self.sync_db.service.create_index([("chat",1),("id",1),("date",-1)],
+			if not has_index(await self.db.service.index_information(), [("chat",1),("id",1),("date",-1)]):
+				await self.db.service.create_index([("chat",1),("id",1),("date",-1)],
 												name="alemibot-unique-service", unique=True)
-			if not has_index(self.sync_db.deletions.index_information(), [("chat",1),("id",1),("date",-1)]):
-				self.sync_db.deletions.create_index([("chat",1),("id",1),("date",-1)],
+			if not has_index(await self.db.deletions.index_information(), [("chat",1),("id",1),("date",-1)]):
+				await self.db.deletions.create_index([("chat",1),("id",1),("date",-1)],
 												name="alemibot-unique-deletions", unique=True)
 		except:
 			logger.exception("Error while building unique indexes. Check util/datafix.py if there are duplicates")
 		# Then make user and chat indexes
 		try:
-			if not has_index(self.sync_db.users.index_information(), [("id",1)]):
-				self.sync_db.users.create_index([("id",1)], name="alemibot-unique-users", unique=True)
-			if not has_index(self.sync_db.chats.index_information(), [("id",1)]):
-				self.sync_db.chats.create_index([("id",1)], name="alemibot-unique-chats", unique=True)
+			if not has_index(await self.db.users.index_information(), [("id",1)]):
+				await self.db.users.create_index([("id",1)], name="alemibot-unique-users", unique=True)
+			if not has_index(await self.db.chats.index_information(), [("id",1)]):
+				await self.db.chats.create_index([("id",1)], name="alemibot-unique-chats", unique=True)
 		except:
 			logger.exception("Error while building users/chats indexes. Not having these indexes will affect performance!")
 
@@ -289,3 +287,8 @@ class DatabaseDriver:
 				{"$set": {"last_online_date": datetime.utcfromtimestamp(user.last_online_date)} })
 
 DRIVER = DatabaseDriver()
+
+@alemiBot.on_ready() # TODO make sure nothing
+async def register_db_connection(client:alemiBot):
+	client.logger.info("Setting up database driver")
+	await DRIVER.configure(client)
