@@ -5,14 +5,14 @@ import traceback
 from datetime import datetime
 from typing import Any, List, Callable, Dict
 
-import motor
-from motor.motor_asyncio import AsyncIOMotorClient
+from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from pymongo.errors import ServerSelectionTimeoutError, DuplicateKeyError
 from pymongo import ASCENDING, DESCENDING, MongoClient
 
 from pyrogram import Client
 from pyrogram.types import Message, User, ChatMemberUpdated
 from pyrogram.errors import PeerIdInvalid
+from pyrogram.enums import ChatType
 
 from alemibot import alemiBot
 from alemibot.util.serialization import convert_to_dict
@@ -86,7 +86,7 @@ def _log_error_event(func: Callable):
 			await self.db.exceptions.insert_one(doc)
 	return wrapper
 
-async def insert_replace(db:'motor.Database', collection:str, doc:dict) -> bool:
+async def insert_replace(db:AsyncIOMotorDatabase, collection:str, doc:dict) -> bool:
 	"""Attempt to insert a document, replace any duplicate found"""
 	try:
 		await db[collection].insert_one(doc)
@@ -109,26 +109,40 @@ def has_index(indexes, index):
 	return False
 
 class DatabaseDriver:
+	log_messages : bool
+	log_service : bool
+	log_media : bool
+
+	counter : Counter
+	client: AsyncIOMotorClient
+	db : AsyncIOMotorDatabase
+
+	def __init__(self):
+		self.log_messages = False
+		self.log_service = False
+		self.log_media = False
+
+		self.counter : Counter = Counter(["service", "messages", "deletions", "edits", "users", "chats"])
+
 	async def configure(self, app:alemiBot):
+		self.log_messages = app.config.getboolean("database", "log_messages", fallback=True)
+		self.log_service = app.config.getboolean("database", "log_service", fallback=True)
+		self.log_media = app.config.getboolean("database", "log_media", fallback=False)
+
 		kwargs : Dict[str, Any] = {}
 		host = app.config.get("database", "host", fallback="localhost")
 		port = int(app.config.get("database", "port", fallback=27017))
 		username = app.config.get("database", "username", fallback=None)
+		dbname = app.config.get("database", "dbname", fallback="alemibot")
 		if username:
 			kwargs["username"] = username
 		password = app.config.get("database", "password", fallback=None)
 		if password:
 			kwargs["password"] = password
 		kwargs["connectTimeoutMS"] = app.config.getint("database", "timeout", fallback=3000)
-		self.log_messages = app.config.get("database", "log_messages", fallback=True)
-		self.log_service = app.config.get("database", "log_service", fallback=True)
-		self.log_media = app.config.get("database", "log_media", fallback=False)
-
-		self.counter : Counter = Counter(["service", "messages", "deletions", "edits", "users", "chats"])
-
 		self.client = AsyncIOMotorClient(host, port, **kwargs)
-		dbname = app.config.get("database", "dbname", fallback="alemibot")
-		self.db : 'motor.Database' = self.client[dbname]
+
+		self.db = self.client[dbname]
 
 		# Check (and create if missing) essential indexes
 		logger.info("Checking index (may take a while first time...)")
@@ -211,7 +225,7 @@ class DatabaseDriver:
 			await self.db.users.update_one({"id":message.from_user.id}, {"$inc": {"messages":1}})
 
 		# Log users writing in dms so we have stats!
-		if message.chat.type == "private":
+		if message.chat.type == ChatType.PRIVATE:
 			usr = extract_user(message.from_user)
 			usr_id = usr["id"]
 			prev = await self.db.users.find_one({"id": usr_id})
