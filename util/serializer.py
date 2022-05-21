@@ -190,7 +190,7 @@ def extract_chat(chat:Chat):
 	obj : Dict[str, Any] = {
 		"id" : chat.id,
 		"title" : chat.title,
-		"type" : chat.type,
+		"type" : chat.type.value,
 		"flags" : {
 			"verified" : chat.is_verified,
 			"restricted" : chat.is_restricted,
