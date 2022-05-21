@@ -8,6 +8,7 @@ import asyncio
 from datetime import datetime
 from pymongo import ASCENDING, DESCENDING, collection
 from pyrogram.errors import PeerIdInvalid, ChannelPrivate
+from pyrogram.enums import ParseMode
 
 from alemibot import alemiBot
 
@@ -87,7 +88,7 @@ async def dbstats_cmd(client:alemiBot, message:Message):
 						f"\n<code> → </code> <b>{chat_count}</b> chats visited (+{sep(DRIVER.counter['chats'])} new | <i>{chats_per_h:.2f}/h</i> | <b>{chat_size}</b>)" +
 						f"\n<code> → </code> DB total size <b>{db_size}</b>" +
 						f"\n<code> → </code> <b>{medianumber}</b> documents archived (size <b>{mediasize}</b>)",
-						parse_mode="html", disable_web_page_preview=True
+						parse_mode=ParseMode.HTML, disable_web_page_preview=True
 		)
 
 BACKFILL_STOP = False
@@ -98,19 +99,19 @@ async def back_fill_messages(client, message, target_group, limit, offset, inter
 	global BACKFILL_STOP
 	count = 0
 	if not silent:
-		await edit_or_reply(message, f"<code> → </code> [ <b>0 / {sep(limit)}</b> ]", parse_mode="html")
+		await edit_or_reply(message, f"<code> → </code> [ <b>0 / {sep(limit)}</b> ]", parse_mode=ParseMode.HTML)
 	async for msg in client.iter_history(target_group.id, limit=limit, offset=offset):
 		if BACKFILL_STOP:
 			BACKFILL_STOP = False
-			return await edit_or_reply(message, f"<code>[!] → </code> Stopped at [ <b>{sep(count)} / {sep(limit)}</b> ]", parse_mode="html")
+			return await edit_or_reply(message, f"<code>[!] → </code> Stopped at [ <b>{sep(count)} / {sep(limit)}</b> ]", parse_mode=ParseMode.HTML)
 		if msg.service:
 			await DRIVER.parse_service_event(msg)
 		else:
 			await DRIVER.parse_message_event(msg)
 		count += 1
 		if not silent and count % interval == 0:
-			await edit_or_reply(message, f"<code> → </code> [ <b>{sep(count)} / {sep(limit)}</b> ]", parse_mode="html")
-	await edit_or_reply(message, f"<code> → </code> Done [ <b>{sep(count)} / {sep(limit)}</b> ]", parse_mode="html")
+			await edit_or_reply(message, f"<code> → </code> [ <b>{sep(count)} / {sep(limit)}</b> ]", parse_mode=ParseMode.HTML)
+	await edit_or_reply(message, f"<code> → </code> Done [ <b>{sep(count)} / {sep(limit)}</b> ]", parse_mode=ParseMode.HTML)
 
 
 @HELP.add(cmd="<amount>")
@@ -147,7 +148,7 @@ async def back_fill_cmd(client:alemiBot, message:Message):
 		target_group = await client.get_chat(int(message.command["group"])
 			if message.command["group"].isnumeric() else message.command["group"])
 	if not silent and not is_me(message):
-		msg = await edit_or_reply(message, f"<code>$</code>backfill {message.command.text}", parse_mode="html") # ugly but will do ehhh
+		msg = await edit_or_reply(message, f"<code>$</code>backfill {message.command.text}", parse_mode=ParseMode.HTML) # ugly but will do ehhh
 	asyncio.create_task(
 		back_fill_messages(
 			client, msg, target_group, limit, offset,
@@ -181,9 +182,9 @@ async def source_cmd(client:alemiBot, message:Message):
 	The minimum occurrances can be changed with `-m` option.
 	"""
 	if len(message.command) < 1:
-		return await edit_or_reply(message, "<code>[!] → </code> No input", parse_mode="html")
+		return await edit_or_reply(message, "<code>[!] → </code> No input", parse_mode=ParseMode.HTML)
 	minmsgs = int(message.command["min"] or 10)
-	msg = await edit_or_reply(message, f"<code>→ </code> Chats mentioning <code>{message.command[0]}</code> (<i>>= {minmsgs} times</i>)", parse_mode="html", disable_web_page_preview=True)
+	msg = await edit_or_reply(message, f"<code>→ </code> Chats mentioning <code>{message.command[0]}</code> (<i>>= {minmsgs} times</i>)", parse_mode=ParseMode.HTML, disable_web_page_preview=True)
 	results = []
 	with ProgressChatAction(client, message.chat.id, action="playing") as prog:
 		for chat in await DRIVER.db.messages.distinct("chat", {"text": {"$regex": message.command[0]}}):
@@ -191,12 +192,12 @@ async def source_cmd(client:alemiBot, message:Message):
 			if count >= minmsgs:
 				results.append((await safe_get_chat(client, chat), count))
 	if len(results) < 1:
-		return await edit_or_reply(msg, "<code>[!] → </code> No results", parse_mode="html")
+		return await edit_or_reply(msg, "<code>[!] → </code> No results", parse_mode=ParseMode.HTML)
 	results.sort(key= lambda x: x[1], reverse=True)
 	out = ""
 	for res in results:
 		out += f"<code> → </code> [<b>{sep(res[1])}</b>] {res[0]}\n"
-	await edit_or_reply(msg, out, parse_mode="html", disable_web_page_preview=True)
+	await edit_or_reply(msg, out, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
 
 
 @HELP.add(cmd="<{query}>")
@@ -255,7 +256,7 @@ async def query_cmd(client:alemiBot, message:Message):
 	if len(message.text.markdown) + len(tokenize_json(raw)) > 4090:
 		f = io.BytesIO(raw.encode("utf-8"))
 		f.name = "query.json"
-		await client.send_document(message.chat.id, f, reply_to_message_id=message.message_id,
+		await client.send_document(message.chat.id, f, reply_to_message_id=message.id,
 								caption=f"` → Query result `", progress=prog.tick)
 	else:
 		await edit_or_reply(message, "` → `" + tokenize_json(raw))
@@ -276,7 +277,7 @@ async def groups_cmd(client:alemiBot, message:Message):
 		return await edit_or_reply(message, "`[!] → ` No input")
 	uid = message.command[0]
 	user = await client.get_users(int(uid) if uid.isnumeric() else uid)
-	msg = await edit_or_reply(message, "<code>→ </code> Checking sightings\n", parse_mode="html", disable_web_page_preview="True")
+	msg = await edit_or_reply(message, "<code>→ </code> Checking sightings\n", parse_mode=ParseMode.HTML, disable_web_page_preview="True")
 	with ProgressChatAction(client, message.chat.id, "find_location") as prog:
 		member_groups, service_groups, message_groups = await asyncio.gather(
 			DRIVER.db.members.distinct("chat", {"user": user.id}),
@@ -303,7 +304,7 @@ async def groups_cmd(client:alemiBot, message:Message):
 			except (PeerIdInvalid, ChannelPrivate):
 				where = f"<s>{unk}</s>"
 			output += f"\n<code>  → </code> {where} [<b>{count}</b>]"
-	await edit_or_reply(msg, output, parse_mode="html", disable_web_page_preview=True)
+	await edit_or_reply(msg, output, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
 
 
 @HELP.add(cmd="[<id>]", sudo=False)
@@ -324,7 +325,7 @@ async def hist_cmd(client:alemiBot, message:Message):
 	show_time = message.command["-t"]
 	show_author = message.command["-a"]
 	if message.reply_to_message is not None:
-		m_id = message.reply_to_message.message_id
+		m_id = message.reply_to_message.id
 	elif len(message.command) > 0:
 		m_id = int(message.command[0])
 	if m_id is None:
@@ -399,7 +400,7 @@ async def deleted_cmd(client:alemiBot, message:Message): # This is a mess omg
 	count = 0
 	flt = {}
 	if client.me.is_bot: # bots don't receive delete events so peek must work slightly differently
-		msg = await DRIVER.db.messages.find_one({"id":message.reply_to_message.message_id, "chat":target_group.id}, sort=[("date",DESCENDING)])
+		msg = await DRIVER.db.messages.find_one({"id":message.reply_to_message.id, "chat":target_group.id}, sort=[("date",DESCENDING)])
 		if not msg:
 			return await edit_or_reply(message, "`[!] → ` No record of requested message")
 		if msg_after:
@@ -415,7 +416,7 @@ async def deleted_cmd(client:alemiBot, message:Message): # This is a mess omg
 			("down " if msg_after else "") + \
 			(f"in <b>{get_username(target_group)}</b> " if "group" in message.command else '') + \
 			(f"from <a href=\"{message.reply_to_message.link}\">here</a> " if client.me.is_bot else "") + "\n"
-	msg = await edit_or_reply(message, pre_text, parse_mode="html", disable_web_page_preview=True)
+	msg = await edit_or_reply(message, pre_text, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
 	LINE = "<code> → </code> {time}{m_id}<b>{user}</b> {where} {media} <code>|</code> {text}\n"
 	cursor = DRIVER.db.messages.find(flt).sort("date", ASCENDING if msg_after else DESCENDING)
 	chat_cache = {}
@@ -448,4 +449,4 @@ async def deleted_cmd(client:alemiBot, message:Message): # This is a mess omg
 				break
 	if not out:
 		out += "<code>[!] → </code> Nothing to display"
-	await edit_or_reply(msg, out, parse_mode="html", disable_web_page_preview=True)
+	await edit_or_reply(msg, out, parse_mode=ParseMode.HTML, disable_web_page_preview=True)

@@ -128,7 +128,7 @@ async def density_cmd(client:alemiBot, message:Message):
 		("\n` → ` sent --globally--" if not target_group else f"\n` → ` in --{get_username(target_group)}--" if target_group.id != message.chat.id else "") + \
 		(f"\n` → ` from **{get_username(target_user)}**" if target_user else '') + \
 		(f"\n` → ` containing `{message.command['keyword']}`" if message.command['keyword'] else '')
-	await client.send_photo(message.chat.id, buf, reply_to_message_id=message.message_id, caption=caption, progress=prog.tick)
+	await client.send_photo(message.chat.id, buf, reply_to_message_id=message.id, caption=caption, progress=prog.tick)
 
 @HELP.add(sudo=False)
 @alemiBot.on_message(is_allowed & filterCommand(["heat", "heatmap"], options={
@@ -250,7 +250,7 @@ async def heatmap_cmd(client:alemiBot, message:Message):
 		("\n` → ` sent --globally--" if not target_group else f"\n` → ` in --{get_username(target_group)}--" if target_group.id != message.chat.id else "") + \
 		(f"\n` → ` from **{get_username(target_user)}**" if target_user else '') + \
 		(f"\n` → ` containing `{message.command['keyword']}`" if message.command['keyword'] else '')
-	await client.send_photo(message.chat.id, buf, reply_to_message_id=message.message_id, caption=caption, progress=prog.tick)
+	await client.send_photo(message.chat.id, buf, reply_to_message_id=message.id, caption=caption, progress=prog.tick)
 
 
 @HELP.add(cmd="[<lim>]", sudo=False)
@@ -342,4 +342,4 @@ async def timeshift_cmd(client:alemiBot, message:Message):
 		("\n` → ` sent --globally--" if not target_group else f"\n` → ` in --{get_username(target_group)}--" if target_group.id != message.chat.id else "") + \
 		(f"\n` → ` from **{get_username(target_user)}**" if target_user else '') + \
 		(f"\n` → ` containing `{message.command['keyword']}`" if message.command['keyword'] else '')
-	await client.send_photo(message.chat.id, buf, reply_to_message_id=message.message_id, caption=caption, progress=prog.tick)
+	await client.send_photo(message.chat.id, buf, reply_to_message_id=message.id, caption=caption, progress=prog.tick)
