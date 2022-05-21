@@ -9,7 +9,7 @@ from pyrogram.types import (
 	ReplyKeyboardRemove, InlineKeyboardMarkup, ChatPrivileges
 )
 
-from alemibot.util import parse_media_type, get_text, convert_to_dict
+from alemibot.util import convert_to_dict
 
 import logging
 
