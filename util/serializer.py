@@ -1,12 +1,12 @@
 from datetime import datetime
 from collections.abc import Iterable
 
-from typing import Union, List
+from typing import Union, List, Dict, Any
 from pyrogram.methods.chats import join_chat
 
 from pyrogram.types import (
 	Message, Chat, User, ChatMember, ChatMemberUpdated, ReplyKeyboardMarkup,
-	ReplyKeyboardRemove, InlineKeyboardMarkup
+	ReplyKeyboardRemove, InlineKeyboardMarkup, ChatPrivileges
 )
 
 from alemibot.util import parse_media_type, get_text, convert_to_dict
@@ -30,31 +30,34 @@ def diff(old:Union[dict,str,int], new:Union[dict,str,int]):
 	return out
 
 def extract_message(msg:Message):
-	doc = {
-		"id" : msg.message_id,
+	doc : Dict[str, Any] = {
+		"id" : msg.id,
 		"user" : msg.from_user.id if msg.from_user else \
 			msg.sender_chat.id if msg.sender_chat else None,
 		"chat" : msg.chat.id if msg.chat else None,
-		"date" : datetime.utcfromtimestamp(msg.date),
+		"date" : msg.date,
 	}
 	if msg.empty:
 		doc["empty"] = True
-	if parse_media_type(msg):
-		doc["media"] = parse_media_type(msg)
-	if get_text(msg, raw=True):
-		doc["text"] = get_text(msg, raw=True)
+	if msg.media: # TODO maybe get enum value? idk enums are new
+		doc["media"] = str(msg.media)
+	if msg.text or msg.caption:
+		doc["text"] = msg.text or msg.caption
 		if msg.entities:
-			doc["formatted"] = get_text(msg, html=True) # Also get markdown formatted text
+			if msg.text:  # could be a oneliner but mypy gets angry
+				doc["formatted"] = msg.text.html
+			elif msg.caption:
+				doc["formatted"] = msg.caption.html
 	if msg.from_scheduled:
 		doc["scheduled"] = True
 	if msg.author_signature:
 		doc["author"] = msg.author_signature
 	if msg.reply_to_message:
-		doc["reply"] = msg.reply_to_message.message_id
+		doc["reply"] = msg.reply_to_message.id
 	if msg.forward_date:
 		doc["forward"] = {
 			"user": msg.forward_from.id if msg.forward_from else msg.forward_sender_name,
-			"date": datetime.utcfromtimestamp(msg.forward_date),
+			"date": msg.forward_date,
 		}
 		if msg.forward_from_message_id:
 			doc["id"] = msg.forward_from_message_id
@@ -92,11 +95,14 @@ def extract_message(msg:Message):
 	return doc
 
 def extract_edit_message(msg:Message):
-	doc = { "date": datetime.utcfromtimestamp(msg.edit_date) }
-	if get_text(msg, raw=True):
-		doc["text"] = get_text(msg, raw=True)
+	doc : Dict[str, Any] = { "date": msg.edit_date }
+	if msg.text or msg.caption:
+		doc["text"] = msg.text or msg.caption
 		if msg.entities:
-			doc["formatted"] = get_text(msg, html=True)
+			if msg.text:  # could be a oneliner but mypy gets angry
+				doc["formatted"] = msg.text.html
+			elif msg.caption:
+				doc["formatted"] = msg.caption.html
 	if msg.reply_markup:
 		if isinstance(msg.reply_markup, ReplyKeyboardMarkup):
 			doc["keyboard"] = msg.reply_markup.keyboard
@@ -107,48 +113,52 @@ def extract_edit_message(msg:Message):
 	return doc
 
 def extract_service_message(msg:Message):
-	doc = {
-		"id" : msg.message_id,
+	doc : Dict[str, Any] = {
+		"id" : msg.id,
 		"user" : msg.from_user.id if msg.from_user else \
 			msg.sender_chat.id if msg.sender_chat else None,
-		"chat" : msg.chat.id,
-		"date" : datetime.utcfromtimestamp(msg.date),
+		"chat" : msg.chat.id if msg.chat else None,
+		"date" : msg.date,
 	}
-	if hasattr(msg, "reply_to_message") and msg.reply_to_message:
-		doc["reply"] = msg.reply_to_message.message_id
-	if hasattr(msg, "new_chat_members") and msg.new_chat_members:
+	if msg.reply_to_message:
+		doc["reply"] = msg.reply_to_message.id
+	if msg.new_chat_members:
 		doc["new_chat_members"] = [ u.id for u in msg.new_chat_members ]
-	if hasattr(msg, "left_chat_member") and msg.left_chat_member:
+	if msg.left_chat_member:
 		doc["left_chat_member"] = msg.left_chat_member.id
-	if hasattr(msg, "new_chat_title") and msg.new_chat_title:
+	if msg.new_chat_title:
 		doc["new_chat_title"] = msg.new_chat_title
-	if hasattr(msg, "new_chat_photo") and msg.new_chat_photo:
+	if msg.new_chat_photo:
 		doc["new_chat_photo"] = msg.new_chat_photo.file_unique_id
-	if hasattr(msg, "delete_chat_photo") and msg.delete_chat_photo:
-		doc["delete_chat_photo"] = True
-	for tp in ("group_chat_created", "supergroup_chat_created", "channel_chat_created"):
-		if hasattr(msg, tp) and getattr(msg, tp):
-			doc[tp] = True
-	for tp in ("migrate_to_chat_id", "migrate_from_chat_id"):
-		if hasattr(msg, tp) and getattr(msg, tp):
-			doc[tp] = getattr(msg, tp)
-	if hasattr(msg, "pinned_message") and msg.pinned_message:
-		doc["pinned_message"] = msg.pinned_message.message_id
-	if hasattr(msg, "game_high_score") and msg.game_high_score:
+	if msg.delete_chat_photo:
+		doc["delete_chat_photo"] = msg.delete_chat_photo
+	if msg.group_chat_created:
+		doc["group_chat_created"] = msg.group_chat_created
+	if msg.supergroup_chat_created:
+		doc["supergroup_chat_created"] = msg.supergroup_chat_created
+	if msg.channel_chat_created:
+		doc["channel_chat_created"] = msg.channel_chat_created
+	if msg.migrate_to_chat_id:
+		doc["migrate_to_chat_id"] = msg.migrate_to_chat_id
+	if msg.migrate_from_chat_id:
+		doc["migrate_from_chat_id"] = msg.migrate_from_chat_id
+	if msg.pinned_message:
+		doc["pinned_message"] = msg.pinned_message.id
+	if msg.game_high_score and msg.reply_to_message and msg.reply_to_message.game:
 		doc["game_high_score"] = {
 			"game": msg.reply_to_message.game.id,
-			"score": msg.game_high_score.score,
+			"score": msg.game_high_score,
 		}
-	if hasattr(msg, "voice_chat_started") and msg.voice_chat_started:
-		doc["voice_chat_started"] = True
-	if hasattr(msg, "voice_chat_ended") and msg.voice_chat_ended:
-		doc["voice_chat_ended"] = msg.voice_chat_ended.duration
-	if hasattr(msg, "voice_chat_members_invited") and msg.voice_chat_members_invited:
-		doc["voice_chat_members_invited"] = [ u.id for u in msg.voice_chat_members_invited.users ]
+	if msg.video_chat_started:
+		doc["video_chat_started"] = True
+	if msg.video_chat_ended:
+		doc["video_chat_ended"] = msg.video_chat_ended.duration
+	if msg.video_chat_members_invited:
+		doc["video_chat_members_invited"] = [ u.id for u in msg.video_chat_members_invited.users ]
 	return doc
 
 def extract_user(user:User):
-	obj = {
+	obj : Dict[str, Any] = {
 		"id" : user.id,
 		"first_name" : user.first_name,
 		"last_name" : user.last_name,
@@ -177,7 +187,7 @@ def extract_user(user:User):
 	return obj
 
 def extract_chat(chat:Chat):
-	obj = {
+	obj : Dict[str, Any] = {
 		"id" : chat.id,
 		"title" : chat.title,
 		"type" : chat.type,
@@ -205,33 +215,33 @@ def extract_chat(chat:Chat):
 		}
 	return obj
 
-def extract_delete(deletions:List[Message]):
+def extract_delete(deletions:Union[Message, List[Message]]):
 	out = []
 	if not isinstance(deletions, Iterable): # Sometimes it's not a list for some reason?
 		return [{
-			"id": deletions.message_id,
+			"id": deletions.id,
 			"chat": deletions.chat.id if deletions.chat else None,
 			"date": datetime.now(), # It isn't included! Assume it happened when it was received
 		}]
 	for deletion in deletions:
 		out.append({
-			"id": deletion.message_id,
+			"id": deletion.id,
 			"chat": deletion.chat.id if deletion.chat else None,
 			"date": datetime.now(), # It isn't included! Assume it happened when it was received
 		})
 	return out
 
 def extract_chat_member(member:ChatMember):
-	obj = {
-		"user": member.user.id,
+	obj : Dict[str, Any] = {
+		"user": member.user.id if member.user else None,
 		"status": member.status,
-		"title": member.title,
+		"title": member.custom_title,
 	}
 	if member.until_date:
-		obj["until"] = datetime.utcfromtimestamp(member.until_date)
+		obj["until"] = member.until_date
 	if member.joined_date:
-		obj["joined"] = datetime.utcfromtimestamp(member.joined_date)
-	if member.invited_by and member.invited_by.id != member.user.id:
+		obj["joined"] = member.joined_date
+	if member.user and member.invited_by and member.invited_by.id != member.user.id:
 		obj["invited_by"] = member.invited_by.id
 	if member.promoted_by:
 		obj["promoted_by"] = member.promoted_by.id
@@ -239,41 +249,35 @@ def extract_chat_member(member:ChatMember):
 		obj["restricted_by"] = member.restricted_by.id
 	if member.is_member is not None:
 		obj["is_member"] = member.is_member
-	if member.is_anonymous:
-		obj["anonymous"] = member.is_anonymous
-	perms = [
-		"can_manage_chat", "can_post_messages", "can_edit_messages", "can_delete_messages",
-  		"can_restrict_members", "can_promote_members", "can_change_info", "can_invite_users",
-		"can_pin_messages", "can_manage_voice_chats",
-	
-		"can_send_messages", "can_send_media_messages", "can_send_stickers",
-		"can_send_animations", "can_send_games", "can_use_inline_bots",
-		"can_add_web_page_previews", "can_send_polls"
-	]
-	for perm in perms:
-		if hasattr(member, perm) and getattr(member, perm) is not None:
+	if member.privileges and member.privileges.is_anonymous:
+		obj["anonymous"] = member.privileges.is_anonymous
+	for perm in dir(member.privileges): # TODO there's probably a better way
+		if perm.startswith('_'):
+			continue
+		if hasattr(member.privileges, perm) and getattr(member.privileges, perm) is not None:
 			if "perms" not in obj:
 				obj["perms"] = {}
-			obj["perms"][perm] = getattr(member, perm)
+			obj["perms"][perm] = getattr(member.privileges, perm)
 	return obj
 
 def extract_member_update(update:ChatMemberUpdated):
-	obj = {
+	m = update.new_chat_member or update.old_chat_member
+	obj : Dict[str, Any] = {
 		"chat": update.chat.id,
-		"date": datetime.utcfromtimestamp(update.date),
-		"user": (update.new_chat_member or update.old_chat_member).user.id,
+		"date": update.date,
+		"user": m.user.id if m.user else None,
 		"performer": update.from_user.id,
 	}
 	if update.invite_link:
 		obj["invite"] = {
 			"url": update.invite_link.invite_link,
-			"created": datetime.utcfromtimestamp(update.invite_link.date),
+			"created": update.invite_link.date,
 			"primary": update.invite_link.is_primary,
 		}
 		if update.invite_link.creator:
 			obj["invite"]["creator"] = update.invite_link.creator.id
 		if update.invite_link.expire_date:
-			obj["invite"]["expires"] = datetime.utcfromtimestamp(update.invite_link.expire_date)
+			obj["invite"]["expires"] = update.invite_link.expire_date
 		if update.invite_link.member_limit:
 			obj["invite"]["use_limit"] = update.invite_link.member_limit
 		if update.invite_link.member_count:
@@ -283,7 +287,8 @@ def extract_member_update(update:ChatMemberUpdated):
 	elif update.new_chat_member and not update.old_chat_member:
 		obj["joined"] = extract_chat_member(update.new_chat_member)
 	elif update.new_chat_member and update.old_chat_member:
-		if update.old_chat_member.user.id != update.new_chat_member.user.id:
+		if update.old_chat_member.user and update.new_chat_member.user \
+		and update.old_chat_member.user.id != update.new_chat_member.user.id:
 			raise ValueError("Cannot serialize: new_chat_member.id different from old_chat_member.id")
 		obj["updated"] = extract_chat_member(update.new_chat_member)
 	else:

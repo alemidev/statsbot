@@ -262,7 +262,7 @@ class DatabaseDriver:
 		self.counter.edits()
 		doc = extract_edit_message(message)
 		await self.db.messages.find_one_and_update(
-			{"id": message.message_id, "chat": message.chat.id},
+			{"id": message.id, "chat": message.chat.id},
 			{"$push": {"edits":	doc} }, sort=[("date",-1)]
 		)
 
@@ -290,5 +290,4 @@ DRIVER = DatabaseDriver()
 
 @alemiBot.on_ready() # TODO make sure nothing
 async def register_db_connection(client:alemiBot):
-	client.logger.info("Setting up database driver")
 	await DRIVER.configure(client)

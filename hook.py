@@ -10,7 +10,7 @@ from .driver import DRIVER
 
 logger = logging.getLogger(__name__)
 
-@alemiBot.on_message(~filters.edited & ~filters.service, group=999999) # happen last and always!
+@alemiBot.on_message(~filters.service, group=999999) # happen last and always!
 async def log_message_hook(client:alemiBot, message:Message):
 	"""Log all new non-service messages"""
 	fname = None
@@ -19,7 +19,7 @@ async def log_message_hook(client:alemiBot, message:Message):
 	if DRIVER.log_messages:
 		await DRIVER.parse_message_event(message, file_name=fname)
 
-@alemiBot.on_message(filters.edited, group=999999)
+@alemiBot.on_edited_message(~filters.service, group=999999)
 async def log_edit_hook(_, message):
 	"""Log all message edits"""
 	if DRIVER.log_messages:
@@ -31,7 +31,7 @@ async def log_deleted_hook(_, deletions):
 	if DRIVER.log_messages:
 		await DRIVER.parse_deletion_event(deletions)
 
-@alemiBot.on_message(~filters.edited & filters.service, group=999999)
+@alemiBot.on_message(filters.service, group=999999)
 async def log_service_message_hook(_, message):
 	"""Log all service messages"""
 	if DRIVER.log_service:

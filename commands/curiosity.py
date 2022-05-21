@@ -5,6 +5,7 @@ from time import time
 from collections import Counter
 
 from pyrogram import filters
+from pyrogram.enums import ParseMode
 from pymongo import DESCENDING
 
 from alemibot import alemiBot
@@ -78,7 +79,7 @@ async def frequency_cmd(client:alemiBot, message:Message):
 	if group:
 		where = f"<b>{get_username(group)}</b>"
 	output = f"<code>→ </code> {where} {from_who} {extra}\n<code>→ </code> <b>{results}</b> most frequent words (<i>len > {min_len}</i>):\n"
-	msg = await edit_or_reply(message, output, parse_mode="html", disable_web_page_preview=True) # placeholder msg so we don't ping if usernames show up
+	msg = await edit_or_reply(message, output, parse_mode=ParseMode.HTML, disable_web_page_preview=True) # placeholder msg so we don't ping if usernames show up
 	# Iterate db
 	def process(text):
 		if replace_unicode:
@@ -102,7 +103,7 @@ async def frequency_cmd(client:alemiBot, message:Message):
 			stars -=1
 			if i >= results - 1:
 				break
-	await edit_or_reply(msg, output, parse_mode="html", disable_web_page_preview=True)
+	await edit_or_reply(msg, output, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
 
 @HELP.add(cmd="[<number>]", sudo=False)
 @alemiBot.on_message(is_allowed & filterCommand(["active"], options={
@@ -125,7 +126,7 @@ async def active_cmd(client:alemiBot, message:Message):
 	output = f"<code>→ </code> Active members in last <b>{sep(number)}</b> messages:\n"
 	if target_group.id != message.chat.id:
 		output = f"<code>→ </code> <b>{get_username(target_group)}</b>\n" + output
-	msg = await edit_or_reply(message, output, parse_mode="html", disable_web_page_preview=True) # Send a placeholder first to not mention everyone
+	msg = await edit_or_reply(message, output, parse_mode=ParseMode.HTML, disable_web_page_preview=True) # Send a placeholder first to not mention everyone
 	users = [] # using a set() would save me a "in" check but sets don't have order. I want most recently active members on top
 	query = {"chat":target_group.id}
 	with ProgressChatAction(client, message.chat.id) as prog:
@@ -137,4 +138,4 @@ async def active_cmd(client:alemiBot, message:Message):
 		output = ""
 		for usr in users:
 			output += f"<code> → </code> <b>{get_username(usr)}</b>\n"
-	await edit_or_reply(msg, output, parse_mode="html", disable_web_page_preview=True)
+	await edit_or_reply(msg, output, parse_mode=ParseMode.HTML, disable_web_page_preview=True)

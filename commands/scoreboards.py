@@ -9,6 +9,7 @@ from pymongo import ASCENDING
 
 from pyrogram.types import InputTextMessageContent, InlineQueryResultArticle, InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.errors import UserNotParticipant, PeerIdInvalid
+from pyrogram.enums import ParseMode
 
 from alemibot import alemiBot
 
@@ -112,7 +113,7 @@ async def stats_cmd(client:alemiBot, message:Message):
 		f"<code> → </code> You visited <b>{sep(max(visited_chats, partecipated_chats))}</b> chats\n" +
 		f"<code>  → </code> and partecipated in <b>{sep(partecipated_chats)}</b>\n" +
 		f"<code> → </code> First saw you <code>{oldest}</code>",
-		parse_mode="html", disable_web_page_preview=True
+		parse_mode=ParseMode.HTML, disable_web_page_preview=True
 	)
 
 @HELP.add(sudo=False)
@@ -174,7 +175,7 @@ async def group_stats_cmd(client:alemiBot, message:Message):
 		f"<code> → </code> Your group has <b>{sep(total_users)}</b> users\n" +
 		f"<code>  → </code> of these, <b>{sep(active_users)}</b> sent at least 1 message\n" +
 		f"<code> → </code> Started tracking this chat on <code>{oldest}</code>",
-		parse_mode="html", disable_web_page_preview=True
+		parse_mode=ParseMode.HTML, disable_web_page_preview=True
 	)
 
 
@@ -197,7 +198,7 @@ async def top_groups_cmd(client:alemiBot, message:Message):
 	results = int(message.command["results"] or 10)
 	offset = int(message.command["offset"] or 0)
 	out = "<code>→ </code> Most active groups\n"
-	msg = await edit_or_reply(message, out, parse_mode="html", disable_web_page_preview=True)
+	msg = await edit_or_reply(message, out, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
 	res = []
 	out = ""
 	with ProgressChatAction(client, message.chat.id) as prog:
@@ -220,7 +221,7 @@ async def top_groups_cmd(client:alemiBot, message:Message):
 			if count > offset + results:
 				break
 			out += f"<code> → </code> <b>{count}. {get_doc_username(doc)}</b> [<b>{sep(msgs)}</b>] {'☆'*(stars+1-count)}\n"
-	await edit_or_reply(msg, out, parse_mode="html", disable_web_page_preview=True)
+	await edit_or_reply(msg, out, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
 
 
 def user_index(scoreboard, uid):
@@ -258,7 +259,7 @@ async def top_messages_cmd(client:alemiBot, message:Message):
 		target_chat = await client.get_chat(tgt)
 	res = []
 	out = "<code>→ </code> Messages sent <b>globally</b>\n" if global_search else f"<code>→ </code> Messages sent in <b>{get_username(target_chat)}</b>\n"
-	msg = await edit_or_reply(message, out, parse_mode="html", disable_web_page_preview=True)
+	msg = await edit_or_reply(message, out, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
 	with ProgressChatAction(client, message.chat.id) as prog:
 		if global_search:
 			query : Dict[str, Any] = {"messages":{"$exists":1}}
@@ -288,7 +289,7 @@ async def top_messages_cmd(client:alemiBot, message:Message):
 				break
 			user_doc = await DRIVER.fetch_user(usr, client)
 			out += f"<code> → </code> <b>{count}. {get_doc_username(user_doc)}</b> [<b>{sep(msgs)}</b>] {'☆'*(stars+1-count)}\n"
-	await edit_or_reply(msg, out, parse_mode="html", disable_web_page_preview=True)
+	await edit_or_reply(msg, out, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
 
 @HELP.add(cmd="[<user>]", sudo=False)
 @alemiBot.on_message(is_allowed & filterCommand(["joindate", "joindates", "join_date"], options={
@@ -323,7 +324,7 @@ async def joindate_cmd(client:alemiBot, message:Message):
 		return await edit_or_reply(message, "<code>[!] → </code> Can't query join dates in private chat")
 	res = []
 	out = f"<code>→ </code> Join dates in <b>{get_username(target_chat)}</b>\n"
-	msg = await edit_or_reply(message, out, parse_mode="html", disable_web_page_preview=True)
+	msg = await edit_or_reply(message, out, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
 	with ProgressChatAction(client, message.chat.id) as prog:
 		members = await DRIVER.db.chats.find_one({"id":target_chat.id},{"_id":0,"messages":1})
 		members = [ int(k) for k in members["messages"].keys() if k.isnumeric() ] if "messages" in members else []
@@ -375,4 +376,4 @@ async def joindate_cmd(client:alemiBot, message:Message):
 			user_doc = await DRIVER.fetch_user(usr, client)
 			when = "CREATOR" if date < datetime(1970, 1, 1, 1, 0, 0) else str(date) # cheap fix for bots
 			out += f"<code> → </code> <b>{count}. {get_doc_username(user_doc)}</b> [<code>{when}</code>] {'☆'*(stars+1-count)}\n"
-	await edit_or_reply(msg, out, parse_mode="html", disable_web_page_preview=True)
+	await edit_or_reply(msg, out, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
