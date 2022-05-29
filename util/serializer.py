@@ -234,7 +234,7 @@ def extract_delete(deletions:Union[Message, List[Message]]):
 def extract_chat_member(member:ChatMember):
 	obj : Dict[str, Any] = {
 		"user": member.user.id if member.user else None,
-		"status": member.status,
+		"status": member.status._name_,  # TODO is this reliable?
 		"title": member.custom_title,
 	}
 	if member.until_date:
