@@ -8,7 +8,7 @@ import asyncio
 from datetime import datetime
 from pymongo import ASCENDING, DESCENDING, collection
 from pyrogram.errors import PeerIdInvalid, ChannelPrivate
-from pyrogram.enums import ParseMode
+from pyrogram.enums import ParseMode, ChatAction
 
 from alemibot import alemiBot
 
@@ -47,7 +47,7 @@ async def dbstats_cmd(client:alemiBot, message:Message):
 	Add flag `-count` to actually count entries (very slow with 1M+ entries!).
 	"""
 	full_count = bool(message.command["-count"])
-	with ProgressChatAction(client, message.chat.id, random=True) as prog:
+	with ProgressChatAction(client, message.chat.id, action=ChatAction.IMPORT_HISTORY) as prog:
 		oldest_msg = await DRIVER.db.messages.find_one({"date":{"$ne":None}}, sort=[("date", ASCENDING)])
 		msg_count = sep(await _run_count(DRIVER.db.messages, full_count))
 		user_count = sep(await _run_count(DRIVER.db.users, full_count))
