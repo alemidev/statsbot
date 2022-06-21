@@ -20,5 +20,5 @@ def get_doc_username(doc:dict, mention=True) -> str:
 			return f"<a href=https://t.me/{doc['username']}>{doc['title']}</a>"
 		return doc["title"]
 	if "id" in doc:
-		return str(doc["id"])
-	return None
+		return f"<s>{str(doc['id'])}</s>"
+	return ""

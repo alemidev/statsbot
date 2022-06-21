@@ -11,7 +11,7 @@ from pymongo import ASCENDING, DESCENDING, MongoClient
 
 from pyrogram import Client
 from pyrogram.types import Message, User, ChatMemberUpdated
-from pyrogram.errors import PeerIdInvalid
+from pyrogram.errors import PeerIdInvalid, ChannelPrivate
 from pyrogram.enums import ChatType
 
 from alemibot import alemiBot
@@ -200,8 +200,27 @@ class DatabaseDriver:
 			try:
 				usr = extract_user(await client.get_users(uid))
 				await self.db.users.insert_one(usr)
-			except PeerIdInvalid:
+			except (PeerIdInvalid, ChannelPrivate):
 				return {"id":uid}
+			except (ServerSelectionTimeoutError, DuplicateKeyError):
+				pass # ignore, usr has been set anyway
+		return usr
+
+	async def fetch_chat(self, cid:int, client:Client = None) -> dict:
+		"""get a chat from db or telegram
+
+		Try to fetch a chat from database and, if missing, fetch it from telegram and insert it.
+		Needs a client instance to fetch from telegram missing chats.
+		"""
+		usr = await self.db.chats.find_one({"id":cid})
+		if not usr:
+			if not client:
+				return {"id":cid}
+			try:
+				usr = extract_user(await client.get_chat(cid))
+				await self.db.users.insert_one(usr)
+			except (PeerIdInvalid, ChannelPrivate):
+				return {"id":cid}
 			except (ServerSelectionTimeoutError, DuplicateKeyError):
 				pass # ignore, usr has been set anyway
 		return usr

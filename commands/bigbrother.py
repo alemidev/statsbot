@@ -423,17 +423,13 @@ async def deleted_cmd(client:alemiBot, message:Message): # This is a mess omg
 	out = ""
 	with ProgressChatAction(client, message.chat.id) as prog:
 		async for doc in cursor:
+			usr = await (DRIVER.fetch_chat(doc["user"]) if doc["user"] < 0 else DRIVER.fetch_user(doc["user"]))
+			if not message.command["-bots"] and doc["user"] > 0 and usr['flags']['bot']:
+				continue
 			if offset > 0:
 				offset -=1
 				continue
-			author = f"<s>{doc['user']}</s>"
-			try: # TODO completely rely on database!
-				usr = await (client.get_chat(doc["user"]) if doc["user"] < 0 else client.get_users(doc["user"]))
-				if not message.command["-bots"] and doc["user"] > 0 and usr.is_bot:
-					continue
-				author = get_username(usr)
-			except (PeerIdInvalid, ChannelPrivate):
-				pass # ignore, sometimes we can't lookup users
+			author = get_doc_username(usr)
 			if doc["chat"] not in chat_cache: # cache since this causes floodwaits!
 				chat_cache[doc["chat"]] = await client.get_chat(doc["chat"])
 			out += LINE.format(
