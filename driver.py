@@ -214,20 +214,20 @@ class DatabaseDriver:
 		Try to fetch a chat from database and, if missing, fetch it from telegram and insert it.
 		Needs a client instance to fetch from telegram missing chats.
 		"""
-		usr = await self.db.chats.find_one({"id":cid})
-		if not usr:
+		chat = await self.db.chats.find_one({"id":cid})
+		if not chat:
 			if not client:
 				return {"id":cid}
 			try:
-				usr = extract_user(await client.get_chat(cid))
-				await self.db.users.insert_one(usr)
+				chat = extract_chat(await client.get_chat(cid))
+				await self.db.users.insert_one(chat)
 			except (PeerIdInvalid, ChannelPrivate) as e:
 				logger.warning("Could not fetch chat %d from db : %s", cid, str(e))
 				return {"id":cid}
 			except (ServerSelectionTimeoutError, DuplicateKeyError) as e:
 				logger.warning("Could not fetch chat %d from db : %s", cid, str(e))
-				pass # ignore, usr has been set anyway
-		return usr
+				pass # ignore, chat has been set anyway
+		return chat
 
 	@_log_error_event
 	async def log_raw_event(self, event:Any):
