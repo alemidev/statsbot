@@ -200,9 +200,11 @@ class DatabaseDriver:
 			try:
 				usr = extract_user(await client.get_users(uid))
 				await self.db.users.insert_one(usr)
-			except (PeerIdInvalid, ChannelPrivate):
+			except (PeerIdInvalid, ChannelPrivate) as e:
+				logger.warning("Could not fetch user %d from Telegram : %s", uid, str(e))
 				return {"id":uid}
-			except (ServerSelectionTimeoutError, DuplicateKeyError):
+			except (ServerSelectionTimeoutError, DuplicateKeyError) as e:
+				logger.warning("Could not fetch user %d from db : %s", uid, str(e))
 				pass # ignore, usr has been set anyway
 		return usr
 
@@ -219,9 +221,11 @@ class DatabaseDriver:
 			try:
 				usr = extract_user(await client.get_chat(cid))
 				await self.db.users.insert_one(usr)
-			except (PeerIdInvalid, ChannelPrivate):
+			except (PeerIdInvalid, ChannelPrivate) as e:
+				logger.warning("Could not fetch chat %d from db : %s", cid, str(e))
 				return {"id":cid}
-			except (ServerSelectionTimeoutError, DuplicateKeyError):
+			except (ServerSelectionTimeoutError, DuplicateKeyError) as e:
+				logger.warning("Could not fetch chat %d from db : %s", cid, str(e))
 				pass # ignore, usr has been set anyway
 		return usr
 
