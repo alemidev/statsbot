@@ -432,7 +432,7 @@ async def deleted_cmd(client:alemiBot, message:Message): # This is a mess omg
 				if not message.command["-bots"] and doc["user"] > 0 and usr.is_bot:
 					continue
 				author = get_username(usr)
-			except PeerIdInvalid:
+			except (PeerIdInvalid, ChannelPrivate):
 				pass # ignore, sometimes we can't lookup users
 			if doc["chat"] not in chat_cache: # cache since this causes floodwaits!
 				chat_cache[doc["chat"]] = await client.get_chat(doc["chat"])
