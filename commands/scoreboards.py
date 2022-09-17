@@ -9,7 +9,7 @@ from pymongo import ASCENDING
 
 from pyrogram.types import InputTextMessageContent, InlineQueryResultArticle, InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.errors import UserNotParticipant, PeerIdInvalid
-from pyrogram.enums import ParseMode
+from pyrogram.enums import ParseMode, ChatType
 
 from alemibot import alemiBot
 
@@ -134,7 +134,7 @@ async def group_stats_cmd(client:alemiBot, message:Message):
 	if len(message.command) > 0 and sudo(client, message):
 		group = await client.get_chat(int(message.command[0])
 				if message.command[0].isnumeric() else message.command[0])
-	if group.type not in ("group", "supergroup"):
+	if group.type not in (ChatType.GROUP, ChatType.SUPERGROUP):
 		return await edit_or_reply(message, "`[!] → ` Group stats available only in groups and supergroups")
 	with ProgressChatAction(client, message.chat.id) as prog:
 		group_doc = await DRIVER.db.chats.find_one({"id":group.id, "messages":{"$exists":1}}, {"_id":0, "id":1, "messages":1})
