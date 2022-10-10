@@ -424,7 +424,7 @@ async def deleted_cmd(client:alemiBot, message:Message): # This is a mess omg
 	with ProgressChatAction(client, message.chat.id) as prog:
 		async for doc in cursor:
 			usr = await (DRIVER.fetch_chat(doc["user"], client) if doc["user"] < 0 else DRIVER.fetch_user(doc["user"], client))
-			if not message.command["-bots"] and doc["user"] > 0 and 'flags' in usr and usr['flags']['bot']:
+			if not message.command["-bots"] and doc["user"] > 0 and 'flags' in usr and 'bot' in usr['flags'] and usr['flags']['bot']: # TODO my db is messed up, fix my entries so that I can make less checks
 				continue
 			if offset > 0:
 				offset -=1
