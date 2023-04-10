@@ -254,7 +254,8 @@ def extract_chat_member(member:ChatMember):
 	for perm in dir(member.privileges): # TODO there's probably a better way
 		if perm.startswith('_'):
 			continue
-		if hasattr(member.privileges, perm) and getattr(member.privileges, perm) is not None:
+		if hasattr(member.privileges, perm) \
+		and isinstance(getattr(member.privileges, perm), bool):
 			if "perms" not in obj:
 				obj["perms"] = {}
 			obj["perms"][perm] = getattr(member.privileges, perm)
