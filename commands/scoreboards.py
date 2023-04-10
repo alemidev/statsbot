@@ -327,6 +327,8 @@ async def joindate_cmd(client:alemiBot, message:Message):
 	msg = await edit_or_reply(message, out, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
 	with ProgressChatAction(client, message.chat.id) as prog:
 		members = await DRIVER.db.chats.find_one({"id":target_chat.id},{"_id":0,"messages":1})
+		if members is None:
+			return await edit_or_reply(msg, "<code>[!] → </code> This group has not been indexed yet")
 		members = [ int(k) for k in members["messages"].keys() if k.isnumeric() ] if "messages" in members else []
 		for uid in members:
 			event = await DRIVER.db.members.find_one(
